@@ -20,12 +20,12 @@ int main(int argc, char *argv[]) {
 
     ElfHandler elfHandler;
     ElfSegmentHandler *dataSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ);
-    ElfSegmentHandler *textSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ | ELF_SEGMENT_FLAG_EXECUTE,true);
+    ElfSegmentHandler *textSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ | ELF_SEGMENT_FLAG_EXECUTE, true);
 
     pushWord(dataSeg, 0x0000000f, elfHandler.isLSB());
-    MOVaddr32(textSeg, elfHandler.VirtAddr32 + sizeof(elfHdr32) + sizeof(segmentHdr32)*2);
-    MOV32(textSeg,"eBX",0x00000001);
-    XCHG_eAX(textSeg,"eBX");
+    MOVeaxAddr32(textSeg, elfHandler.VirtAddr32 + sizeof(elfHdr32) + sizeof(segmentHdr32) * 2);
+    MOV32(textSeg, "eBX", 0x00000001);
+    XCHG_eAX(textSeg, "eBX");
     SYSCALL(textSeg);
 
     elfHandler.push_to(outFile);

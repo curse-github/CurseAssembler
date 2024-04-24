@@ -1,6 +1,7 @@
+#include "globalConstants.h"
+
 #include <string.h>
 
-#include "globalConstants.h"
 #include "intelConstants.h"
 
 #pragma region helper functions
@@ -47,7 +48,7 @@ void pushDword(std::ofstream &stream, const unsigned long &dword, const bool &LS
 void pushDword(std::vector<unsigned char> &vector, const unsigned long &dword, const bool &LSB) {
     pushChars(vector, static_cast<const unsigned char *>(static_cast<const void *>(&dword)), sizeof(dword), LSB);
 }
-#pragma endregion// helper functions
+#pragma endregion  // helper functions
 
 #pragma region instructions
 
@@ -61,6 +62,22 @@ unsigned char RegToOffset(const char *reg) {
         offset = INTEL_REG_OFF_D;
     else if (strcmp(reg, "eBX") == 0)
         offset = INTEL_REG_OFF_B;
+    else {
+        std::cout << "Invalid register." << std::endl;
+        return 150;
+    }
+    return offset;
+}
+unsigned char RegToModRM(const char *reg) {
+    unsigned char offset = 0;
+    if (strcmp(reg, "eAX") == 0)
+        offset = INTEL_ModRM_REG_eAX;
+    else if (strcmp(reg, "eCX") == 0)
+        offset = INTEL_ModRM_REG_eCX;
+    else if (strcmp(reg, "eDX") == 0)
+        offset = INTEL_ModRM_REG_eDX;
+    else if (strcmp(reg, "eBX") == 0)
+        offset = INTEL_ModRM_REG_eBX;
     else {
         std::cout << "Invalid register." << std::endl;
         return 150;
@@ -90,12 +107,20 @@ void XCHG_eAX(std::vector<unsigned char> &vector, const char *reg) {
     pushByte(vector, INTEL_INSTR_XCHG_eAX_REG + RegToOffset(reg), false);
 }
 
-void MOVaddr32(std::vector<unsigned char> &vector, const unsigned int &addr, const bool &LSB) {
+void MOVeaxAddr32(std::vector<unsigned char> &vector, const unsigned int &addr, const bool &LSB) {
     pushByte(vector, INTEL_INSTR_MOV_REG_eAX_Ov, false);
     pushWord(vector, addr, LSB);
 }
-void MOVaddr64(std::vector<unsigned char> &vector, const unsigned long &addr, const bool &LSB) {
+void MOVeaxAddr64(std::vector<unsigned char> &vector, const unsigned long &addr, const bool &LSB) {
     pushByte(vector, INTEL_INSTR_MOV_REG_eAX_Ov, false);
+    pushDword(vector, addr, LSB);
+}
+void MOVaddrEax32(std::vector<unsigned char> &vector, const unsigned int &addr, const bool &LSB) {
+    pushByte(vector, INTEL_INSTR_MOV_REG_Ov_eAX, false);
+    pushWord(vector, addr, LSB);
+}
+void MOVaddrEax64(std::vector<unsigned char> &vector, const unsigned long &addr, const bool &LSB) {
+    pushByte(vector, INTEL_INSTR_MOV_REG_Ov_eAX, false);
     pushDword(vector, addr, LSB);
 }
 void MOV32(std::vector<unsigned char> &vector, const char *reg, const unsigned int &value, const bool &LSB) {
@@ -116,9 +141,8 @@ void INT(std::vector<unsigned char> &vector, unsigned char value) {
 }
 void SYSCALL(std::vector<unsigned char> &vector, const bool &isLinux) {
     if (isLinux) {
-        INT(vector,0x80);
+        INT(vector, 0x80);
     } else {
-        
     }
 }
 void JMP32(std::vector<unsigned char> &vector, unsigned int value, const bool &LSB) {
@@ -134,4 +158,4 @@ void JMPoffset(std::vector<unsigned char> &vector, unsigned char value) {
     pushByte(vector, value, false);
 }
 
-#pragma endregion// instructions
+#pragma endregion  // instructions
