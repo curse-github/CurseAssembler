@@ -1,3 +1,6 @@
+#ifndef _INTEL_CONSTANTS_H
+#define _INTEL_CONSTANTS_H
+
 #define INTEL_ModRM_REG_eAX 0b00000000
 #define INTEL_ModRM_REG_eCX 0b00001000
 #define INTEL_ModRM_REG_eDX 0b00010000
@@ -8,8 +11,6 @@
 #define INTEL_ModRM_Mod_1byteDisplacement 0b01000000
 #define INTEL_ModRM_Mod_4byteDisplacement 0b10000000
 #define INTEL_ModRM_Mod_Reg 0b11000000
-
-#pragma region instructions
 
 #define INTEL_REG_OFF_A 0
 #define INTEL_REG_OFF_C 1
@@ -33,4 +34,5 @@
 #define INTEL_INSTR_JMP_Jb 0xEB
 // #define INTEL_INSTR_ 0x00
 
-#pragma endregion  // instructions
+
+#endif// _INTEL_CONSTANTS_H

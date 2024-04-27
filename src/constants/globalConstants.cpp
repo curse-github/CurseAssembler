@@ -1,7 +1,7 @@
-#include "globalConstants.h"
-
 #include <string.h>
+#include <iostream>
 
+#include "globalConstants.h"
 #include "intelConstants.h"
 
 #pragma region helper functions
@@ -21,11 +21,11 @@ void pushChars(std::vector<unsigned char> &vector, const unsigned char *chars, u
         for (char i = len - 1; i >= 0; i--) vector.push_back(chars[i]);
 }
 
-void pushByte(std::ofstream &stream, const unsigned char &byte, const bool &LSB) {
-    pushChars(stream, &byte, 1, LSB);
+void pushByte(std::ofstream &stream, const unsigned char &byte) {
+    pushChars(stream, &byte, 1, false);
 }
-void pushByte(std::vector<unsigned char> &vector, const unsigned char &byte, const bool &LSB) {
-    pushChars(vector, &byte, 1, LSB);
+void pushByte(std::vector<unsigned char> &vector, const unsigned char &byte) {
+    pushChars(vector, &byte, 1, false);
 }
 
 void pushHalfWord(std::ofstream &stream, const unsigned short &halfword, const bool &LSB) {
@@ -51,7 +51,6 @@ void pushDword(std::vector<unsigned char> &vector, const unsigned long &dword, c
 #pragma endregion  // helper functions
 
 #pragma region instructions
-
 unsigned char RegToOffset(const char *reg) {
     unsigned char offset = 0;
     if (strcmp(reg, "eAX") == 0)
@@ -63,7 +62,7 @@ unsigned char RegToOffset(const char *reg) {
     else if (strcmp(reg, "eBX") == 0)
         offset = INTEL_REG_OFF_B;
     else {
-        std::cout << "Invalid register." << std::endl;
+        std::cout << "Invalid register: \"" << reg << "\"." << std::endl;
         return 150;
     }
     return offset;
@@ -85,59 +84,59 @@ unsigned char RegToModRM(const char *reg) {
     return offset;
 }
 void INC(std::vector<unsigned char> &vector, const char *reg) {
-    pushByte(vector, INTEL_INSTR_INC_REG + RegToOffset(reg), false);
+    pushByte(vector, INTEL_INSTR_INC_REG + RegToOffset(reg));
 }
 void DEC(std::vector<unsigned char> &vector, const char *reg) {
-    pushByte(vector, INTEL_INSTR_DEC_REG + RegToOffset(reg), false);
+    pushByte(vector, INTEL_INSTR_DEC_REG + RegToOffset(reg));
 }
 void PUSH(std::vector<unsigned char> &vector, const char *reg) {
-    pushByte(vector, INTEL_INSTR_PUSH_REG + RegToOffset(reg), false);
+    pushByte(vector, INTEL_INSTR_PUSH_REG + RegToOffset(reg));
 }
 void PUSH(std::vector<unsigned char> &vector, unsigned int value, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_PUSH_Iv, false);
+    pushByte(vector, INTEL_INSTR_PUSH_Iv);
     pushWord(vector, value, LSB);
 }
 void POP(std::vector<unsigned char> &vector, const char *reg) {
-    pushByte(vector, INTEL_INSTR_POP_REG + RegToOffset(reg), false);
+    pushByte(vector, INTEL_INSTR_POP_REG + RegToOffset(reg));
 }
 void NOP(std::vector<unsigned char> &vector) {
-    pushByte(vector, INTEL_INSTR_NOP, false);
+    pushByte(vector, INTEL_INSTR_NOP);
 }
 void XCHG_eAX(std::vector<unsigned char> &vector, const char *reg) {
-    pushByte(vector, INTEL_INSTR_XCHG_eAX_REG + RegToOffset(reg), false);
+    pushByte(vector, INTEL_INSTR_XCHG_eAX_REG + RegToOffset(reg));
 }
 
 void MOVeaxAddr32(std::vector<unsigned char> &vector, const unsigned int &addr, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_eAX_Ov, false);
+    pushByte(vector, INTEL_INSTR_MOV_REG_eAX_Ov);
     pushWord(vector, addr, LSB);
 }
 void MOVeaxAddr64(std::vector<unsigned char> &vector, const unsigned long &addr, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_eAX_Ov, false);
+    pushByte(vector, INTEL_INSTR_MOV_REG_eAX_Ov);
     pushDword(vector, addr, LSB);
 }
 void MOVaddrEax32(std::vector<unsigned char> &vector, const unsigned int &addr, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_Ov_eAX, false);
+    pushByte(vector, INTEL_INSTR_MOV_REG_Ov_eAX);
     pushWord(vector, addr, LSB);
 }
 void MOVaddrEax64(std::vector<unsigned char> &vector, const unsigned long &addr, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_Ov_eAX, false);
+    pushByte(vector, INTEL_INSTR_MOV_REG_Ov_eAX);
     pushDword(vector, addr, LSB);
 }
 void MOV32(std::vector<unsigned char> &vector, const char *reg, const unsigned int &value, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_Iv + RegToOffset(reg), false);
+    pushByte(vector, INTEL_INSTR_MOV_REG_Iv + RegToOffset(reg));
     pushWord(vector, value, LSB);
 }
 void MOV8_low(std::vector<unsigned char> &vector, const char *reg, const unsigned char &value) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_Ib_Low + RegToOffset(reg), false);
-    pushByte(vector, value, false);
+    pushByte(vector, INTEL_INSTR_MOV_REG_Ib_Low + RegToOffset(reg));
+    pushByte(vector, value);
 }
 void MOV8_high(std::vector<unsigned char> &vector, const char *reg, const unsigned char &value) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_Ib_Low + RegToOffset(reg), false);
-    pushByte(vector, value, false);
+    pushByte(vector, INTEL_INSTR_MOV_REG_Ib_Low + RegToOffset(reg));
+    pushByte(vector, value);
 }
 void INT(std::vector<unsigned char> &vector, unsigned char value) {
-    pushByte(vector, INTEL_INSTR_INT_Ib, false);
-    pushByte(vector, value, false);
+    pushByte(vector, INTEL_INSTR_INT_Ib);
+    pushByte(vector, value);
 }
 void SYSCALL(std::vector<unsigned char> &vector, const bool &isLinux) {
     if (isLinux) {
@@ -146,16 +145,16 @@ void SYSCALL(std::vector<unsigned char> &vector, const bool &isLinux) {
     }
 }
 void JMP32(std::vector<unsigned char> &vector, unsigned int value, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_JMP_Ap, false);
+    pushByte(vector, INTEL_INSTR_JMP_Ap);
     pushWord(vector, value, LSB);
 }
 void JMP64(std::vector<unsigned char> &vector, unsigned long value, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_JMP_Ap, false);
+    pushByte(vector, INTEL_INSTR_JMP_Ap);
     pushDword(vector, value, LSB);
 }
 void JMPoffset(std::vector<unsigned char> &vector, unsigned char value) {
-    pushByte(vector, INTEL_INSTR_JMP_Jb, false);
-    pushByte(vector, value, false);
+    pushByte(vector, INTEL_INSTR_JMP_Jb);
+    pushByte(vector, value);
 }
 
 #pragma endregion  // instructions
