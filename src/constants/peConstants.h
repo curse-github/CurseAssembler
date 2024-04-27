@@ -7,6 +7,7 @@
 // learn.microsoft.com/en-us/windows/win32/debug/pe-format#machine-types
 #define IMAGE_FILE_MACHINE_UNKNOWN 0x0  // usually assumed to apply to any platform
 #define IMAGE_FILE_MACHINE_AMD64 0x8664
+#define IMAGE_FILE_MACHINE_I386 0x014c   // Intel 386 or later processors and compatible processors
 #define IMAGE_FILE_MACHINE_ARM 0x1c0     // little endian
 #define IMAGE_FILE_MACHINE_ARM64 0xaa64  // little endian
 #define IMAGE_FILE_MACHINE_RISKV32 0x5032
@@ -39,8 +40,9 @@
 // learn.microsoft.com/en-us/windows/win32/debug/pe-format DLL Characteristics
 
 // https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#section-flags
-#define IMAGE_SCN_CNT_INITIALIZED_DATA 0x00000040
-#define IMAGE_SCN_CNT_UNINITIALIZED_DATA 0x00000080
+// section flags or characteristics
+#define IMAGE_SCN_CNT_INITIALIZED_DATA 0x00000040// contains initialized data
+#define IMAGE_SCN_CNT_UNINITIALIZED_DATA 0x00000080// contains uninitialized data
 #define IMAGE_SCN_ALIGN_1BYTES 0x00100000
 #define IMAGE_SCN_ALIGN_2BYTES 0x00200000
 #define IMAGE_SCN_ALIGN_4BYTES 0x00300000

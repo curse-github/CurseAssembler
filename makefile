@@ -1,5 +1,7 @@
-./small.out: ./assembler.out
-	./assembler.out small
+Win32: ./assembler.out
+	./assembler.out Win32 small
+Linux: ./assembler.out
+	./assembler.out Linux small
 	chmod 777 ./small.out
 ./assembler.out: makeBin ./bin/globalConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o
 	g++ -g ./bin/globalConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o -I ./src/constants -o ./assembler.out
@@ -18,3 +20,4 @@ clean:
 	-rm -rf ./bin
 	-rm ./assembler.out
 	-rm ./small.out
+	-rm ./small.exe

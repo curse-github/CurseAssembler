@@ -8,10 +8,13 @@
 
 #include <vector>
 
+#define PE_IS_LSB true
+
 // #include "PE/winnt.h"
 #include "globalConstants.h"
 #include "peConstants.h"
 
+#pragma region structs
 struct peHdr32 {  // 22 bytes
     unsigned char p_magic[4];
     unsigned short p_machine;
@@ -26,13 +29,23 @@ struct peHdr32 {  // 22 bytes
         p_magic[1] = 'E';
         p_magic[2] = '\0';
         p_magic[3] = '\0';
-        p_machine = IMAGE_FILE_MACHINE_AMD64;
-        p_numberOfSections = 0;  // currently unknown
+        p_machine = IMAGE_FILE_MACHINE_I386;
+        p_numberOfSections = 0;  // currently unknown v
         p_timeDateStamp = time(0);
         p_pointerToSymbolTable = 0;  // currently unknown
         p_numberOfSymbols = 0;       // currently unknown
-        p_sizeOfOptionalHeader = 0;  // currently unknown
+        p_sizeOfOptionalHeader = 0;  // currently unknown v
         p_characteristics = IMAGE_FILE_CHARACTERISTIC_EXECUTABLE_IMAGE | IMAGE_FILE_CHARACTERISTIC_32BIT_MACHINE;
+    }
+    void push(std::ofstream &stream) {
+        pushChars(stream,p_magic,4,PE_IS_LSB);
+        pushHalfWord(stream,p_machine,PE_IS_LSB);
+        pushHalfWord(stream,p_numberOfSections,PE_IS_LSB);
+        pushWord(stream,p_timeDateStamp,PE_IS_LSB);
+        pushWord(stream,p_pointerToSymbolTable,PE_IS_LSB);
+        pushWord(stream,p_numberOfSymbols,PE_IS_LSB);
+        pushHalfWord(stream,p_sizeOfOptionalHeader,PE_IS_LSB);
+        pushHalfWord(stream,p_characteristics,PE_IS_LSB);
     }
 };
 
@@ -50,14 +63,25 @@ struct peOptHdrStdFields32 {  // 24 bytes
     unsigned int p_baseOfData;  // virtual address??
     peOptHdrStdFields32() {
         p_magic = IMAGE_FILE_MAGIC32;
-        p_majorLinkerVersion = 0;
-        p_minorLinkerVersion = 0;
-        p_sizeOfCode = 0;               // currently unknown
-        p_sizeOfInitializedData = 0;    // currently unknown
-        p_sizeOfUninitializedData = 0;  // currently unknown
-        p_addressOfEntryPoint = 0;      // currently unknown
-        p_baseOfCode = 0;               // currently unknown
-        p_baseOfData = 0;               // currently unknown
+        p_majorLinkerVersion = 0x02;
+        p_minorLinkerVersion = 0x19;
+        p_sizeOfCode = 0;               // currently unknown v
+        p_sizeOfInitializedData = 0;    // currently unknown v
+        p_sizeOfUninitializedData = 0;  // currently unknown v
+        p_addressOfEntryPoint = 0;      // currently unknown v?
+        p_baseOfCode = 0;               // currently unknown v
+        p_baseOfData = 0;               // currently unknown v?
+    }
+    void push(std::ofstream &stream) {
+        pushHalfWord(stream,p_magic,PE_IS_LSB);
+        pushByte(stream,p_majorLinkerVersion);
+        pushByte(stream,p_minorLinkerVersion);
+        pushWord(stream,p_sizeOfCode,PE_IS_LSB);
+        pushWord(stream,p_sizeOfInitializedData,PE_IS_LSB);
+        pushWord(stream,p_sizeOfUninitializedData,PE_IS_LSB);
+        pushWord(stream,p_addressOfEntryPoint,PE_IS_LSB);
+        pushWord(stream,p_baseOfCode,PE_IS_LSB);
+        pushWord(stream,p_baseOfData,PE_IS_LSB);
     }
 };
 /*struct peOptHdrStdFields64 {// 28 bytes
@@ -81,7 +105,7 @@ struct peOptHdrSpecFields32 {
     unsigned short p_minorImageVersion;
     unsigned short p_majorSubsystemVersion;
     unsigned short p_minorSubsystemVersion;
-    unsigned short p_win32VersionValue;  // must always be 0
+    unsigned int p_win32VersionValue;  // must always be 0
     // must be multiple of p_sectionAlignment
     unsigned int p_sizeOfImage;
     // size of MS-DOS stub, PE header, optional header, and all section headers
@@ -95,19 +119,20 @@ struct peOptHdrSpecFields32 {
     unsigned int p_sizeOfHeapReserve;
     unsigned int p_sizeOfHeapCommit;
     unsigned int p_loaderFlags;  // must always be 0
-    unsigned int p_numberOfRvaAndSizes;
+    unsigned int p_numberAndSizeOfDataDirs;
     peOptHdrSpecFields32() {
         p_imageBase = VirtAddr32;
         p_sectionAlignment = Align32;
         p_fileAlignment = Align32;
-        p_majorOperatingSystemVersion = 0;
+        p_majorOperatingSystemVersion = 5;
         p_minorOperatingSystemVersion = 0;
-        p_majorImageVersion = 0;
+        p_majorImageVersion = 6;
         p_minorImageVersion = 0;
-        p_majorSubsystemVersion = 0;
+        p_majorSubsystemVersion = 5;
         p_minorSubsystemVersion = 0;
         p_win32VersionValue = 0;  // must always be 0
-        p_sizeOfHeaders = 0;      // currently unknown
+        p_sizeOfImage = 0;        // currently unknown v
+        p_sizeOfHeaders = 0;      // currently unknown v
         p_checkSum = 0;           // currently unknown
         p_subSystem = IMAGE_SUBSYSTEM_WINDOWS_CUI;
         p_dllCharacteristics = 0;
@@ -116,7 +141,30 @@ struct peOptHdrSpecFields32 {
         p_sizeOfHeapReserve = 0;    // currently unknown
         p_sizeOfHeapCommit = 0;     // currently unknown
         p_loaderFlags = 0;          // must always be 0
-        p_numberOfRvaAndSizes = 0;  // currently unknown
+        p_numberAndSizeOfDataDirs = 0;
+    }
+    void push(std::ofstream &stream) {
+        pushWord(stream,p_imageBase,PE_IS_LSB);
+        pushWord(stream,p_sectionAlignment,PE_IS_LSB);
+        pushWord(stream,p_fileAlignment,PE_IS_LSB);
+        pushHalfWord(stream,p_majorOperatingSystemVersion,PE_IS_LSB);
+        pushHalfWord(stream,p_minorOperatingSystemVersion,PE_IS_LSB);
+        pushHalfWord(stream,p_majorImageVersion,PE_IS_LSB);
+        pushHalfWord(stream,p_minorImageVersion,PE_IS_LSB);
+        pushHalfWord(stream,p_majorSubsystemVersion,PE_IS_LSB);
+        pushHalfWord(stream,p_minorSubsystemVersion,PE_IS_LSB);
+        pushWord(stream,p_win32VersionValue,PE_IS_LSB);
+        pushWord(stream,p_sizeOfImage,PE_IS_LSB);
+        pushWord(stream,p_sizeOfHeaders,PE_IS_LSB);
+        pushWord(stream,p_checkSum,PE_IS_LSB);
+        pushHalfWord(stream,p_subSystem,PE_IS_LSB);
+        pushHalfWord(stream,p_dllCharacteristics,PE_IS_LSB);
+        pushWord(stream,p_sizeOfStackReserve,PE_IS_LSB);
+        pushWord(stream,p_sizeOfStackCommit,PE_IS_LSB);
+        pushWord(stream,p_sizeOfHeapReserve,PE_IS_LSB);
+        pushWord(stream,p_sizeOfHeapCommit,PE_IS_LSB);
+        pushWord(stream,p_loaderFlags,PE_IS_LSB);
+        pushWord(stream,p_numberAndSizeOfDataDirs,PE_IS_LSB);
     }
 };
 /*struct peOptHdrSpecFields64 {
@@ -169,7 +217,7 @@ struct peOptHdrDataDirs32 {
         p_baseRelocationTable = 0;    // currently unknown
         p_debug = 0;                  // currently unknown
         p_architecture = 0;           // must always be 0
-        p_globalPtr = 0;              // ??????
+        p_globalPtr = 0x00000000;              // ??????
         p_TlsTable = 0;               // currently unknown
         p_loadConfigTable = 0;        // currently unknown
         p_boundImport = 0;            // currently unknown
@@ -178,40 +226,129 @@ struct peOptHdrDataDirs32 {
         p_ClrRuntimeHeader = 0;       // currently unknown
         p_zero = 0;                   // must always be 0
     }
+    void push(std::ofstream &stream) {
+        pushDword(stream,p_exportTable,PE_IS_LSB);
+        pushDword(stream,p_importTable,PE_IS_LSB);
+        pushDword(stream,p_resourceTable,PE_IS_LSB);
+        pushDword(stream,p_exceptionTable,PE_IS_LSB);
+        pushDword(stream,p_certificateTable,PE_IS_LSB);
+        pushDword(stream,p_baseRelocationTable,PE_IS_LSB);
+        pushDword(stream,p_debug,PE_IS_LSB);
+        pushDword(stream,p_architecture,PE_IS_LSB);
+        pushDword(stream,p_globalPtr,PE_IS_LSB);
+        pushDword(stream,p_TlsTable,PE_IS_LSB);
+        pushDword(stream,p_loadConfigTable,PE_IS_LSB);
+        pushDword(stream,p_boundImport,PE_IS_LSB);
+        pushDword(stream,p_IAT,PE_IS_LSB);
+        pushDword(stream,p_delayImportDescriptor,PE_IS_LSB);
+        pushDword(stream,p_ClrRuntimeHeader,PE_IS_LSB);
+        pushDword(stream,p_zero,PE_IS_LSB);
+    }
 };
 
 // section tables
 
 struct peSectionHdr {
     char s_name[8];
-    unsigned int s_virtualSize;
-    unsigned int s_virtualAddress;
-    unsigned int s_rawDataSize;
+    unsigned int s_virtualSize;     // size in memory, invalid for object files
+    unsigned int s_virtualAddress;  // virtual address in memory, invalid for object files
+    // must be multiple of file alignment
+    unsigned int s_rawDataSize;  // size in file
+    // must be multiple of file alignment
+    // if section contains only uninitialized data, this should be set to 0
     unsigned int s_rawDataPointer;
-    unsigned int s_relocationsPointer;  // ignore unless object file
-    unsigned int s_lineNumbersPointer;
-    unsigned short s_numberOfRelocations;
-    unsigned short s_numberOfLongNumbers;
+    unsigned int s_relocationsPointer;     // invalid for image file
+    unsigned int s_lineNumbersPointer;     // invalid for image file
+    unsigned short s_numberOfRelocations;  // invalid for image file
+    unsigned short s_numberOfLineNumbers;  // invalid for image file
     unsigned int s_characteristics;
     peSectionHdr(const char name[8], unsigned int characteristics) {
         for (unsigned int i = 0; i < 8; i++) s_name[i]=name[i];
-        s_virtualSize = 0;  // currently unknown
+        s_virtualSize = 0;     // currently unknown
         s_virtualAddress = 0;  // currently unknown
-        s_rawDataSize = 0;  // currently unknown
+        s_rawDataSize = 0;     // currently unknown
         s_rawDataPointer = 0;  // currently unknown
         s_relocationsPointer=0;
-        s_lineNumbersPointer=0;// currently unknown
-        s_numberOfRelocations=0;// currently unknown
-        s_numberOfLongNumbers=0;// currently unknown
+        s_lineNumbersPointer=0;
+        s_numberOfRelocations=0;
+        s_numberOfLineNumbers=0;
         s_characteristics=characteristics;
+        if (Align32==1) s_characteristics|=IMAGE_SCN_ALIGN_1BYTES;
+    }
+    void push(std::ofstream &stream) {
+        pushWord(stream,s_virtualSize,PE_IS_LSB);
+        pushWord(stream,s_virtualAddress,PE_IS_LSB);
+        pushWord(stream,s_rawDataSize,PE_IS_LSB);
+        pushWord(stream,s_rawDataPointer,PE_IS_LSB);
+        pushWord(stream,s_relocationsPointer,PE_IS_LSB);
+        pushWord(stream,s_lineNumbersPointer,PE_IS_LSB);
+        pushHalfWord(stream,s_numberOfRelocations,PE_IS_LSB);
+        pushHalfWord(stream,s_numberOfLineNumbers,PE_IS_LSB);
+        pushWord(stream,s_characteristics,PE_IS_LSB);
     }
 };
-class PeSegmentHandler;
+#pragma endregion// structs
+
+#pragma region handlers
+class PeSectionHandler;
 class PeHandler {
 private:
-    std::vector<PeSegmentHandler *> segmentHeaders32;
+    std::vector<PeSectionHandler *> sectionHeaders32;
+    peHdr32 peHeader;
+    peOptHdrStdFields32 peStdFieldsHeader;
+    peOptHdrSpecFields32 peSpecFieldsHeader;
+    std::vector<peOptHdrDataDirs32 *> peDataDirHeaders;
 
 public:
+    PeHandler();
+    void push(std::ofstream &stream);
+    PeSectionHandler *addSeg(const char name[8], unsigned int characteristics, const bool &_isEntry = false);
 };
+
+class PeSectionHandler {
+    PeHandler &peHandler;
+    peSectionHdr sectionHeader;
+    std::vector<unsigned char> data;
+
+public:
+    bool isEntry;
+    PeSectionHandler(PeHandler &_peHandler, const char name[8], unsigned int characteristics, const bool &_isEntry = false);
+    bool isCode() {
+        return ((sectionHeader.s_characteristics&IMAGE_SCN_MEM_EXECUTE)!=0);
+    }
+    void pushHeader(std::ofstream &stream);
+    void pushData(std::ofstream &stream);
+
+    unsigned int getSize();
+    void setOffset(const unsigned int &offset);
+    void setRVA(const unsigned int &Rva);
+
+    friend void pushChars(PeSectionHandler *section, const unsigned char *chars, unsigned int len, const bool &LSB);
+    friend void pushByte(PeSectionHandler *section, const unsigned char &byte);
+    friend void pushHalfWord(PeSectionHandler *section, const unsigned short &halfword, const bool &LSB);
+    friend void pushWord(PeSectionHandler *section, const unsigned int &word, const bool &LSB);
+    friend void pushDword(PeSectionHandler *section, const unsigned long &dword, const bool &LSB);
+
+    friend void INC(PeSectionHandler *section, const char *reg);
+    friend void DEC(PeSectionHandler *section, const char *reg);
+    friend void PUSH(PeSectionHandler *section, const char *reg);
+    friend void PUSH(PeSectionHandler *section, unsigned int value);
+    friend void POP(PeSectionHandler *section, const char *reg);
+    friend void NOP(PeSectionHandler *section);
+    friend void XCHG_eAX(PeSectionHandler *section, const char *reg);
+    friend void MOVeaxAddr32(PeSectionHandler *section, const unsigned int &addr);
+    friend void MOVeaxAddr64(PeSectionHandler *section, const unsigned long &addr);
+    friend void MOVaddrEax32(PeSectionHandler *section, const unsigned int &addr);
+    friend void MOVaddrEax64(PeSectionHandler *section, const unsigned long &addr);
+    friend void MOV32(PeSectionHandler *section, const char *reg, const unsigned int &value);
+    friend void MOV8_low(PeSectionHandler *section, const char *reg, const unsigned char &value);
+    friend void MOV8_high(PeSectionHandler *section, const char *reg, const unsigned char &value);
+    friend void INT(PeSectionHandler *section, unsigned char value);
+    friend void SYSCALL(PeSectionHandler *section);
+    friend void JMP32(PeSectionHandler *section, unsigned int value);
+    friend void JMP64(PeSectionHandler *section, unsigned long value);
+    friend void JMPoffset(PeSectionHandler *section, unsigned char value);
+};
+#pragma endregion// handlers
 
 #endif  // _PE_H

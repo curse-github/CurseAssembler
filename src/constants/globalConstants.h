@@ -5,9 +5,9 @@
 #include <vector>
 
 const unsigned int VirtAddr32 = 0x00400000;
-const unsigned int Align32 = 0x00000000;
+const unsigned int Align32 = 0x00000001;
 const unsigned long VirtAddr64 = 0x0000000000400000;
-const unsigned long Align64 = 0x0000000000000000;
+const unsigned long Align64 = 0x0000000000000001;
 
 void pushChars(std::ofstream &stream, const unsigned char *chars, unsigned int len, const bool &LSB);
 void pushChars(std::vector<unsigned char> &vector, const unsigned char *chars, unsigned int len, const bool &LSB);

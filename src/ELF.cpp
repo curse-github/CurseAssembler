@@ -21,7 +21,7 @@ unsigned int ElfSegmentHandler::getSize() {
 }
 void ElfSegmentHandler::setOffset(const unsigned int &offset) {
     segmentHeader.s_fileOffset = offset;
-    segmentHeader.s_virtualAddress = VirtAddr32 + offset;
+    segmentHeader.s_virtualAddress = offset;
 }
 
 void pushChars(ElfSegmentHandler *segment, const unsigned char *chars, unsigned int len, const bool &LSB) {
@@ -105,15 +105,18 @@ ElfHandler::ElfHandler() : elfHeader() {
 }
 void ElfHandler::push(std::ofstream &stream) {
     bool LSB = elfHeader.e_encoding == ELF_ENCODING_LSB;  // is little endian
+    // set some beginning stuff
     unsigned short numHeaders = segmentHeaders32.size();
     elfHeader.e_numSegmentHdrs = numHeaders;
     unsigned int baseOffset = sizeof(elfHdr32) + numHeaders * sizeof(elfSegmentHdr32);
+    // get offsets, virtual addresses, and entry point
     unsigned int runningOffset = baseOffset;
     for (unsigned int i = 0; i < numHeaders; i++) {
         segmentHeaders32[i]->setOffset(runningOffset);
         if (segmentHeaders32[i]->isEntry) elfHeader.e_entryAddress = VirtAddr32 + runningOffset;
         runningOffset += segmentHeaders32[i]->getSize();
     }
+    // push all the data
     elfHeader.push(stream);
     for (unsigned int i = 0; i < numHeaders; i++) segmentHeaders32[i]->pushHeader(stream);
     for (unsigned int i = 0; i < numHeaders; i++) segmentHeaders32[i]->pushData(stream);

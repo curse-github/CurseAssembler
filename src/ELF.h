@@ -67,8 +67,8 @@ struct elfSegmentHdr32 {
     unsigned long s_align;           // dword
 };*/
 
-struct sectionHdr32 {};
-// struct sectionHdr64 {};
+struct elfSectionHdr32 {};
+// struct elfSectionHdr64 {};
 
 extern unsigned char elf_architecture;
 extern unsigned char elf_encoding;
@@ -212,6 +212,7 @@ struct elfHdr32 {
 
 #pragma region handlers
 class ElfSegmentHandler;
+
 class ElfHandler {
 private:
     std::vector<ElfSegmentHandler *> segmentHeaders32;
@@ -225,6 +226,7 @@ public:
     void push(std::ofstream &stream);
     ElfSegmentHandler *addSeg(const unsigned int &type, const unsigned int &flags, const bool &_isEntry = false);
 };
+
 class ElfSegmentHandler {
     ElfHandler &elfHandler;
     elfSegmentHdr32 segmentHeader;
