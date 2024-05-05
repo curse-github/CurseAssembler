@@ -48,6 +48,16 @@ void pushDword(std::ofstream &stream, const unsigned long &dword, const bool &LS
 void pushDword(std::vector<unsigned char> &vector, const unsigned long &dword, const bool &LSB) {
     pushChars(vector, static_cast<const unsigned char *>(static_cast<const void *>(&dword)), sizeof(dword), LSB);
 }
+
+void padBytes(std::ofstream &stream, const unsigned int &numBytes) {
+    unsigned char C8[5]{0x00,0x00,0x00,0x00,0x00};
+    for (int i = 0; i < numBytes; i++)
+    {
+        stream << C8[i%5];
+        std::cout << C8[i%5];
+    }
+    
+}
 #pragma endregion  // helper functions
 
 #pragma region instructions

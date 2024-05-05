@@ -107,17 +107,16 @@ void PeHandler::push(std::ofstream &stream) {
     unsigned short numDataDirs = peDataDirHeaders.size();
     peSpecFieldsHeader.p_numberAndSizeOfDataDirs=numDataDirs;
     peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields32) + sizeof(peOptHdrSpecFields32) + (numDataDirs * sizeof(peOptHdrDataDirs32));
-    unsigned int baseOffset = sizeof(peHdr32) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr));
-    peSpecFieldsHeader.p_sizeOfHeaders = baseOffset;
-    std::cout << "p_sizeOfHeaders: " << std::hex << peSpecFieldsHeader.p_sizeOfHeaders << std::endl;
+    peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr32) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr));
+    unsigned int baseOffset = peSpecFieldsHeader.p_sizeOfHeaders;
     //checksum?
 
     unsigned int sizeOfInitializedData=0;
     unsigned int sizeOfUninitializedData=0;
     unsigned int entryPoint=0;
     unsigned int sizeOfCode=0;
-    unsigned int runningOffset = 0x100 + baseOffset;
-    unsigned int runningRVA=0;
+    unsigned int runningOffset = baseOffset+0x200-(baseOffset%(0x200));
+    unsigned int runningRVA=0x1000;
     for (unsigned int i = 0; i < numHeaders; i++) {
         sectionHeaders32[i]->setOffset(runningOffset);
         sectionHeaders32[i]->setRVA(runningRVA);
@@ -129,21 +128,24 @@ void PeHandler::push(std::ofstream &stream) {
             sizeOfInitializedData+=sectionHeaders32[i]->getSize();
             sizeOfUninitializedData+=0;
         }
+        runningOffset = runningOffset+0x200-(runningOffset%(0x200));// round to the nearest 512 bytes
+        runningRVA = runningRVA+0x200-(runningRVA%(0x200));
     }
     peStdFieldsHeader.p_sizeOfCode = sizeOfCode;
     peStdFieldsHeader.p_sizeOfInitializedData = sizeOfInitializedData;
     peStdFieldsHeader.p_sizeOfUninitializedData = sizeOfUninitializedData;
     peStdFieldsHeader.p_addressOfEntryPoint = entryPoint;
-    peStdFieldsHeader.p_baseOfCode = baseOffset;
-    peStdFieldsHeader.p_baseOfData = baseOffset;
-    peSpecFieldsHeader.p_sizeOfImage = peSpecFieldsHeader.p_sizeOfHeaders + sizeOfInitializedData;
-    std::cout << "p_sizeOfImage: " << std::hex << peSpecFieldsHeader.p_sizeOfImage << std::endl;
+    peStdFieldsHeader.p_baseOfCode = 0x1000;
+    peStdFieldsHeader.p_baseOfData = 0;
+    peSpecFieldsHeader.p_sizeOfImage = runningOffset;
     // push all the data
     peHeader.push(stream);
     peStdFieldsHeader.push(stream);
     peSpecFieldsHeader.push(stream);
     for (unsigned int i = 0; i < numDataDirs; i++) peDataDirHeaders[i]->push(stream);// push all data sections
     for (unsigned int i = 0; i < numHeaders; i++) sectionHeaders32[i]->pushHeader(stream);// push all sections headers
+    padBytes(stream,0x200-(baseOffset%(0x200)));
+
     for (unsigned int i = 0; i < numHeaders; i++) sectionHeaders32[i]->pushData(stream);// push all section content
 }
 PeSectionHandler *PeHandler::addSeg(const char name[8], unsigned int characteristics, const bool &_isEntry) {

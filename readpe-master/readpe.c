@@ -85,6 +85,21 @@ struct Pe32OptionalHeader {
 	uint32 loaderFlags;
 	uint32 numberOfRvaAndSizes;
 };
+struct peSectionHdr {
+    char s_name[8];
+    unsigned int s_virtualSize;     // size in memory, invalid for object files
+    unsigned int s_virtualAddress;  // virtual address in memory, invalid for object files
+    // must be multiple of file alignment
+    unsigned int s_rawDataSize;  // size in file
+    // must be multiple of file alignment
+    // if section contains only uninitialized data, this should be set to 0
+    unsigned int s_rawDataPointer;
+    unsigned int s_relocationsPointer;     // invalid for image file
+    unsigned int s_lineNumbersPointer;     // invalid for image file
+    unsigned short s_numberOfRelocations;  // invalid for image file
+    unsigned short s_numberOfLineNumbers;  // invalid for image file
+    unsigned int s_characteristics;
+};
 
 
 int
@@ -185,8 +200,28 @@ main(int argc, char* argv[])
 		printf("  loaderFlags: %X\n", peOpt->loaderFlags);
 		printf("  numberOfRvaAndSizes: %X\n", peOpt->numberOfRvaAndSizes);
 		free(peOpt);
+		struct peSectionHdr* peSec
+			= malloc(sizeof(struct peSectionHdr));
+		memcpy(peSec, buffer + mz->lfaNew + sizeof(struct PeHeader) + sizeof(struct Pe32OptionalHeader),
+			sizeof(struct peSectionHdr));
+		printf("PE section header\n");
+		printf("  s_name: %c%c%c%c%c%c%c%c\n", peSec->s_name[0],peSec->s_name[1],peSec->s_name[2],peSec->s_name[3],peSec->s_name[4],peSec->s_name[5],peSec->s_name[6],peSec->s_name[7]);
+		printf("  s_virtualSize: %X\n", peSec->s_virtualSize);
+		printf("  s_virtualAddress: %X\n", peSec->s_virtualAddress);
+		printf("  s_rawDataSize: %X\n", peSec->s_rawDataSize);
+		printf("  s_rawDataPointer: %X\n", peSec->s_rawDataPointer);
+		printf("  s_relocationsPointer: %X\n", peSec->s_relocationsPointer);
+		printf("  s_lineNumbersPointer: %X\n", peSec->s_lineNumbersPointer);
+		printf("  s_numberOfRelocations: %X\n", peSec->s_numberOfRelocations);
+		printf("  s_numberOfLineNumbers: %X\n", peSec->s_numberOfLineNumbers);
+		printf("  s_characteristics: %X\n", peSec->s_characteristics);
+		free(peSec);
 	} else {
 		printf("PE optional header: (none)\n");
+		struct peSectionHdr* peSec
+			= malloc(sizeof(struct peSectionHdr));
+		memcpy(peSec, buffer + mz->lfaNew + sizeof(struct PeHeader),
+			sizeof(struct peSectionHdr));
 	}
 
 	free(buffer);

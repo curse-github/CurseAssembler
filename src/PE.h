@@ -35,7 +35,7 @@ struct peHdr32 {  // 22 bytes
         p_pointerToSymbolTable = 0;  // currently unknown
         p_numberOfSymbols = 0;       // currently unknown
         p_sizeOfOptionalHeader = 0;  // currently unknown v
-        p_characteristics = IMAGE_FILE_CHARACTERISTIC_EXECUTABLE_IMAGE | IMAGE_FILE_CHARACTERISTIC_32BIT_MACHINE;
+        p_characteristics = IMAGE_FILE_CHARACTERISTIC_RELOCS_STRIPPED | IMAGE_FILE_CHARACTERISTIC_EXECUTABLE_IMAGE | IMAGE_FILE_CHARACTERISTIC_32BIT_MACHINE | IMAGE_FILE_CHARACTERISTIC_DEBUG_STRIPPED;
     }
     void push(std::ofstream &stream) {
         pushChars(stream,p_magic,4,PE_IS_LSB);
@@ -124,18 +124,18 @@ struct peOptHdrSpecFields32 {
         p_imageBase = VirtAddr32;
         p_sectionAlignment = Align32;
         p_fileAlignment = Align32;
-        p_majorOperatingSystemVersion = 5;
+        p_majorOperatingSystemVersion = 4;
         p_minorOperatingSystemVersion = 0;
-        p_majorImageVersion = 6;
+        p_majorImageVersion = 0;
         p_minorImageVersion = 0;
         p_majorSubsystemVersion = 5;
-        p_minorSubsystemVersion = 0;
+        p_minorSubsystemVersion = 2;
         p_win32VersionValue = 0;  // must always be 0
         p_sizeOfImage = 0;        // currently unknown v
         p_sizeOfHeaders = 0;      // currently unknown v
         p_checkSum = 0;           // currently unknown
-        p_subSystem = IMAGE_SUBSYSTEM_WINDOWS_CUI;
-        p_dllCharacteristics = 0;
+        p_subSystem = IMAGE_SUBSYSTEM_WINDOWS_GUI;
+        p_dllCharacteristics = 0x400;
         p_sizeOfStackReserve = 0;   // currently unknown
         p_sizeOfStackCommit = 0;    // currently unknown
         p_sizeOfHeapReserve = 0;    // currently unknown
@@ -274,8 +274,11 @@ struct peSectionHdr {
         s_numberOfLineNumbers=0;
         s_characteristics=characteristics;
         if (Align32==1) s_characteristics|=IMAGE_SCN_ALIGN_1BYTES;
+        else if (Align32==512) s_characteristics|=IMAGE_SCN_ALIGN_512BYTES;
     }
     void push(std::ofstream &stream) {
+        for (unsigned int i = 0; i < 8; i++) { stream << s_name[i]; }
+        
         pushWord(stream,s_virtualSize,PE_IS_LSB);
         pushWord(stream,s_virtualAddress,PE_IS_LSB);
         pushWord(stream,s_rawDataSize,PE_IS_LSB);

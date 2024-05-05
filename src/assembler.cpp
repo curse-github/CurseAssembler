@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
         }
         // PE
         PeHandler peHandler;
-        PeSectionHandler *textSec = peHandler.addSeg("",IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_MEM_READ,true);
+        PeSectionHandler *textSec = peHandler.addSeg("text    ",IMAGE_SCN_CNT_CODE|IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_MEM_READ,true);
         //exit(0x19); or exit(25);
         MOV32(textSec,"eBX",0x00000019);
         MOV32(textSec,"eAX",0x00000001);

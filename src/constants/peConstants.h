@@ -15,8 +15,10 @@
 #define IMAGE_FILE_MACHINE_RISKV128 0x5128
 
 // learn.microsoft.com/en-us/windows/win32/debug/pe-format#characteristics
+#define IMAGE_FILE_CHARACTERISTIC_RELOCS_STRIPPED 0x0001
 #define IMAGE_FILE_CHARACTERISTIC_EXECUTABLE_IMAGE 0x0002
 #define IMAGE_FILE_CHARACTERISTIC_32BIT_MACHINE 0x0100
+#define IMAGE_FILE_CHARACTERISTIC_DEBUG_STRIPPED 0x0200
 #define IMAGE_FILE_CHARACTERISTIC_SYSTEM 0x1000
 #define IMAGE_FILE_CHARACTERISTIC_DLL 0x2000
 #define IMAGE_FILE_CHARACTERISTIC_BYTES_REVERSED 0x8000  // means it is MSB or Big endian. this flag is deprecated.
@@ -41,6 +43,7 @@
 
 // https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#section-flags
 // section flags or characteristics
+#define IMAGE_SCN_CNT_CODE 0x00000020
 #define IMAGE_SCN_CNT_INITIALIZED_DATA 0x00000040// contains initialized data
 #define IMAGE_SCN_CNT_UNINITIALIZED_DATA 0x00000080// contains uninitialized data
 #define IMAGE_SCN_ALIGN_1BYTES 0x00100000

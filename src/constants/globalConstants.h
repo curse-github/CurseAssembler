@@ -5,9 +5,9 @@
 #include <vector>
 
 const unsigned int VirtAddr32 = 0x00400000;
-const unsigned int Align32 = 0x00000001;
+const unsigned int Align32 = 0x00000200;
 const unsigned long VirtAddr64 = 0x0000000000400000;
-const unsigned long Align64 = 0x0000000000000001;
+const unsigned long Align64 = 0x0000000000000200;
 
 void pushChars(std::ofstream &stream, const unsigned char *chars, unsigned int len, const bool &LSB);
 void pushChars(std::vector<unsigned char> &vector, const unsigned char *chars, unsigned int len, const bool &LSB);
@@ -24,6 +24,8 @@ void pushWord(std::vector<unsigned char> &vector, const unsigned int &word, cons
 
 void pushDword(std::ofstream &stream, const unsigned long &dword, const bool &LSB);
 void pushDword(std::vector<unsigned char> &vector, const unsigned long &dword, const bool &LSB);
+
+void padBytes(std::ofstream &stream, const unsigned int &numBytes);
 
 void INC(std::vector<unsigned char> &vector, const char *reg);
 void DEC(std::vector<unsigned char> &vector, const char *reg);
