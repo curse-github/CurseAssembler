@@ -262,6 +262,7 @@ public:
     friend void MOVaddrEax32(ElfSegmentHandler *segment, const unsigned int &addr);
     friend void MOVaddrEax64(ElfSegmentHandler *segment, const unsigned long &addr);
     friend void MOV32(ElfSegmentHandler *segment, const char *reg, const unsigned int &value);
+    friend void MOV32(ElfSegmentHandler *segment, const char *reg1, const char *reg2);
     friend void MOV8_low(ElfSegmentHandler *segment, const char *reg, const unsigned char &value);
     friend void MOV8_high(ElfSegmentHandler *segment, const char *reg, const unsigned char &value);
     friend void INT(ElfSegmentHandler *segment, unsigned char value);
@@ -291,6 +292,7 @@ void MOVeaxAddr64(ElfSegmentHandler *segment, const unsigned long &addr);
 void MOVaddrEax32(ElfSegmentHandler *segment, const unsigned int &addr);
 void MOVaddrEax64(ElfSegmentHandler *segment, const unsigned long &addr);
 void MOV32(ElfSegmentHandler *segment, const char *reg, const unsigned int &value);
+void MOV32(ElfSegmentHandler *segment, const char *reg1, const char *reg2);
 void MOV8_low(ElfSegmentHandler *segment, const char *reg, const unsigned char &value);
 void MOV8_high(ElfSegmentHandler *segment, const char *reg, const unsigned char &value);
 void INT(ElfSegmentHandler *segment, unsigned char value);

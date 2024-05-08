@@ -5,7 +5,9 @@ PeSectionHandler::PeSectionHandler(PeHandler &_peHandler, const char name[8], un
 }
 void PeSectionHandler::pushHeader(std::ofstream &stream) {
     // set some stuff first
-    sectionHeader.s_virtualSize = sectionHeader.s_rawDataSize = data.size();
+    size_t size = data.size();
+    sectionHeader.s_virtualSize = size;
+    sectionHeader.s_rawDataSize = size+fileAlignment-(size%fileAlignment);
     sectionHeader.push(stream);
 }
 void PeSectionHandler::pushData(std::ofstream &stream) {
@@ -13,6 +15,12 @@ void PeSectionHandler::pushData(std::ofstream &stream) {
 }
 unsigned int PeSectionHandler::getSize() {
     return data.size();
+}
+void PeSectionHandler::setSectionAlign(const unsigned int& align) {
+    sectionAlignment=align;
+}
+void PeSectionHandler::setFileAlign(const unsigned int& align) {
+    fileAlignment=align;
 }
 void PeSectionHandler::setOffset(const unsigned int &offset) {
     sectionHeader.s_rawDataPointer = offset;// offset in file
@@ -73,6 +81,9 @@ void MOVaddrEax64(PeSectionHandler *section, const unsigned long &addr) {
 void MOV32(PeSectionHandler *section, const char *reg, const unsigned int &value) {
     MOV32(section->data, reg, value, PE_IS_LSB);
 }
+void MOV32(PeSectionHandler *section, const char *reg1, const char *reg2) {
+    MOV32(section->data, reg1, reg2);
+}
 void MOV8_low(PeSectionHandler *section, const char *reg, const unsigned char &value) {
     MOV8_low(section->data, reg, value);
 }
@@ -101,13 +112,20 @@ PeHandler::PeHandler() : peHeader(), peStdFieldsHeader(), peSpecFieldsHeader() {
 }
 #include <iostream>
 #include <iomanip>
+unsigned int roundToAlign(const unsigned int &value, const unsigned int &align) {
+    return value+align-(value%align);
+}
 void PeHandler::push(std::ofstream &stream) {
+    #define SECTION_ALIGN 0x200u
+    #define FILE_ALIGN 0x200u
+
     unsigned short numHeaders = sectionHeaders32.size();
     peHeader.p_numberOfSections = numHeaders;
     unsigned short numDataDirs = peDataDirHeaders.size();
     peSpecFieldsHeader.p_numberAndSizeOfDataDirs=numDataDirs;
     peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields32) + sizeof(peOptHdrSpecFields32) + (numDataDirs * sizeof(peOptHdrDataDirs32));
     peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr32) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr));
+    peSpecFieldsHeader.p_sizeOfHeaders = roundToAlign(peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
     unsigned int baseOffset = peSpecFieldsHeader.p_sizeOfHeaders;
     //checksum?
 
@@ -115,25 +133,30 @@ void PeHandler::push(std::ofstream &stream) {
     unsigned int sizeOfUninitializedData=0;
     unsigned int entryPoint=0;
     unsigned int sizeOfCode=0;
-    unsigned int runningOffset = baseOffset+0x200-(baseOffset%(0x200));
-    unsigned int runningRVA=0x1000;
+
+    unsigned int runningOffset = roundToAlign(baseOffset,FILE_ALIGN);
+    unsigned int runningRVA = roundToAlign(baseOffset,SECTION_ALIGN);
     for (unsigned int i = 0; i < numHeaders; i++) {
         sectionHeaders32[i]->setOffset(runningOffset);
         sectionHeaders32[i]->setRVA(runningRVA);
-        if (sectionHeaders32[i]->isEntry) { entryPoint = runningRVA; std::cout << "entryPoint: " << runningRVA << std::endl; }// current RVA
-        runningOffset += sectionHeaders32[i]->getSize();
-        runningRVA += sectionHeaders32[i]->getSize();
-        if (sectionHeaders32[i]->isCode()) sizeOfCode+=sectionHeaders32[i]->getSize();
+        sectionHeaders32[i]->setSectionAlign(SECTION_ALIGN);
+        sectionHeaders32[i]->setFileAlign(FILE_ALIGN);
+        if (sectionHeaders32[i]->isEntry) entryPoint = runningRVA;// current RVA
+
+        unsigned int virtSize = roundToAlign(sectionHeaders32[i]->getSize(),SECTION_ALIGN);
+        runningRVA += virtSize;
+        if (sectionHeaders32[i]->isCode()) sizeOfCode+=virtSize;
         else {
-            sizeOfInitializedData+=sectionHeaders32[i]->getSize();
+            sizeOfInitializedData+=virtSize;
             sizeOfUninitializedData+=0;
         }
-        runningOffset = runningOffset+0x200-(runningOffset%(0x200));// round to the nearest 512 bytes
-        runningRVA = runningRVA+0x200-(runningRVA%(0x200));
+        runningOffset += roundToAlign(sectionHeaders32[i]->getSize(),FILE_ALIGN);
     }
+
     peStdFieldsHeader.p_sizeOfCode = sizeOfCode;
     peStdFieldsHeader.p_sizeOfInitializedData = sizeOfInitializedData;
     peStdFieldsHeader.p_sizeOfUninitializedData = sizeOfUninitializedData;
+
     peStdFieldsHeader.p_addressOfEntryPoint = entryPoint;
     peStdFieldsHeader.p_baseOfCode = 0x1000;
     peStdFieldsHeader.p_baseOfData = 0;

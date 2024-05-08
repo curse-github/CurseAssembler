@@ -29,7 +29,7 @@ struct peHdr32 {  // 22 bytes
         p_magic[1] = 'E';
         p_magic[2] = '\0';
         p_magic[3] = '\0';
-        p_machine = IMAGE_FILE_MACHINE_I386;
+        p_machine = IMAGE_FILE_MACHINE_AMD64;
         p_numberOfSections = 0;  // currently unknown v
         p_timeDateStamp = time(0);
         p_pointerToSymbolTable = 0;  // currently unknown
@@ -273,12 +273,11 @@ struct peSectionHdr {
         s_numberOfRelocations=0;
         s_numberOfLineNumbers=0;
         s_characteristics=characteristics;
-        if (Align32==1) s_characteristics|=IMAGE_SCN_ALIGN_1BYTES;
-        else if (Align32==512) s_characteristics|=IMAGE_SCN_ALIGN_512BYTES;
+        //if (Align32==1) s_characteristics|=IMAGE_SCN_ALIGN_1BYTES;
+        //else if (Align32==512) s_characteristics|=IMAGE_SCN_ALIGN_512BYTES;
     }
     void push(std::ofstream &stream) {
         for (unsigned int i = 0; i < 8; i++) { stream << s_name[i]; }
-        
         pushWord(stream,s_virtualSize,PE_IS_LSB);
         pushWord(stream,s_virtualAddress,PE_IS_LSB);
         pushWord(stream,s_rawDataSize,PE_IS_LSB);
@@ -306,6 +305,8 @@ public:
     PeHandler();
     void push(std::ofstream &stream);
     PeSectionHandler *addSeg(const char name[8], unsigned int characteristics, const bool &_isEntry = false);
+
+    friend PeSectionHandler;
 };
 
 class PeSectionHandler {
@@ -313,6 +314,8 @@ class PeSectionHandler {
     peSectionHdr sectionHeader;
     std::vector<unsigned char> data;
 
+    unsigned int sectionAlignment=1;
+    unsigned int fileAlignment=1;
 public:
     bool isEntry;
     PeSectionHandler(PeHandler &_peHandler, const char name[8], unsigned int characteristics, const bool &_isEntry = false);
@@ -323,6 +326,8 @@ public:
     void pushData(std::ofstream &stream);
 
     unsigned int getSize();
+    void setSectionAlign(const unsigned int& align);
+    void setFileAlign(const unsigned int& align);
     void setOffset(const unsigned int &offset);
     void setRVA(const unsigned int &Rva);
 
@@ -344,6 +349,7 @@ public:
     friend void MOVaddrEax32(PeSectionHandler *section, const unsigned int &addr);
     friend void MOVaddrEax64(PeSectionHandler *section, const unsigned long &addr);
     friend void MOV32(PeSectionHandler *section, const char *reg, const unsigned int &value);
+    friend void MOV32(PeSectionHandler *section, const char *reg1, const char *reg2);
     friend void MOV8_low(PeSectionHandler *section, const char *reg, const unsigned char &value);
     friend void MOV8_high(PeSectionHandler *section, const char *reg, const unsigned char &value);
     friend void INT(PeSectionHandler *section, unsigned char value);

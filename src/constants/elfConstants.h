@@ -44,4 +44,16 @@
 #define ELF_SEGMENT_FLAG_WRITE 0x0000002
 #define ELF_SEGMENT_FLAG_READ 0x0000004
 
+#define LINUX_SYSCALL_EXIT 0x00000001
+#define LINUX_SYSCALL_FORK 0x00000002
+#define LINUX_SYSCALL_READ 0x00000003
+#define LINUX_SYSCALL_WRITE 0x00000004
+#define LINUX_SYSCALL_OPEN 0x00000005
+#define LINUX_SYSCALL_CLOSE 0x00000006
+//exit: ebx holds exit code
+// fork: ebx holds pt_regs
+// read: ebx holds uint, ecx holds char *, edx holds size
+// write: ebx holds uint, ecx holds const char *, edx holds size
+// open: ebx holds const char *, ecx holds int, edx holds int
+// close: ebx holds uint
 #endif// _ELF_CONSTANTS_H

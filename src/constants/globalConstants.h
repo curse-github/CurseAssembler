@@ -39,6 +39,7 @@ void MOVeaxAddr64(std::vector<unsigned char> &vector, const unsigned long &addr,
 void MOVaddrEax32(std::vector<unsigned char> &vector, const unsigned int &addr, const bool &LSB);
 void MOVaddrEax64(std::vector<unsigned char> &vector, const unsigned long &addr, const bool &LSB);
 void MOV32(std::vector<unsigned char> &vector, const char *reg, const unsigned int &value, const bool &LSB);
+void MOV32(std::vector<unsigned char> &vector, const char *reg1, const char *reg2);
 void MOV8_low(std::vector<unsigned char> &vector, const char *reg, const unsigned char &value);
 void MOV8_high(std::vector<unsigned char> &vector, const char *reg, const unsigned char &value);
 void INT(std::vector<unsigned char> &vector, unsigned char value);

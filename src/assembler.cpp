@@ -6,7 +6,7 @@
 #include "PE.h"
 #include "globalConstants.h"
 
-const unsigned char exit_code = 28;
+const unsigned int exit_code = 0x00000028;
 int main(int argc, char *argv[]) {
     if (argc < 3) return 1;
     if (strcmp(argv[1],"Linux")==0) {
@@ -21,12 +21,17 @@ int main(int argc, char *argv[]) {
         ElfHandler elfHandler;
         ElfSegmentHandler *dataSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ);
         ElfSegmentHandler *textSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ | ELF_SEGMENT_FLAG_EXECUTE, true);
-
-        pushWord(dataSeg, 0x00000019, elfHandler.isLSB());
+        //4 bytes
+        pushWord(dataSeg, exit_code, elfHandler.isLSB());
+        //5 bytes
         MOVeaxAddr32(textSeg, VirtAddr32 + sizeof(elfHdr32) + sizeof(elfSegmentHdr32) * 2);
-        MOV32(textSeg, "eBX", 0x00000001);
+        //5 bytes
+        MOV32(textSeg, "eBX", LINUX_SYSCALL_EXIT);
+        //1 bytes
         XCHG_eAX(textSeg, "eBX");
+        //2 bytes
         SYSCALL(textSeg);
+        //17 bytes total
 
         elfHandler.push(outFile);
         outFile.close();
@@ -46,10 +51,12 @@ int main(int argc, char *argv[]) {
         // PE
         PeHandler peHandler;
         PeSectionHandler *textSec = peHandler.addSeg("text    ",IMAGE_SCN_CNT_CODE|IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_MEM_READ,true);
-        //exit(0x19); or exit(25);
-        MOV32(textSec,"eBX",0x00000019);
-        MOV32(textSec,"eAX",0x00000001);
-        SYSCALL(textSec);
+        //exit(exit_code); or exit(0x28); or exit(40);
+        PUSH(textSec,"eBP");
+        DEC(textSec,"eAX");
+        MOV32(textSec,"eBP","eSP");
+        DEC(textSec,"eAX");
+
 
         peHandler.push(outFile);
         outFile.close();

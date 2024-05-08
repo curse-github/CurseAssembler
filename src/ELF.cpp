@@ -40,60 +40,83 @@ void pushDword(ElfSegmentHandler *segment, const unsigned long &dword, const boo
     pushDword(segment->data, dword, LSB);
 }
 
+//1 bytes
 void INC(ElfSegmentHandler *segment, const char *reg) {
     INC(segment->data, reg);
 }
+//1 bytes
 void DEC(ElfSegmentHandler *segment, const char *reg) {
     DEC(segment->data, reg);
 }
+//1 bytes
 void PUSH(ElfSegmentHandler *segment, const char *reg) {
     PUSH(segment->data, reg);
 }
+//5 bytes
 void PUSH(ElfSegmentHandler *segment, unsigned int value) {
     PUSH(segment->data, value, segment->isLSB());
 }
+//1 bytes
 void POP(ElfSegmentHandler *segment, const char *reg) {
     POP(segment->data, reg);
 }
+//1 bytes
 void NOP(ElfSegmentHandler *segment) {
     NOP(segment->data);
 }
+//1 bytes
 void XCHG_eAX(ElfSegmentHandler *segment, const char *reg) {
     XCHG_eAX(segment->data, reg);
 }
+//5 bytes
 void MOVeaxAddr32(ElfSegmentHandler *segment, const unsigned int &addr) {
     MOVeaxAddr32(segment->data, addr, segment->isLSB());
 }
+//9 bytes
 void MOVeaxAddr64(ElfSegmentHandler *segment, const unsigned long &addr) {
     MOVeaxAddr64(segment->data, addr, segment->isLSB());
 }
+//5 bytes
 void MOVaddrEax32(ElfSegmentHandler *segment, const unsigned int &addr) {
     MOVaddrEax32(segment->data, addr, segment->isLSB());
 }
+//9 bytes
 void MOVaddrEax64(ElfSegmentHandler *segment, const unsigned long &addr) {
     MOVaddrEax64(segment->data, addr, segment->isLSB());
 }
+//5 bytes
 void MOV32(ElfSegmentHandler *segment, const char *reg, const unsigned int &value) {
     MOV32(segment->data, reg, value, segment->isLSB());
 }
+//2 bytes
+void MOV32(ElfSegmentHandler *segment, const char *reg1, const char *reg2) {
+    MOV32(segment->data,reg1,reg2);
+}
+//2 bytes
 void MOV8_low(ElfSegmentHandler *segment, const char *reg, const unsigned char &value) {
     MOV8_low(segment->data, reg, value);
 }
+//2 bytes
 void MOV8_high(ElfSegmentHandler *segment, const char *reg, const unsigned char &value) {
     MOV8_high(segment->data, reg, value);
 }
+//2 bytes
 void INT(ElfSegmentHandler *segment, unsigned char value) {
     INT(segment->data, value);
 }
+//2 bytes
 void SYSCALL(ElfSegmentHandler *segment) {
     SYSCALL(segment->data, true);
 }
+//5 bytes
 void JMP32(ElfSegmentHandler *segment, unsigned int value) {
     JMP32(segment->data, value, segment->isLSB());
 }
+//9 bytes
 void JMP64(ElfSegmentHandler *segment, unsigned long value) {
     JMP64(segment->data, value, segment->isLSB());
 }
+//2 bytes
 void JMPoffset(ElfSegmentHandler *segment, unsigned char value) {
     JMPoffset(segment->data, value);
 }
