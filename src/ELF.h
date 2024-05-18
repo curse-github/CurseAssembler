@@ -249,58 +249,12 @@ public:
     friend void pushHalfWord(ElfSegmentHandler *segment, const unsigned short &halfword, const bool &LSB);
     friend void pushWord(ElfSegmentHandler *segment, const unsigned int &word, const bool &LSB);
     friend void pushDword(ElfSegmentHandler *segment, const unsigned long &dword, const bool &LSB);
-
-    friend void INC(ElfSegmentHandler *segment, const char *reg);
-    friend void DEC(ElfSegmentHandler *segment, const char *reg);
-    friend void PUSH(ElfSegmentHandler *segment, const char *reg);
-    friend void PUSH(ElfSegmentHandler *segment, unsigned int value);
-    friend void POP(ElfSegmentHandler *segment, const char *reg);
-    friend void NOP(ElfSegmentHandler *segment);
-    friend void XCHG_eAX(ElfSegmentHandler *segment, const char *reg);
-    friend void MOVeaxAddr32(ElfSegmentHandler *segment, const unsigned int &addr);
-    friend void MOVeaxAddr64(ElfSegmentHandler *segment, const unsigned long &addr);
-    friend void MOVaddrEax32(ElfSegmentHandler *segment, const unsigned int &addr);
-    friend void MOVaddrEax64(ElfSegmentHandler *segment, const unsigned long &addr);
-    friend void MOV32(ElfSegmentHandler *segment, const char *reg, const unsigned int &value);
-    friend void MOV32(ElfSegmentHandler *segment, const char *reg1, const char *reg2);
-    friend void MOV8_low(ElfSegmentHandler *segment, const char *reg, const unsigned char &value);
-    friend void MOV8_high(ElfSegmentHandler *segment, const char *reg, const unsigned char &value);
-    friend void INT(ElfSegmentHandler *segment, unsigned char value);
-    friend void SYSCALL(ElfSegmentHandler *segment);
-    friend void JMP32(ElfSegmentHandler *segment, unsigned int value);
-    friend void JMP64(ElfSegmentHandler *segment, unsigned long value);
-    friend void JMPoffset(ElfSegmentHandler *segment, unsigned char value);
 };
-#pragma endregion  // handlers
-
-#pragma endregion helpers
 void pushChars(ElfSegmentHandler *segment, const unsigned char *chars, unsigned int len, const bool &LSB);
 void pushByte(ElfSegmentHandler *segment, const unsigned char &byte);
 void pushHalfWord(ElfSegmentHandler *segment, const unsigned short &halfword, const bool &LSB);
 void pushWord(ElfSegmentHandler *segment, const unsigned int &word, const bool &LSB);
 void pushDword(ElfSegmentHandler *segment, const unsigned long &dword, const bool &LSB);
-
-void INC(ElfSegmentHandler *segment, const char *reg);
-void DEC(ElfSegmentHandler *segment, const char *reg);
-void PUSH(ElfSegmentHandler *segment, const char *reg);
-void PUSH(ElfSegmentHandler *segment, unsigned int value);
-void POP(ElfSegmentHandler *segment, const char *reg);
-void NOP(ElfSegmentHandler *segment);
-void XCHG_eAX(ElfSegmentHandler *segment, const char *reg);
-void MOVeaxAddr32(ElfSegmentHandler *segment, const unsigned int &addr);
-void MOVeaxAddr64(ElfSegmentHandler *segment, const unsigned long &addr);
-void MOVaddrEax32(ElfSegmentHandler *segment, const unsigned int &addr);
-void MOVaddrEax64(ElfSegmentHandler *segment, const unsigned long &addr);
-void MOV32(ElfSegmentHandler *segment, const char *reg, const unsigned int &value);
-void MOV32(ElfSegmentHandler *segment, const char *reg1, const char *reg2);
-void MOV8_low(ElfSegmentHandler *segment, const char *reg, const unsigned char &value);
-void MOV8_high(ElfSegmentHandler *segment, const char *reg, const unsigned char &value);
-void INT(ElfSegmentHandler *segment, unsigned char value);
-void SYSCALL(ElfSegmentHandler *segment);
-void JMP32(ElfSegmentHandler *segment, unsigned int value);
-void JMP64(ElfSegmentHandler *segment, unsigned long value);
-void JMPoffset(ElfSegmentHandler *segment, unsigned char value);
-
-#pragma endregion helpers
+#pragma endregion  // handlers
 
 #endif  // _ELF_H

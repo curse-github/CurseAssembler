@@ -1,8 +1,10 @@
-Win32: ./assembler.out
-	./assembler.out Win32 small
+Win32: ./assembler.exe
+	./assembler.exe Win32 small
 Linux: ./assembler.out
 	./assembler.out Linux small
 	chmod 777 ./small.out
+./assembler.exe: makeBin ./bin/globalConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o
+	g++ -g ./bin/globalConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o -I ./src/constants -o ./assembler.exe
 ./assembler.out: makeBin ./bin/globalConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o
 	g++ -g ./bin/globalConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o -I ./src/constants -o ./assembler.out
 ./bin/assembler.o: makeBin ./src/constants/globalConstants.h ./src/ELF.h ./src/PE.h ./src/assembler.cpp

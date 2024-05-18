@@ -27,25 +27,9 @@ void pushDword(std::vector<unsigned char> &vector, const unsigned long &dword, c
 
 void padBytes(std::ofstream &stream, const unsigned int &numBytes);
 
-void INC(std::vector<unsigned char> &vector, const char *reg);
-void DEC(std::vector<unsigned char> &vector, const char *reg);
-void PUSH(std::vector<unsigned char> &vector, const char *reg);
-void PUSH(std::vector<unsigned char> &vector, unsigned int value, const bool &LSB);
-void POP(std::vector<unsigned char> &vector, const char *reg);
-void NOP(std::vector<unsigned char> &vector);
-void XCHG_eAX(std::vector<unsigned char> &vector, const char *reg);
-void MOVeaxAddr32(std::vector<unsigned char> &vector, const unsigned int &addr, const bool &LSB);
-void MOVeaxAddr64(std::vector<unsigned char> &vector, const unsigned long &addr, const bool &LSB);
-void MOVaddrEax32(std::vector<unsigned char> &vector, const unsigned int &addr, const bool &LSB);
-void MOVaddrEax64(std::vector<unsigned char> &vector, const unsigned long &addr, const bool &LSB);
-void MOV32(std::vector<unsigned char> &vector, const char *reg, const unsigned int &value, const bool &LSB);
-void MOV32(std::vector<unsigned char> &vector, const char *reg1, const char *reg2);
-void MOV8_low(std::vector<unsigned char> &vector, const char *reg, const unsigned char &value);
-void MOV8_high(std::vector<unsigned char> &vector, const char *reg, const unsigned char &value);
-void INT(std::vector<unsigned char> &vector, unsigned char value);
-void SYSCALL(std::vector<unsigned char> &vector, const bool &isLinux);
-void JMP32(std::vector<unsigned char> &vector, unsigned int value, const bool &LSB);
-void JMP64(std::vector<unsigned char> &vector, unsigned long value, const bool &LSB);
-void JMPoffset(std::vector<unsigned char> &vector, unsigned char value);
+template<typename T>
+void ADD(const T &receiver) {
+    
+}
 
 #endif  // _GLOBAL_CONSTANTS_H

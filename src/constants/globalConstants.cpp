@@ -29,24 +29,24 @@ void pushByte(std::vector<unsigned char> &vector, const unsigned char &byte) {
 }
 
 void pushHalfWord(std::ofstream &stream, const unsigned short &halfword, const bool &LSB) {
-    pushChars(stream, static_cast<const unsigned char *>(static_cast<const void *>(&halfword)), sizeof(halfword), LSB);
+    pushChars(stream, static_cast<const unsigned char *>(static_cast<const void *>(&halfword)), 2, LSB);
 }
 void pushHalfWord(std::vector<unsigned char> &vector, const unsigned short &halfword, const bool &LSB) {
-    pushChars(vector, static_cast<const unsigned char *>(static_cast<const void *>(&halfword)), sizeof(halfword), LSB);
+    pushChars(vector, static_cast<const unsigned char *>(static_cast<const void *>(&halfword)), 2, LSB);
 }
 
 void pushWord(std::ofstream &stream, const unsigned int &word, const bool &LSB) {
-    pushChars(stream, static_cast<const unsigned char *>(static_cast<const void *>(&word)), sizeof(word), LSB);
+    pushChars(stream, static_cast<const unsigned char *>(static_cast<const void *>(&word)), 4, LSB);
 }
 void pushWord(std::vector<unsigned char> &vector, const unsigned int &word, const bool &LSB) {
-    pushChars(vector, static_cast<const unsigned char *>(static_cast<const void *>(&word)), sizeof(word), LSB);
+    pushChars(vector, static_cast<const unsigned char *>(static_cast<const void *>(&word)), 4, LSB);
 }
 
 void pushDword(std::ofstream &stream, const unsigned long &dword, const bool &LSB) {
-    pushChars(stream, static_cast<const unsigned char *>(static_cast<const void *>(&dword)), sizeof(dword), LSB);
+    pushChars(stream, static_cast<const unsigned char *>(static_cast<const void *>(&dword)), 8, LSB);
 }
 void pushDword(std::vector<unsigned char> &vector, const unsigned long &dword, const bool &LSB) {
-    pushChars(vector, static_cast<const unsigned char *>(static_cast<const void *>(&dword)), sizeof(dword), LSB);
+    pushChars(vector, static_cast<const unsigned char *>(static_cast<const void *>(&dword)), 8, LSB);
 }
 
 void padBytes(std::ofstream &stream, const unsigned int &numBytes) {
@@ -133,102 +133,6 @@ unsigned char RegToModRMrm(const char *reg) {
     }
     return offset;
 }
-//1 byte
-void INC(std::vector<unsigned char> &vector, const char *reg) {
-    pushByte(vector, INTEL_INSTR_INC_REG + RegToOffset(reg));
-}
-//1 byte
-void DEC(std::vector<unsigned char> &vector, const char *reg) {
-    pushByte(vector, INTEL_INSTR_DEC_REG + RegToOffset(reg));
-}
-//1 byte
-void PUSH(std::vector<unsigned char> &vector, const char *reg) {
-    pushByte(vector, INTEL_INSTR_PUSH_REG + RegToOffset(reg));
-}
-//5 bytes
-void PUSH(std::vector<unsigned char> &vector, unsigned int value, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_PUSH_Iv);
-    pushWord(vector, value, LSB);
-}
-//1 byte
-void POP(std::vector<unsigned char> &vector, const char *reg) {
-    pushByte(vector, INTEL_INSTR_POP_REG + RegToOffset(reg));
-}
-//1 byte
-void NOP(std::vector<unsigned char> &vector) {
-    pushByte(vector, INTEL_INSTR_NOP);
-}
-//1 byte
-void XCHG_eAX(std::vector<unsigned char> &vector, const char *reg) {
-    pushByte(vector, INTEL_INSTR_XCHG_eAX_REG + RegToOffset(reg));
-}
 
-//5 bytes
-void MOVeaxAddr32(std::vector<unsigned char> &vector, const unsigned int &addr, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_eAX_Ov);
-    pushWord(vector, addr, LSB);
-}
-//9 bytes
-void MOVeaxAddr64(std::vector<unsigned char> &vector, const unsigned long &addr, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_eAX_Ov);
-    pushDword(vector, addr, LSB);
-}
-//5 bytes
-void MOVaddrEax32(std::vector<unsigned char> &vector, const unsigned int &addr, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_Ov_eAX);
-    pushWord(vector, addr, LSB);
-}
-//9 bytes
-void MOVaddrEax64(std::vector<unsigned char> &vector, const unsigned long &addr, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_Ov_eAX);
-    pushDword(vector, addr, LSB);
-}
-//5 bytes
-void MOV32(std::vector<unsigned char> &vector, const char *reg, const unsigned int &value, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_Iv + RegToOffset(reg));
-    pushWord(vector, value, LSB);
-}
-//2 bytes
-void MOV32(std::vector<unsigned char> &vector, const char *reg1, const char *reg2) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_REG);
-    pushByte(vector, INTEL_ModRM_MOD_Reg|RegToModRMrm(reg1)|RegToModRMreg(reg2));
-}
-//2 bytes
-void MOV8_low(std::vector<unsigned char> &vector, const char *reg, const unsigned char &value) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_Ib_Low + RegToOffset(reg));
-    pushByte(vector, value);
-}
-//2 bytes
-void MOV8_high(std::vector<unsigned char> &vector, const char *reg, const unsigned char &value) {
-    pushByte(vector, INTEL_INSTR_MOV_REG_Ib_Low + RegToOffset(reg));
-    pushByte(vector, value);
-}
-//2 bytes
-void INT(std::vector<unsigned char> &vector, unsigned char value) {
-    pushByte(vector, INTEL_INSTR_INT_Ib);
-    pushByte(vector, value);
-}
-//2 bytes
-void SYSCALL(std::vector<unsigned char> &vector, const bool &isLinux) {
-    if (isLinux) {
-        INT(vector, 0x80);
-    } else {
-    }
-}
-//5 bytes
-void JMP32(std::vector<unsigned char> &vector, unsigned int value, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_JMP_Ap);
-    pushWord(vector, value, LSB);
-}
-//9 bytes
-void JMP64(std::vector<unsigned char> &vector, unsigned long value, const bool &LSB) {
-    pushByte(vector, INTEL_INSTR_JMP_Ap);
-    pushDword(vector, value, LSB);
-}
-//2 bytes
-void JMPoffset(std::vector<unsigned char> &vector, unsigned char value) {
-    pushByte(vector, INTEL_INSTR_JMP_Jb);
-    pushByte(vector, value);
-}
 
 #pragma endregion  // instructions
