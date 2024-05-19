@@ -1,12 +1,14 @@
 #ifndef _INTEL_CONSTANTS_H
 #define _INTEL_CONSTANTS_H
 
-//mod rm values
+// mod bits
 #define INTEL_ModRM_MOD_Address 0b00000000
 #define INTEL_ModRM_MOD_1byteDisplacement 0b01000000
 #define INTEL_ModRM_MOD_4byteDisplacement 0b10000000
 #define INTEL_ModRM_MOD_Reg 0b11000000
 
+// instruction REG bits
+//32 bit
 #define INTEL_ModRM_REG_eAX 0b00000000
 #define INTEL_ModRM_REG_eCX 0b00001000
 #define INTEL_ModRM_REG_eDX 0b00010000
@@ -15,33 +17,54 @@
 #define INTEL_ModRM_REG_eBP 0b00101000
 #define INTEL_ModRM_REG_eSI 0b00110000
 #define INTEL_ModRM_REG_eDI 0b00111000
+//16 bit
+#define INTEL_ModRM_REG_AX 0b00000000
+#define INTEL_ModRM_REG_CX 0b00001000
+#define INTEL_ModRM_REG_DX 0b00010000
+#define INTEL_ModRM_REG_BX 0b00011000
+#define INTEL_ModRM_REG_SP 0b00100000
+#define INTEL_ModRM_REG_BP 0b00101000
+#define INTEL_ModRM_REG_SI 0b00110000
+#define INTEL_ModRM_REG_DI 0b00111000
+//8 bit
+#define INTEL_ModRM_REG_AL 0b00000000
+#define INTEL_ModRM_REG_CL 0b00001000
+#define INTEL_ModRM_REG_DL 0b00010000
+#define INTEL_ModRM_REG_BL 0b00011000
+#define INTEL_ModRM_REG_AH 0b00100000
+#define INTEL_ModRM_REG_CH 0b00101000
+#define INTEL_ModRM_REG_DH 0b00110000
+#define INTEL_ModRM_REG_BH 0b00111000
 
 #pragma region mod R/M opcodes
-#define INTEL_ModRM_OP1_ADD 0b00000000// 0
-#define INTEL_ModRM_OP1_OR 0b00001000// 1
-#define INTEL_ModRM_OP1_ADC 0b00010000// 2
-#define INTEL_ModRM_OP1_SBB 0b00011000// 3
-#define INTEL_ModRM_OP1_AND 0b00100000// 4
-#define INTEL_ModRM_OP1_SUB 0b00101000// 5
-#define INTEL_ModRM_OP1_XOR 0b00110000// 6
-#define INTEL_ModRM_OP1_CMP 0b00111000// 7
+#define INTEL_ModRM_OP1_ADD_RM_I 0b00000000// 0
+#define INTEL_ModRM_OP1_OR_RM_I 0b00001000// 1
+#define INTEL_ModRM_OP1_ADC_RM_I 0b00010000// 2
+#define INTEL_ModRM_OP1_SBB_RM_I 0b00011000// 3
+#define INTEL_ModRM_OP1_AND_RM_I 0b00100000// 4
+#define INTEL_ModRM_OP1_SUB_RM_I 0b00101000// 5
+#define INTEL_ModRM_OP1_XOR_RM_I 0b00110000// 6
+#define INTEL_ModRM_OP1_CMP_RM_I 0b00111000// 7
 
-#define INTEL_ModRM_OP2_NOT 0b00010000// 2 lockable
-#define INTEL_ModRM_OP2_NEG 0b00011000// 3 lockable
-#define INTEL_ModRM_OP2_UMUL 0b00100000// 4
-#define INTEL_ModRM_OP2_MUL 0b00101000// 5
-#define INTEL_ModRM_OP2_UDIV 0b00110000// 6
-#define INTEL_ModRM_OP2_DIV 0b00111000// 7
+#define INTEL_ModRM_OP2_TEST_RM_I 0b00000000// 2
+#define INTEL_ModRM_OP2_NOT_RM 0b00010000// 2 lockable
+#define INTEL_ModRM_OP2_NEG_RM 0b00011000// 3 lockable
+//#define INTEL_ModRM_OP2_UMUL 0b00100000// 4
+//#define INTEL_ModRM_OP2_MUL 0b00101000// 5
+//#define INTEL_ModRM_OP2_UDIV 0b00110000// 6
+//#define INTEL_ModRM_OP2_DIV 0b00111000// 7
 
-#define INTEL_ModRM_OP3_INC 0b00000000// 0
-#define INTEL_ModRM_OP3_DEC 0b00001000// 1
-#define INTEL_ModRM_OP3_CALL 0b00010000// 2
-#define INTEL_ModRM_OP3_CALLF 0b00011000// 3
-#define INTEL_ModRM_OP3_JMP 0b00100000// 4
-#define INTEL_ModRM_OP3_JMPF 0b00101000// 5
-#define INTEL_ModRM_OP3_PUSH 0b00110000// 6
+#define INTEL_ModRM_OP3_INC_RM 0b00000000// 0
+#define INTEL_ModRM_OP3_DEC_RM 0b00001000// 1
+#define INTEL_ModRM_OP3_CALL_RM 0b00010000// 2
+#define INTEL_ModRM_OP3_CALLF_m 0b00011000// 3
+#define INTEL_ModRM_OP3_JMP_RM 0b00100000// 4
+#define INTEL_ModRM_OP3_JMPF_m 0b00101000// 5
+#define INTEL_ModRM_OP3_PUSH_RM 0b00110000// 6
 #pragma endregion region mod R/M opcodes
 
+// instruction RM bits
+//32 bit
 #define INTEL_ModRM_RM_eAX 0b00000000
 #define INTEL_ModRM_RM_eCX 0b00000001
 #define INTEL_ModRM_RM_eDX 0b00000010
@@ -50,11 +73,48 @@
 #define INTEL_ModRM_RM_eBP 0b00000101
 #define INTEL_ModRM_RM_eSI 0b00000110
 #define INTEL_ModRM_RM_eDI 0b00000111
+//16 bit
+#define INTEL_ModRM_RM_AX 0b00000000
+#define INTEL_ModRM_RM_CX 0b00000001
+#define INTEL_ModRM_RM_DX 0b00000010
+#define INTEL_ModRM_RM_BX 0b00000011
+#define INTEL_ModRM_RM_SP 0b00000100
+#define INTEL_ModRM_RM_BP 0b00000101
+#define INTEL_ModRM_RM_SI 0b00000110
+#define INTEL_ModRM_RM_DI 0b00000111
+//8 bit
+#define INTEL_ModRM_RM_AL 0b00000000
+#define INTEL_ModRM_RM_CL 0b00000001
+#define INTEL_ModRM_RM_DL 0b00000010
+#define INTEL_ModRM_RM_BL 0b00000011
+#define INTEL_ModRM_RM_AH 0b00000100
+#define INTEL_ModRM_RM_CH 0b00000101
+#define INTEL_ModRM_RM_DH 0b00000110
+#define INTEL_ModRM_RM_BH 0b00000111
 
 #define INTEL_ModRM_RM_NoDisplace 0b00000100
 #define INTEL_ModRM_RM_DisplaceOnly 0b00000101
 
 // instruction offsets
+//32 bit
+#define INTEL_REG_OFF_eAX 0
+#define INTEL_REG_OFF_eCX 1
+#define INTEL_REG_OFF_eDX 2
+#define INTEL_REG_OFF_eBX 3
+#define INTEL_REG_OFF_eSP 4
+#define INTEL_REG_OFF_eBP 5
+#define INTEL_REG_OFF_eSI 6
+#define INTEL_REG_OFF_eDI 7
+//16 bit
+#define INTEL_REG_OFF_AX 0
+#define INTEL_REG_OFF_CX 1
+#define INTEL_REG_OFF_DX 2
+#define INTEL_REG_OFF_BX 3
+#define INTEL_REG_OFF_SP 4
+#define INTEL_REG_OFF_BP 5
+#define INTEL_REG_OFF_SI 6
+#define INTEL_REG_OFF_DI 7
+//8 bit
 #define INTEL_REG_OFF_AL 0
 #define INTEL_REG_OFF_CL 1
 #define INTEL_REG_OFF_DL 2
@@ -64,14 +124,6 @@
 #define INTEL_REG_OFF_DH 6
 #define INTEL_REG_OFF_BH 7
 
-#define INTEL_REG_OFF_eAX 0
-#define INTEL_REG_OFF_eCX 1
-#define INTEL_REG_OFF_eDX 2
-#define INTEL_REG_OFF_eBX 3
-#define INTEL_REG_OFF_eSP 4
-#define INTEL_REG_OFF_eBP 5
-#define INTEL_REG_OFF_eSI 6
-#define INTEL_REG_OFF_eDI 7
 
 #define INTEL_INSTR_ADD_RMb_REGb 0x00// lockable
 #define INTEL_INSTR_ADD_RMv_REGv 0x01// lockable
@@ -79,8 +131,8 @@
 #define INTEL_INSTR_ADD_REGv_RMv 0x03
 #define INTEL_INSTR_ADD_AL_Ib 0x04
 #define INTEL_INSTR_ADD_eAX_Iv 0x05
-#define INTEL_INSTR_PUSH_RM 0x06
-#define INTEL_INSTR_POP_RM 0x07
+//#define INTEL_INSTR_PUSH_Erg 0x06
+//#define INTEL_INSTR_POP_Erg 0x07
 #define INTEL_INSTR_OR_RMb_REGb 0x08// lockable
 #define INTEL_INSTR_OR_RMv_REGv 0x09// lockable
 #define INTEL_INSTR_OR_REGb_RMb 0x0A
@@ -111,7 +163,7 @@
 #define INTEL_INSTR_AND_REGv_RMv 0x23
 #define INTEL_INSTR_AND_AL_Ib 0x24
 #define INTEL_INSTR_AND_eAX_Iv 0x25
-//#define INTEL_INSTR_ 0x26
+#define INTEL_INSTR_ES_OVRD 0x26
 //#define INTEL_INSTR_ 0x27
 #define INTEL_INSTR_SUB_RMb_REGb 0x28// lockable
 #define INTEL_INSTR_SUB_RMv_REGv 0x29// lockable
@@ -119,7 +171,7 @@
 #define INTEL_INSTR_SUB_REGv_RMv 0x2B
 #define INTEL_INSTR_SUB_AL_Ib 0x2C
 #define INTEL_INSTR_SUB_eAX_Iv 0x2D
-//#define INTEL_INSTR_ 0x2E
+#define INTEL_INSTR_CS_OVRD 0x2E
 //#define INTEL_INSTR_ 0x2F
 #define INTEL_INSTR_XOR_RMb_REGb 0x30// lockable
 #define INTEL_INSTR_XOR_RMv_REGv 0x31// lockable
@@ -127,7 +179,7 @@
 #define INTEL_INSTR_XOR_REGv_RMv 0x33
 #define INTEL_INSTR_XOR_AL_Ib 0x34
 #define INTEL_INSTR_XOR_eAX_Iv 0x35
-//#define INTEL_INSTR_ 0x36
+#define INTEL_INSTR_SS_OVRD 0x36
 //#define INTEL_INSTR_ 0x37
 #define INTEL_INSTR_CMP_RMb_REGb 0x38
 #define INTEL_INSTR_CMP_RMv_REGv 0x39
@@ -135,7 +187,7 @@
 #define INTEL_INSTR_CMP_REGv_RMv 0x3B
 #define INTEL_INSTR_CMP_AL_Ib 0x3C
 #define INTEL_INSTR_CMP_eAX_Iv 0x3D
-//#define INTEL_INSTR_ 0x3E
+#define INTEL_INSTR_DS_OVRD 0x3E
 //#define INTEL_INSTR_ 0x3F
 #define INTEL_INSTR_INCpRv 0x40
 //0x41-0x47 are offsets of INC+r
@@ -180,8 +232,8 @@
 #define INTEL_INSTR_OP1_RMv_Ib 0x83
 //#define INTEL_INSTR_ 0x84
 //#define INTEL_INSTR_ 0x85
-#define INTEL_INSTR_XCHG_REGb_RMb 0x86
-#define INTEL_INSTR_XCHG_REGv_RMv 0x87
+#define INTEL_INSTR_XCHG_REGb_RMb 0x86// lockable
+#define INTEL_INSTR_XCHG_REGv_RMv 0x87// lockable
 #define INTEL_INSTR_MOV_RMb_REGb 0x88
 #define INTEL_INSTR_MOV_RMv_REGv 0x89
 #define INTEL_INSTR_MOV_REGb_RMb 0x8A
@@ -195,7 +247,7 @@
 ///0x91-0x97 are offsets of XCHG eAX REG+r
 //#define INTEL_INSTR_ 0x98
 //#define INTEL_INSTR_ 0x99
-#define INTEL_INSTR_CALLF_Av 0x9A
+#define INTEL_INSTR_CALLF_Av 0x9A// call far
 //#define INTEL_INSTR_ 0x9B
 // 0x9C - 0x9F push and pop flag instructions
 //0xA0 - 0xA3 are moffs MOV instructions
@@ -207,17 +259,17 @@
 // 0xC0 - 0xC5 are matrix instructions?
 #define INTEL_INSTR_MOV_RMb_Ib 0xC6
 #define INTEL_INSTR_MOV_RMv_Iv 0xC7
-////#define INTEL_INSTR_ 0xC8
-#define INTEL_INSTR_ 0xC9
-#define INTEL_INSTR_RETF_Ihw 0xCA
+//#define INTEL_INSTR_ 0xC8// enter
+//#define INTEL_INSTR_ 0xC9// leave
+#define INTEL_INSTR_RETF_I16 0xCA
 #define INTEL_INSTR_RETF 0xCB
 #define INTEL_INSTR_INT 0xCC
 #define INTEL_INSTR_INT_Ib 0xCD
-#define INTEL_INSTR_INT0 0xCE
+//#define INTEL_INSTR_ 0xCE
 //#define INTEL_INSTR_ 0xCF
 // 0xD0 - 0xD3 are matrix instructions?
-#define INTEL_INSTR_ 0xD4
-#define INTEL_INSTR_ 0xD5
+//#define INTEL_INSTR_ 0xD4
+//#define INTEL_INSTR_ 0xD5
 // 0xD4 and 0xD5 are adjust instructions
 //#define INTEL_INSTR_ 0xD6
 //#define INTEL_INSTR_ 0xD7
@@ -285,16 +337,16 @@
 #define INTEL_INSTR_LOOP_eCX_Jb 0xE2
 #define INTEL_INSTR_JMP_eCXeq0 0xE3
 //0xE4 - 0xE7 are input/output instructions
-#define INTEL_INSTR_CALL_Jv 0xE8
-#define INTEL_INSTR_JMP_Jv 0xE9
-#define INTEL_INSTR_JMPF_Av 0xEA
-#define INTEL_INSTR_JMP_Jb 0xEB
+#define INTEL_INSTR_CALL_Jv 0xE8// call short
+#define INTEL_INSTR_JMP_Jv 0xE9//  jump short
+#define INTEL_INSTR_JMPF_Av 0xEA// jump far
+#define INTEL_INSTR_JMP_Jb 0xEB//  jump near
 //0xEC - 0xEF are input/output instructions
 //#define INTEL_INSTR_LOCK 0xF0
 //#define INTEL_INSTR_ 0xF1
 // 0xF2 and 0xF3 are flags
 #define INTEL_INSTR_HLT 0xF4
-#define INTEL_INSTR_CMC 0xF5
+//#define INTEL_INSTR_CMC 0xF5
 #define INTEL_INSTR_OP2b 0xF6
 #define INTEL_INSTR_OP2v 0xF7
 #define INTEL_INSTR_CLR_CF 0xF8
