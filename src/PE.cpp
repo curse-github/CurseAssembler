@@ -1,61 +1,65 @@
 #include "PE.h"
+
+//utility func
+#include <iostream>
+#include <iomanip>
+uint32_t roundToAlign(const uint32_t &value, const uint32_t &align) {
+    return value+align-(value%align);
+}
+
+
 #include <string.h>
 
-#pragma region PeSectionHandler
-PeSectionHandler::PeSectionHandler(PeHandler &_peHandler, const char name[8], uint32_t characteristics,  const char *_type) : peHandler(_peHandler), sectionHeader(name, characteristics), type(_type) {
+#pragma region Pe32SectionHandler
+Pe32SectionHandler::Pe32SectionHandler(Pe32Handler &_peHandler, const char name[8], uint32_t characteristics,  const char *_type) : peHandler(_peHandler), sectionHeader(name, characteristics), type(_type) {
 }
-void PeSectionHandler::pushHeader(std::ofstream &stream) {
+void Pe32SectionHandler::pushHeader(std::ofstream &stream) {
     // set some stuff first
     size_t size = data.size();
     sectionHeader.s_virtualSize = size;
     sectionHeader.s_rawDataSize = size+fileAlignment-(size%fileAlignment);
     sectionHeader.push(stream);
 }
-void PeSectionHandler::pushData(std::ofstream &stream) {
+void Pe32SectionHandler::pushData(std::ofstream &stream) {
     pushChars(stream, data);
 }
-uint32_t PeSectionHandler::getSize() {
+uint32_t Pe32SectionHandler::getSize() {
     return data.size();
 }
-void PeSectionHandler::setSectionAlign(const uint32_t& align) {
+void Pe32SectionHandler::setSectionAlign(const uint32_t& align) {
     sectionAlignment=align;
 }
-void PeSectionHandler::setFileAlign(const uint32_t& align) {
+void Pe32SectionHandler::setFileAlign(const uint32_t& align) {
     fileAlignment=align;
 }
-void PeSectionHandler::setOffset(const uint32_t &offset) {
+void Pe32SectionHandler::setOffset(const uint32_t &offset) {
     sectionHeader.s_rawDataPointer = offset;// offset in file
 }
-void PeSectionHandler::setRVA(const uint32_t &Rva) {
+void Pe32SectionHandler::setRVA(const uint32_t &Rva) {
     sectionHeader.s_virtualAddress = Rva;// offset in memory, can be different if you have uninitialized data
 }
 
-void pushChars(PeSectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB) {
+void pushChars(Pe32SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB) {
     pushChars(section->data, chars, len, LSB);
 }
-void pushByte(PeSectionHandler *section, const uint8_t &byte) {
+void pushByte(Pe32SectionHandler *section, const uint8_t &byte) {
     pushByte(section->data, byte);
 }
-void pushHalfWord(PeSectionHandler *section, const uint16_t &halfword, const bool &LSB) {
+void pushHalfWord(Pe32SectionHandler *section, const uint16_t &halfword, const bool &LSB) {
     pushHalfWord(section->data, halfword, LSB);
 }
-void pushWord(PeSectionHandler *section, const uint32_t &word, const bool &LSB) {
+void pushWord(Pe32SectionHandler *section, const uint32_t &word, const bool &LSB) {
     pushWord(section->data, word, LSB);
 }
-void pushDword(PeSectionHandler *section, const uint64_t &dword, const bool &LSB) {
+void pushDword(Pe32SectionHandler *section, const uint64_t &dword, const bool &LSB) {
     pushDword(section->data, dword, LSB);
 }
-#pragma endregion// PeSectionHandler
+#pragma endregion// Pe32SectionHandler
 
-#pragma region PeHandler
-PeHandler::PeHandler() : peHeader(), peStdFieldsHeader(), peSpecFieldsHeader(), peDataDirHeader() {
+#pragma region Pe32Handler
+Pe32Handler::Pe32Handler() : peHeader(), peStdFieldsHeader(), peSpecFieldsHeader(), peDataDirHeader() {
 }
-#include <iostream>
-#include <iomanip>
-uint32_t roundToAlign(const uint32_t &value, const uint32_t &align) {
-    return value+align-(value%align);
-}
-void PeHandler::push(std::ofstream &stream) {
+void Pe32Handler::push(std::ofstream &stream) {
     // 100 bytes of MZ header
     pushWord(stream,0x4D5A9000u,false);pushWord(stream,0x03000000u,false);pushWord(stream,0x04000000u,false);pushWord(stream,0xFFFF0000u,false);// 0x00000010
     pushWord(stream,0xB8000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x40000000u,false);pushWord(stream,0x00000000u,false);// 0x00000020
@@ -72,7 +76,7 @@ void PeHandler::push(std::ofstream &stream) {
 
     uint16_t numHeaders = sectionHeaders32.size();
     peHeader.p_numberOfSections = numHeaders;
-    peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields32) + sizeof(peOptHdrSpecFields32) + sizeof(peOptHdrDataDirs32);
+    peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields32) + sizeof(peOptHdrSpecFields32) + sizeof(peOptHdrDataDirs);
     peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr32) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr));
     uint32_t baseOffset = roundToAlign(0x100 + peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
     peSpecFieldsHeader.p_sizeOfHeaders = roundToAlign(peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
@@ -141,9 +145,9 @@ void PeHandler::push(std::ofstream &stream) {
         padBytes(stream,0x200-(sectionHeaders32[i]->getSize()%(0x200)));
     }
 }
-PeSectionHandler *PeHandler::addSeg(const char name[8], uint32_t characteristics, const char *type) {
-    PeSectionHandler *hdr = new PeSectionHandler(*this, name, characteristics, type);
+Pe32SectionHandler *Pe32Handler::addSeg(const char name[8], uint32_t characteristics, const char *type) {
+    Pe32SectionHandler *hdr = new Pe32SectionHandler(*this, name, characteristics, type);
     sectionHeaders32.push_back(hdr);
     return hdr;
 }
-#pragma endregion// PeHandler
+#pragma endregion// Pe32Handler
