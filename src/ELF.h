@@ -6,24 +6,24 @@
 #include "elfConstants.h"
 #include "globalConstants.h"
 
-extern unsigned char elf_architecture;
-extern unsigned char elf_encoding;
-extern unsigned short elf_type;
-extern unsigned char elf_osAbi;
-extern unsigned short elf_machine;
+extern uint8_t elf_architecture;
+extern uint8_t elf_encoding;
+extern uint16_t elf_type;
+extern uint8_t elf_osAbi;
+extern uint16_t elf_machine;
 
 #pragma region structs
 struct elfSegmentHdr32 {
-    unsigned int s_type;            // word
-    unsigned int s_fileOffset;      // Offset
-    unsigned int s_virtualAddress;  // Address
-    unsigned int s_physAddress;     // Address
-    unsigned int s_sizeFile;        // word
-    unsigned int s_sizeMemory;      // word
-    unsigned int s_flags;           // word
-    unsigned int s_align;           // word
+    uint32_t s_type;            // word
+    uint32_t s_fileOffset;      // Offset
+    uint32_t s_virtualAddress;  // Address
+    uint32_t s_physAddress;     // Address
+    uint32_t s_sizeFile;        // word
+    uint32_t s_sizeMemory;      // word
+    uint32_t s_flags;           // word
+    uint32_t s_align;           // word
 
-    elfSegmentHdr32(const unsigned int &type, const unsigned int &flags) {
+    elfSegmentHdr32(const uint32_t &type, const uint32_t &flags) {
         // segment type
         if (type == ELF_SEGMENT_TYPE_LOAD || type == ELF_SEGMENT_TYPE_DYN || type == ELF_SEGMENT_TYPE_INTP || type == ELF_SEGMENT_TYPE_NT || type == ELF_SEGMENT_TYPE_PHDR || type == ELF_SEGMENT_TYPE_TLS)
             s_type = type;
@@ -57,46 +57,46 @@ struct elfSegmentHdr32 {
     }
 };
 /*struct elfSegmentHdr64 {
-    unsigned int s_type;             // word
-    unsigned int s_flags;            // word
-    unsigned long s_fileOffset;      // Offset
-    unsigned long s_virtualAddress;  // Address
-    unsigned long s_physAddress;     // Address
-    unsigned long s_sizeFile;        // dword
-    unsigned long s_sizeMemory;      // dword
-    unsigned long s_align;           // dword
+    uint32_t s_type;             // word
+    uint32_t s_flags;            // word
+    uint64_t s_fileOffset;      // Offset
+    uint64_t s_virtualAddress;  // Address
+    uint64_t s_physAddress;     // Address
+    uint64_t s_sizeFile;        // dword
+    uint64_t s_sizeMemory;      // dword
+    uint64_t s_align;           // dword
 };*/
 
 struct elfSectionHdr32 {};
 // struct elfSectionHdr64 {};
 
-extern unsigned char elf_architecture;
-extern unsigned char elf_encoding;
-extern unsigned short elf_type;
-extern unsigned char elf_osAbi;
-extern unsigned short elf_machine;
+extern uint8_t elf_architecture;
+extern uint8_t elf_encoding;
+extern uint16_t elf_type;
+extern uint8_t elf_osAbi;
+extern uint16_t elf_machine;
 
 struct elfHdr32 {
-    unsigned char e_magic[4];         // 4 bytes
-    unsigned char e_architecture;     // byte
-    unsigned char e_encoding;         // byte
-    unsigned char e_metadataVersion;  // byte
-    unsigned char e_abi;              // byte
-    unsigned char e_abiVersion;       // byte
-    unsigned char e_padding[7];       // 7 bytes
-    unsigned short e_fileType;        // half word
-    unsigned short e_machineType;     // half word
-    unsigned int e_version;           // word
-    unsigned int e_entryAddress;      // Address
-    unsigned int e_segmentHdrOffset;  // Offset
-    unsigned int e_sectionHdrOffset;  // Offset
-    unsigned int e_flags;             // word
-    unsigned short e_elfHdrSize;      // half word
-    unsigned short e_segmentHdrSize;  // half word
-    unsigned short e_numSegmentHdrs;  // half word
-    unsigned short e_sectionHdrSize;  // half word
-    unsigned short e_numSectionHdrs;  // half word
-    unsigned short e_stringTableNdx;  // half word
+    uint8_t e_magic[4];         // 4 bytes
+    uint8_t e_architecture;     // byte
+    uint8_t e_encoding;         // byte
+    uint8_t e_metadataVersion;  // byte
+    uint8_t e_abi;              // byte
+    uint8_t e_abiVersion;       // byte
+    uint8_t e_padding[7];       // 7 bytes
+    uint16_t e_fileType;        // half word
+    uint16_t e_machineType;     // half word
+    uint32_t e_version;           // word
+    uint32_t e_entryAddress;      // Address
+    uint32_t e_segmentHdrOffset;  // Offset
+    uint32_t e_sectionHdrOffset;  // Offset
+    uint32_t e_flags;             // word
+    uint16_t e_elfHdrSize;      // half word
+    uint16_t e_segmentHdrSize;  // half word
+    uint16_t e_numSegmentHdrs;  // half word
+    uint16_t e_sectionHdrSize;  // half word
+    uint16_t e_numSectionHdrs;  // half word
+    uint16_t e_stringTableNdx;  // half word
 
     elfHdr32() {
         e_magic[0] = 0x7f;
@@ -163,13 +163,13 @@ struct elfHdr32 {
 
     void push(std::ofstream &stream) const {
         bool LSB = e_encoding == ELF_ENCODING_LSB;  // is little endian
-        for (unsigned char i = 0; i < 4; i++) pushByte(stream, e_magic[i]);
+        for (uint8_t i = 0; i < 4; i++) pushByte(stream, e_magic[i]);
         pushByte(stream, e_architecture);
         pushByte(stream, e_encoding);
         pushByte(stream, e_metadataVersion);
         pushByte(stream, e_abi);
         pushByte(stream, e_abiVersion);
-        for (unsigned char i = 0; i < 7; i++) pushByte(stream, e_padding[i]);
+        for (uint8_t i = 0; i < 7; i++) pushByte(stream, e_padding[i]);
         pushHalfWord(stream, e_fileType, LSB);
         pushHalfWord(stream, e_machineType, LSB);
         pushWord(stream, e_version, LSB);
@@ -187,26 +187,26 @@ struct elfHdr32 {
 };
 
 /*struct elfHdr64 {
-    unsigned char e_magic[4];          // 4 bytes
-    unsigned char e_architecture;      // byte
-    unsigned char e_encoding;          // byte
-    unsigned char e_metadataVersion;   // byte
-    unsigned char e_abi;               // byte
-    unsigned char e_abiVersion;        // byte
-    unsigned char e_padding[7];        // 7 bytes
-    unsigned short e_fileType;         // half word
-    unsigned short e_machineType;      // half word
-    unsigned int e_version;            // word
-    unsigned long e_entryAddress;      // Address
-    unsigned long e_segmentHdrOffset;  // Offset
-    unsigned long e_sectionHdrOffset;  // Offset
-    unsigned int e_flags;              // word
-    unsigned short e_elfHdrSize;       // half word
-    unsigned short e_segmentHdrSize;   // half word
-    unsigned short e_numSegmentHdrs;   // half word
-    unsigned short e_sectionHdrSize;   // half word
-    unsigned short e_numSectionHdrs;   // half word
-    unsigned short e_stringTableNdx;   // half word
+    uint8_t e_magic[4];          // 4 bytes
+    uint8_t e_architecture;      // byte
+    uint8_t e_encoding;          // byte
+    uint8_t e_metadataVersion;   // byte
+    uint8_t e_abi;               // byte
+    uint8_t e_abiVersion;        // byte
+    uint8_t e_padding[7];        // 7 bytes
+    uint16_t e_fileType;         // half word
+    uint16_t e_machineType;      // half word
+    uint32_t e_version;            // word
+    uint64_t e_entryAddress;      // Address
+    uint64_t e_segmentHdrOffset;  // Offset
+    uint64_t e_sectionHdrOffset;  // Offset
+    uint32_t e_flags;              // word
+    uint16_t e_elfHdrSize;       // half word
+    uint16_t e_segmentHdrSize;   // half word
+    uint16_t e_numSegmentHdrs;   // half word
+    uint16_t e_sectionHdrSize;   // half word
+    uint16_t e_numSectionHdrs;   // half word
+    uint16_t e_stringTableNdx;   // half word
 };*/
 #pragma endregion structs
 
@@ -224,37 +224,37 @@ public:
         return elfHeader.e_encoding == ELF_ENCODING_LSB;
     };
     void push(std::ofstream &stream);
-    ElfSegmentHandler *addSeg(const unsigned int &type, const unsigned int &flags, const bool &_isEntry = false);
+    ElfSegmentHandler *addSeg(const uint32_t &type, const uint32_t &flags, const bool &_isEntry = false);
 };
 
 class ElfSegmentHandler {
     ElfHandler &elfHandler;
     elfSegmentHdr32 segmentHeader;
-    std::vector<unsigned char> data;
+    std::vector<uint8_t> data;
 
 public:
     bool isEntry;
-    ElfSegmentHandler(ElfHandler &_elfHandler, const unsigned int &type, const unsigned int &flags, const bool &_isEntry);
+    ElfSegmentHandler(ElfHandler &_elfHandler, const uint32_t &type, const uint32_t &flags, const bool &_isEntry);
     constexpr bool isLSB() const {
         return elfHandler.isLSB();
     };
     void pushHeader(std::ofstream &stream);
     void pushData(std::ofstream &stream);
 
-    unsigned int getSize();
-    void setOffset(const unsigned int &offset);
+    uint32_t getSize();
+    void setOffset(const uint32_t &offset);
 
-    friend void pushChars(ElfSegmentHandler *segment, const unsigned char *chars, unsigned int len, const bool &LSB);
-    friend void pushByte(ElfSegmentHandler *segment, const unsigned char &byte);
-    friend void pushHalfWord(ElfSegmentHandler *segment, const unsigned short &halfword, const bool &LSB);
-    friend void pushWord(ElfSegmentHandler *segment, const unsigned int &word, const bool &LSB);
-    friend void pushDword(ElfSegmentHandler *segment, const unsigned long &dword, const bool &LSB);
+    friend void pushChars(ElfSegmentHandler *segment, const uint8_t *chars, uint32_t len, const bool &LSB);
+    friend void pushByte(ElfSegmentHandler *segment, const uint8_t &byte);
+    friend void pushHalfWord(ElfSegmentHandler *segment, const uint16_t &halfword, const bool &LSB);
+    friend void pushWord(ElfSegmentHandler *segment, const uint32_t &word, const bool &LSB);
+    friend void pushDword(ElfSegmentHandler *segment, const uint64_t &dword, const bool &LSB);
 };
-void pushChars(ElfSegmentHandler *segment, const unsigned char *chars, unsigned int len, const bool &LSB);
-void pushByte(ElfSegmentHandler *segment, const unsigned char &byte);
-void pushHalfWord(ElfSegmentHandler *segment, const unsigned short &halfword, const bool &LSB);
-void pushWord(ElfSegmentHandler *segment, const unsigned int &word, const bool &LSB);
-void pushDword(ElfSegmentHandler *segment, const unsigned long &dword, const bool &LSB);
+void pushChars(ElfSegmentHandler *segment, const uint8_t *chars, uint32_t len, const bool &LSB);
+void pushByte(ElfSegmentHandler *segment, const uint8_t &byte);
+void pushHalfWord(ElfSegmentHandler *segment, const uint16_t &halfword, const bool &LSB);
+void pushWord(ElfSegmentHandler *segment, const uint32_t &word, const bool &LSB);
+void pushDword(ElfSegmentHandler *segment, const uint64_t &dword, const bool &LSB);
 #pragma endregion  // handlers
 
 #endif  // _ELF_H

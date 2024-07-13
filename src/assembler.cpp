@@ -2,13 +2,11 @@
 #include <string>
 #include <cstring>
 
-#include "ELF.h"
-#include "PE.h"
 #include "globalConstants.h"
 
 #include "intelConstants.h"
 
-const unsigned int exit_code = 0x00000028;
+const uint32_t exit_code = 0x00000028;
 int main(int argc, char *argv[]) {
     if (argc < 3) return 1;
     if (strcmp(argv[1],"Linux")==0) {
@@ -40,13 +38,13 @@ int main(int argc, char *argv[]) {
         //4 bytes
         pushWord(dataSeg, exit_code, elfHandler.isLSB());
         //5 bytes
-        MOVeaxAddr32(textSeg, VirtAddr32 + sizeof(elfHdr32) + sizeof(elfSegmentHdr32) * 2);
+        //MOVeaxAddr32(textSeg, VirtAddr32 + sizeof(elfHdr32) + sizeof(elfSegmentHdr32) * 2);
         //5 bytes
-        MOV32(textSeg, "eBX", LINUX_SYSCALL_EXIT);
+        MOVv<ElfSegmentHandler *>(textSeg,"eBX",LINUX_SYSCALL_EXIT);
         //1 bytes
-        XCHG_eAX(textSeg, "eBX");
+        XCHGv<ElfSegmentHandler *>(textSeg,"eAX","eBX");
         //2 bytes
-        SYSCALL(textSeg);
+        INT(textSeg,0x80);
         //17 bytes total
 
         elfHandler.push(outFile);
@@ -60,53 +58,29 @@ int main(int argc, char *argv[]) {
         PeSectionHandler *idataSec = peHandler.addSeg(".idata  ",IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_WRITE,"import");
             // exit(0x0F); or exit(15);
         // or
-            // PUSH eBP
-            // DEC eAX
-            // MOV eBP eSP
-            // DEC eAX
-            // SUB esp 20
-            // MOV eCX 0x0F
-            // CALL 0x0E or CALL 13
-            // NOP NOP NOP NOP NOP NOP NOP NOP NOP NOP NOP NOP NOP NOP
-            // 
-        //or
-            // EXIT 15
-        // 55
-        PUSH(textSec,"eBP");
-        // 48
-        DEC(textSec,"eAX");
-        // 89 E5
-        MOV(textSec,"eBP","eSP");
-        // 48
-        DEC(textSec,"eAX");
-        //sub esp, +$20: 83 EC 20
-        //SUBb(textSec,"eSP",0x20);
-        pushByte(textSec,INTEL_INSTR_SUB_REGv_Ib);
-        pushByte(textSec,INTEL_ModRM_MOD_Reg|0x00101000|INTEL_ModRM_RM_eSP);
-        pushByte(textSec,0x20);
-        // B9 0F 00 00 00
-        MOV32(textSec,"eCX",0x0000000F);
-        //Call dword 0x0000000E: E8 0E 00 00 00
-        pushByte(textSec,INTEL_INSTR_CALL_Jp);
-        pushDword(textSec,0x000000000000000E,PE_IS_LSB);
-        // 14 NOPs: 90 90 90 90 90 90 90 90 90 90 90 90 90 90
-        for (size_t i = 0; i < 14; i++) NOP(textSec);
-        INCindAddr();
-        pushHalfWord(textSec,0xFF05,false);pushWord(textSec,0x00000000,PE_IS_LSB);// inc indirect
-        DECindAddr();
-        pushHalfWord(textSec,0xFF0D,false);pushWord(textSec,0x00000000,PE_IS_LSB);// dec indirect
-        CALLindAddr();
-        pushHalfWord(textSec,0xFF15,false);pushWord(textSec,0x00000000,PE_IS_LSB);// call indirect
-        pushHalfWord(textSec,0xFF1D,false);pushWord(textSec,0x00000000,PE_IS_LSB);// call indirect far
-        JMPindAddr();
-        pushHalfWord(textSec,0xFF25,false);pushWord(textSec,0x00000000,PE_IS_LSB);// jmp indirect
-        pushHalfWord(textSec,0xFF2D,false);pushWord(textSec,0x00000000,PE_IS_LSB);// jmp indirect far
-        PUSHindAddr();
-        pushHalfWord(textSec,0xFF35,false);pushWord(textSec,0x00000000,PE_IS_LSB);// push indirect
-        //pushWord(textSec,0xFF251240u,false);pushWord(textSec,0x00009090u,false); pushWord(textSec,0x0F1F8400u,false);pushWord(textSec,0x00000000u,false);
-        //pushWord(textSec,0xFFFFFFFFu,false);pushWord(textSec,0xFFFFFFFFu,false); pushWord(textSec,0x00000000u,false);pushWord(textSec,0x00000000u,false);
-        //pushWord(textSec,0xFFFFFFFFu,false);pushWord(textSec,0xFFFFFFFFu,false); pushWord(textSec,0x00000000u,false); pushWord(textSec,0x00000000u,false);
+            // push eBP
+            // mov eBP eSP
+            // sub eSP 0x20
+            // mov eSP 0x0f
+            // cal 0x0e
+        PUSHv(textSec,"eBP");
+        MOVv(textSec,"eBP", "eSP");
+        SUBv(textSec,"eSP", 32);
+        MOVv(textSec,"eSP",15);
+        CALL(textSec,14);
 
+        pushWord(rdataSec,0x4743433A,false);pushWord(rdataSec,0x20285265,false);pushWord(rdataSec,0x76332C20,false);pushWord(rdataSec,0x4275696C,false);
+        pushWord(rdataSec,0x74206279,false);pushWord(rdataSec,0x204D5359,false);pushWord(rdataSec,0x53322070,false);pushWord(rdataSec,0x726F6A65,false);
+        pushWord(rdataSec,0x63742920,false);pushWord(rdataSec,0x31332E32,false);pushWord(rdataSec,0x2E300000,false);pushWord(rdataSec,0x00000000,false);
+
+        pushWord(idataSec,0x28300000,false);pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x54300000,false);
+        pushWord(idataSec,0x38300000,false);pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x00000000,false);
+        pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x48300000,false);pushWord(idataSec,0x00000000,false);
+        pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x48300000,false);pushWord(idataSec,0x00000000,false);
+        pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x25005F65,false);pushWord(idataSec,0x78697400,false);
+        pushWord(idataSec,0x00300000,false);pushWord(idataSec,0x6170692D,false);pushWord(idataSec,0x6D732D77,false);pushWord(idataSec,0x696E2D63,false);
+        pushWord(idataSec,0x72742D72,false);pushWord(idataSec,0x756E7469,false);pushWord(idataSec,0x6D652D6C,false);pushWord(idataSec,0x312D312D,false);
+        pushWord(idataSec,0x302E646C,false);pushWord(idataSec,0x6C000000,false);
 
         peHandler.push(outFile);
         outFile.close();

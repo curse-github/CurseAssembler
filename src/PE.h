@@ -5,7 +5,6 @@
 // https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
 
 #include <time.h>
-
 #include <vector>
 
 #define PE_IS_LSB true
@@ -16,14 +15,14 @@
 
 #pragma region structs
 struct peHdr32 {  // 22 bytes
-    unsigned char p_magic[4];
-    unsigned short p_machine;
-    unsigned short p_numberOfSections;    // limited at 96 sections
-    unsigned int p_timeDateStamp;         // seconds since 00:00 January 1, 1970
-    unsigned int p_pointerToSymbolTable;  // file offset of COFF symbol table
-    unsigned int p_numberOfSymbols;
-    unsigned short p_sizeOfOptionalHeader;  // not optional for executables
-    unsigned short p_characteristics;
+    uint8_t p_magic[4];
+    uint16_t p_machine;
+    uint16_t p_numberOfSections;    // limited at 96 sections
+    uint32_t p_timeDateStamp;         // seconds since 00:00 January 1, 1970
+    uint32_t p_pointerToSymbolTable;  // file offset of COFF symbol table
+    uint32_t p_numberOfSymbols;
+    uint16_t p_sizeOfOptionalHeader;  // not optional for executables
+    uint16_t p_characteristics;
     peHdr32() {
         p_magic[0] = 'P';
         p_magic[1] = 'E';
@@ -52,15 +51,15 @@ struct peHdr32 {  // 22 bytes
 // Optional header
 
 struct peOptHdrStdFields32 {  // 24 bytes
-    unsigned short p_magic;
-    unsigned char p_majorLinkerVersion;
-    unsigned char p_minorLinkerVersion;
-    unsigned int p_sizeOfCode;
-    unsigned int p_sizeOfInitializedData;
-    unsigned int p_sizeOfUninitializedData;
-    unsigned int p_addressOfEntryPoint;
-    unsigned int p_baseOfCode;
-    unsigned int p_baseOfData;  // virtual address??
+    uint16_t p_magic;
+    uint8_t p_majorLinkerVersion;
+    uint8_t p_minorLinkerVersion;
+    uint32_t p_sizeOfCode;
+    uint32_t p_sizeOfInitializedData;
+    uint32_t p_sizeOfUninitializedData;
+    uint32_t p_addressOfEntryPoint;
+    uint32_t p_baseOfCode;
+    uint32_t p_baseOfData;  // virtual address??
     peOptHdrStdFields32() {
         p_magic = IMAGE_FILE_MAGIC32;
         p_majorLinkerVersion = 0x02;
@@ -85,41 +84,41 @@ struct peOptHdrStdFields32 {  // 24 bytes
     }
 };
 /*struct peOptHdrStdFields64 {// 28 bytes
-    unsigned short p_magic;
-    unsigned char p_majorLinkerVersion;
-    unsigned char p_minorLinkerVersion;
-    unsigned int p_sizeOfCode;
-    unsigned int p_sizeOfInitializedData;
-    unsigned int p_sizeOfUninitializedData;
-    unsigned int p_addressOfEntryPoint;
-    unsigned int p_baseOfCode;
+    uint16_t p_magic;
+    uint8_t p_majorLinkerVersion;
+    uint8_t p_minorLinkerVersion;
+    uint32_t p_sizeOfCode;
+    uint32_t p_sizeOfInitializedData;
+    uint32_t p_sizeOfUninitializedData;
+    uint32_t p_addressOfEntryPoint;
+    uint32_t p_baseOfCode;
 };*/
 
 struct peOptHdrSpecFields32 {
-    unsigned int p_imageBase;
-    unsigned int p_sectionAlignment;
-    unsigned int p_fileAlignment;
-    unsigned short p_majorOperatingSystemVersion;
-    unsigned short p_minorOperatingSystemVersion;
-    unsigned short p_majorImageVersion;
-    unsigned short p_minorImageVersion;
-    unsigned short p_majorSubsystemVersion;
-    unsigned short p_minorSubsystemVersion;
-    unsigned int p_win32VersionValue;  // must always be 0
+    uint32_t p_imageBase;
+    uint32_t p_sectionAlignment;
+    uint32_t p_fileAlignment;
+    uint16_t p_majorOperatingSystemVersion;
+    uint16_t p_minorOperatingSystemVersion;
+    uint16_t p_majorImageVersion;
+    uint16_t p_minorImageVersion;
+    uint16_t p_majorSubsystemVersion;
+    uint16_t p_minorSubsystemVersion;
+    uint32_t p_win32VersionValue;  // must always be 0
     // must be multiple of p_sectionAlignment
-    unsigned int p_sizeOfImage;
+    uint32_t p_sizeOfImage;
     // size of MS-DOS stub, PE header, optional header, and all section headers
     // must be a multiple of p_fileAlignment
-    unsigned int p_sizeOfHeaders;
-    unsigned int p_checkSum;
-    unsigned short p_subSystem;
-    unsigned short p_dllCharacteristics;
-    unsigned int p_sizeOfStackReserve;
-    unsigned int p_sizeOfStackCommit;
-    unsigned int p_sizeOfHeapReserve;
-    unsigned int p_sizeOfHeapCommit;
-    unsigned int p_loaderFlags;  // must always be 0
-    unsigned int p_numberAndSizeOfDataDirs;
+    uint32_t p_sizeOfHeaders;
+    uint32_t p_checkSum;
+    uint16_t p_subSystem;
+    uint16_t p_dllCharacteristics;
+    uint32_t p_sizeOfStackReserve;
+    uint32_t p_sizeOfStackCommit;
+    uint32_t p_sizeOfHeapReserve;
+    uint32_t p_sizeOfHeapCommit;
+    uint32_t p_loaderFlags;  // must always be 0
+    uint32_t p_numberAndSizeOfDataDirs;
     peOptHdrSpecFields32() {
         p_imageBase = VirtAddr32;
         p_sectionAlignment = 0x1000;
@@ -136,12 +135,12 @@ struct peOptHdrSpecFields32 {
         p_checkSum = 0;           // currently unknown
         p_subSystem = IMAGE_SUBSYSTEM_WINDOWS_GUI;
         p_dllCharacteristics = 0x400;
-        p_sizeOfStackReserve = 0;   // currently unknown
-        p_sizeOfStackCommit = 0;    // currently unknown
-        p_sizeOfHeapReserve = 0;    // currently unknown
-        p_sizeOfHeapCommit = 0;     // currently unknown
+        p_sizeOfStackReserve = 100000;   // currently unknown
+        p_sizeOfStackCommit = 1000;    // currently unknown
+        p_sizeOfHeapReserve = 100000;    // currently unknown
+        p_sizeOfHeapCommit = 1000;     // currently unknown
         p_loaderFlags = 0;          // must always be 0
-        p_numberAndSizeOfDataDirs = 16;// most likely one, for an executable
+        p_numberAndSizeOfDataDirs = 13;// most likely one, for an executable
     }
     void push(std::ofstream &stream) {
         pushWord(stream,p_imageBase,PE_IS_LSB);
@@ -168,60 +167,60 @@ struct peOptHdrSpecFields32 {
     }
 };
 /*struct peOptHdrSpecFields64 {
-    unsigned long p_imageBase;
-    unsigned int p_sectionAlignment;
-    unsigned int p_fileAlignment;
-    unsigned short p_majorOperatingSystemVersion;
-    unsigned short p_minorOperatingSystemVersion;
-    unsigned short p_majorImageVersion;
-    unsigned short p_minorImageVersion;
-    unsigned short p_majorSubsystemVersion;
-    unsigned short p_minorSubsystemVersion;
-    unsigned short p_win32VersionValue;
-    unsigned int p_sizeOfImage;
-    unsigned int p_sizeOfHeaders;
-    unsigned int p_checkSum;
-    unsigned short p_subSystem;
-    unsigned short p_dllCharacteristics;
-    unsigned long p_sizeOfStackReserve;
-    unsigned long p_sizeOfStackCommit;
-    unsigned long p_sizeOfHeapReserve;
-    unsigned long p_sizeOfHeapCommit;
-    unsigned int p_loaderFlags;
-    unsigned int p_numberOfRvaAndSizes;
+    uint64_t p_imageBase;
+    uint32_t p_sectionAlignment;
+    uint32_t p_fileAlignment;
+    uint16_t p_majorOperatingSystemVersion;
+    uint16_t p_minorOperatingSystemVersion;
+    uint16_t p_majorImageVersion;
+    uint16_t p_minorImageVersion;
+    uint16_t p_majorSubsystemVersion;
+    uint16_t p_minorSubsystemVersion;
+    uint16_t p_win32VersionValue;
+    uint32_t p_sizeOfImage;
+    uint32_t p_sizeOfHeaders;
+    uint32_t p_checkSum;
+    uint16_t p_subSystem;
+    uint16_t p_dllCharacteristics;
+    uint64_t p_sizeOfStackReserve;
+    uint64_t p_sizeOfStackCommit;
+    uint64_t p_sizeOfHeapReserve;
+    uint64_t p_sizeOfHeapCommit;
+    uint32_t p_loaderFlags;
+    uint32_t p_numberOfRvaAndSizes;
 };*/
 
 struct peOptHdrDataDirs32 {
-    unsigned int p_exportTableRVA;
-    unsigned int p_exportTableSize;
-    unsigned int p_importTableRVA;
-    unsigned int p_importTableSize;
-    unsigned int p_resourceTableRVA;
-    unsigned int p_resourceTableSize;
-    unsigned int p_exceptionTableRVA;
-    unsigned int p_exceptionTableSize;
-    unsigned int p_certificateTableRVA;
-    unsigned int p_certificateTableSize;
-    unsigned int p_baseRelocationTableRVA;
-    unsigned int p_baseRelocationTableSize;
-    unsigned int p_debugRVA;
-    unsigned int p_debugSize;
-    unsigned long p_architecture;// must always be 0
-    unsigned int p_globalPtrRVA;// 0
-    unsigned int p_globalPtrSize;// 0
-    unsigned int p_TlsTableRVA;
-    unsigned int p_TlsTableSize;
-    unsigned int p_loadConfigTableRVA;
-    unsigned int p_loadConfigTableSize;
-    unsigned int p_boundImportRVA;
-    unsigned int p_boundImportSize;
-    unsigned int p_ImprtAddressTableRVA;
-    unsigned int p_ImprtAddressTableSize;
-    unsigned int p_delayImportDescriptorRVA;
-    unsigned int p_delayImportDescriptorSize;
-    unsigned int p_ClrRuntimeHeaderRVA;
-    unsigned int p_ClrRuntimeHeaderSize;
-    unsigned long p_zero;  // must always be 0, obviously
+    uint32_t p_exportTableRVA;
+    uint32_t p_exportTableSize;
+    uint32_t p_importTableRVA;
+    uint32_t p_importTableSize;
+    uint32_t p_resourceTableRVA;
+    uint32_t p_resourceTableSize;
+    uint32_t p_exceptionTableRVA;
+    uint32_t p_exceptionTableSize;
+    uint32_t p_certificateTableRVA;
+    uint32_t p_certificateTableSize;
+    uint32_t p_baseRelocationTableRVA;
+    uint32_t p_baseRelocationTableSize;
+    uint32_t p_debugRVA;
+    uint32_t p_debugSize;
+    uint64_t p_architecture;// must always be 0
+    uint32_t p_globalPtrRVA;// 0
+    uint32_t p_globalPtrSize;// 0
+    uint32_t p_TlsTableRVA;
+    uint32_t p_TlsTableSize;
+    uint32_t p_loadConfigTableRVA;
+    uint32_t p_loadConfigTableSize;
+    uint32_t p_boundImportRVA;
+    uint32_t p_boundImportSize;
+    uint32_t p_ImprtAddressTableRVA;
+    uint32_t p_ImprtAddressTableSize;
+    uint32_t p_delayImportDescriptorRVA;
+    uint32_t p_delayImportDescriptorSize;
+    uint32_t p_ClrRuntimeHeaderRVA;
+    uint32_t p_ClrRuntimeHeaderSize;
+    uint64_t p_zero;  // must always be 0, obviously
     peOptHdrDataDirs32() {
         p_exportTableRVA = 0;          // currently unknown
         p_exportTableSize = 0;         // currently unknown
@@ -269,7 +268,8 @@ struct peOptHdrDataDirs32 {
         pushWord(stream,p_baseRelocationTableSize,PE_IS_LSB);
         pushWord(stream,p_debugRVA,PE_IS_LSB);
         pushWord(stream,p_debugSize,PE_IS_LSB);
-        pushDword(stream,p_architecture,PE_IS_LSB);
+        pushWord(stream,p_architecture,PE_IS_LSB);
+        pushWord(stream,p_architecture,PE_IS_LSB);
         pushWord(stream,p_globalPtrRVA,PE_IS_LSB);
         pushWord(stream,p_globalPtrSize,PE_IS_LSB);
         pushWord(stream,p_TlsTableRVA,PE_IS_LSB);
@@ -284,7 +284,8 @@ struct peOptHdrDataDirs32 {
         pushWord(stream,p_delayImportDescriptorSize,PE_IS_LSB);
         pushWord(stream,p_ClrRuntimeHeaderRVA,PE_IS_LSB);
         pushWord(stream,p_ClrRuntimeHeaderSize,PE_IS_LSB);
-        pushDword(stream,p_zero,PE_IS_LSB);
+        pushWord(stream,p_zero,PE_IS_LSB);
+        pushWord(stream,p_zero,PE_IS_LSB);
     }
 };
 
@@ -292,20 +293,20 @@ struct peOptHdrDataDirs32 {
 
 struct peSectionHdr {
     char s_name[8];
-    unsigned int s_virtualSize;     // size in memory, invalid for object files
-    unsigned int s_virtualAddress;  // virtual address in memory, invalid for object files
+    uint32_t s_virtualSize;     // size in memory, invalid for object files
+    uint32_t s_virtualAddress;  // virtual address in memory, invalid for object files
     // must be multiple of file alignment
-    unsigned int s_rawDataSize;  // size in file
+    uint32_t s_rawDataSize;  // size in file
     // must be multiple of file alignment
     // if section contains only uninitialized data, this should be set to 0
-    unsigned int s_rawDataPointer;
-    unsigned int s_relocationsPointer;     // invalid for image file
-    unsigned int s_lineNumbersPointer;     // invalid for image file
-    unsigned short s_numberOfRelocations;  // invalid for image file
-    unsigned short s_numberOfLineNumbers;  // invalid for image file
-    unsigned int s_characteristics;
-    peSectionHdr(const char name[8], unsigned int characteristics) {
-        for (unsigned int i = 0; i < 8; i++) s_name[i]=name[i];
+    uint32_t s_rawDataPointer;
+    uint32_t s_relocationsPointer;     // invalid for image file
+    uint32_t s_lineNumbersPointer;     // invalid for image file
+    uint16_t s_numberOfRelocations;  // invalid for image file
+    uint16_t s_numberOfLineNumbers;  // invalid for image file
+    uint32_t s_characteristics;
+    peSectionHdr(const char name[8], uint32_t characteristics) {
+        for (uint32_t i = 0; i < 8; i++) s_name[i]=name[i];
         s_virtualSize = 0;     // currently unknown
         s_virtualAddress = 0;  // currently unknown
         s_rawDataSize = 0;     // currently unknown
@@ -319,7 +320,7 @@ struct peSectionHdr {
         //else if (Align32==512) s_characteristics|=IMAGE_SCN_ALIGN_512BYTES;
     }
     void push(std::ofstream &stream) {
-        for (unsigned int i = 0; i < 8; i++) { stream << s_name[i]; }
+        for (uint32_t i = 0; i < 8; i++) { stream << s_name[i]; }
         pushWord(stream,s_virtualSize,PE_IS_LSB);
         pushWord(stream,s_virtualAddress,PE_IS_LSB);
         pushWord(stream,s_rawDataSize,PE_IS_LSB);
@@ -346,7 +347,7 @@ private:
 public:
     PeHandler();
     void push(std::ofstream &stream);
-    PeSectionHandler *addSeg(const char name[8], unsigned int characteristics, const char *type);
+    PeSectionHandler *addSeg(const char name[8], uint32_t characteristics, const char *type);
 
     friend PeSectionHandler;
 };
@@ -354,36 +355,36 @@ public:
 class PeSectionHandler {
     PeHandler &peHandler;
     peSectionHdr sectionHeader;
-    std::vector<unsigned char> data;
+    std::vector<uint8_t> data;
 
-    unsigned int sectionAlignment=1;
-    unsigned int fileAlignment=1;
+    uint32_t sectionAlignment=1;
+    uint32_t fileAlignment=1;
 public:
      const char *type;
-    PeSectionHandler(PeHandler &_peHandler, const char name[8], unsigned int characteristics, const char *_type);
+    PeSectionHandler(PeHandler &_peHandler, const char name[8], uint32_t characteristics, const char *_type);
     bool isCode() {
         return ((sectionHeader.s_characteristics&IMAGE_SCN_MEM_EXECUTE)!=0);
     }
     void pushHeader(std::ofstream &stream);
     void pushData(std::ofstream &stream);
 
-    unsigned int getSize();
-    void setSectionAlign(const unsigned int& align);
-    void setFileAlign(const unsigned int& align);
-    void setOffset(const unsigned int &offset);
-    void setRVA(const unsigned int &Rva);
+    uint32_t getSize();
+    void setSectionAlign(const uint32_t& align);
+    void setFileAlign(const uint32_t& align);
+    void setOffset(const uint32_t &offset);
+    void setRVA(const uint32_t &Rva);
 
-    friend void pushChars(PeSectionHandler *section, const unsigned char *chars, unsigned int len, const bool &LSB);
-    friend void pushByte(PeSectionHandler *section, const unsigned char &byte);
-    friend void pushHalfWord(PeSectionHandler *section, const unsigned short &halfword, const bool &LSB);
-    friend void pushWord(PeSectionHandler *section, const unsigned int &word, const bool &LSB);
-    friend void pushDword(PeSectionHandler *section, const unsigned long &dword, const bool &LSB);
+    friend void pushChars(PeSectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB);
+    friend void pushByte(PeSectionHandler *section, const uint8_t &byte);
+    friend void pushHalfWord(PeSectionHandler *section, const uint16_t &halfword, const bool &LSB);
+    friend void pushWord(PeSectionHandler *section, const uint32_t &word, const bool &LSB);
+    friend void pushDword(PeSectionHandler *section, const uint64_t &dword, const bool &LSB);
 };
-    void pushChars(PeSectionHandler *section, const unsigned char *chars, unsigned int len, const bool &LSB);
-    void pushByte(PeSectionHandler *section, const unsigned char &byte);
-    void pushHalfWord(PeSectionHandler *section, const unsigned short &halfword, const bool &LSB);
-    void pushWord(PeSectionHandler *section, const unsigned int &word, const bool &LSB);
-    void pushDword(PeSectionHandler *section, const unsigned long &dword, const bool &LSB);
+    void pushChars(PeSectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB);
+    void pushByte(PeSectionHandler *section, const uint8_t &byte);
+    void pushHalfWord(PeSectionHandler *section, const uint16_t &halfword, const bool &LSB);
+    void pushWord(PeSectionHandler *section, const uint32_t &word, const bool &LSB);
+    void pushDword(PeSectionHandler *section, const uint64_t &dword, const bool &LSB);
 #pragma endregion// handlers
 
 #endif  // _PE_H

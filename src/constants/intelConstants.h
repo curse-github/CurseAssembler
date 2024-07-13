@@ -189,13 +189,13 @@
 #define INTEL_INSTR_CMP_eAX_Iv 0x3D
 #define INTEL_INSTR_DS_OVRD 0x3E
 //#define INTEL_INSTR_ 0x3F
-#define INTEL_INSTR_INCpRv 0x40
+#define INTEL_INSTR32_INCpRv 0x40
 //0x41-0x47 are offsets of INC+r
-#define INTEL_INSTR_DECpRv 0x48
+#define INTEL_INSTR32_DECpRv 0x48
 //0x49-0x4F are offsets of DEC+r
-#define INTEL_INSTR_PUSHpRv 0x50
+#define INTEL_INSTR32_PUSHpRv 0x50
 //0x51-0x57 are offsets of PUSH+r
-#define INTEL_INSTR_POPpRv 0x58
+#define INTEL_INSTR32_POPpRv 0x58
 //0x59-0x5F are offsets of POP+r
 //#define INTEL_INSTR_ 0x60
 //#define INTEL_INSTR_ 0x61
@@ -211,7 +211,7 @@
 //#define INTEL_INSTR_ 0x6B
 //0x6C - 0x6F IO functions?
 #define INTEL_INSTR_JIF_Ov 0x70
-#define INTEL_INSTR_JIF_nOv 0x71
+#define INTEL_INSTR_JIF_NOv 0x71
 #define INTEL_INSTR_JIF_uLT 0x72// unsigned less than
 #define INTEL_INSTR_JIF_uGE 0x73// unsigned geater than or equal
 #define INTEL_INSTR_JIF_ET 0x74
@@ -228,7 +228,7 @@
 #define INTEL_INSTR_JIF_GT 0x7F// greater than
 #define INTEL_INSTR_OP1_RMb_Ib 0x80
 #define INTEL_INSTR_OP1_RMv_Iv 0x81
-#define INTEL_INSTR_OP1_RMb_Ib 0x82
+//#define INTEL_INSTR_OP1_RMb_Ib 0x82
 #define INTEL_INSTR_OP1_RMv_Ib 0x83
 //#define INTEL_INSTR_ 0x84
 //#define INTEL_INSTR_ 0x85
@@ -247,7 +247,7 @@
 ///0x91-0x97 are offsets of XCHG eAX REG+r
 //#define INTEL_INSTR_ 0x98
 //#define INTEL_INSTR_ 0x99
-#define INTEL_INSTR_CALLF_Av 0x9A// call far
+#define INTEL_INSTR32_CALLF_Av 0x9A// call far
 //#define INTEL_INSTR_ 0x9B
 // 0x9C - 0x9F push and pop flag instructions
 //0xA0 - 0xA3 are moffs MOV instructions
@@ -256,7 +256,11 @@
 ///0xB1-0xB7 are offsets of MOV REG+r Ib
 #define INTEL_INSTR_MOV_REGpRv_Iv 0xB8
 ///0xB1-0xB7 are offsets of MOV REG+r Iv
-// 0xC0 - 0xC5 are matrix instructions?
+//#define INTEL_INSTR_ 0xC1
+#define INTEL_INSTR_RETN_I16 0xC2
+#define INTEL_INSTR_RETN 0xC3
+//#define INTEL_INSTR_ 0xC4
+//#define INTEL_INSTR_ 0xC5
 #define INTEL_INSTR_MOV_RMb_Ib 0xC6
 #define INTEL_INSTR_MOV_RMv_Iv 0xC7
 //#define INTEL_INSTR_ 0xC8// enter
@@ -335,12 +339,12 @@
 #define INTEL_INSTR_LOOPn0_eCX_Jb 0xE0
 #define INTEL_INSTR_LOOP0_eCX_Jb 0xE1
 #define INTEL_INSTR_LOOP_eCX_Jb 0xE2
-#define INTEL_INSTR_JMP_eCXeq0 0xE3
+#define INTEL_INSTR_JMP_eCXeq0_Jb 0xE3
 //0xE4 - 0xE7 are input/output instructions
-#define INTEL_INSTR_CALL_Jv 0xE8// call short
-#define INTEL_INSTR_JMP_Jv 0xE9//  jump short
+#define INTEL_INSTR_CALL_Jv 0xE8// call rel
+#define INTEL_INSTR_JMP_Jv 0xE9//  jump rel
 #define INTEL_INSTR_JMPF_Av 0xEA// jump far
-#define INTEL_INSTR_JMP_Jb 0xEB//  jump near
+#define INTEL_INSTR_JMP_Jb 0xEB//  jump rel near
 //0xEC - 0xEF are input/output instructions
 //#define INTEL_INSTR_LOCK 0xF0
 //#define INTEL_INSTR_ 0xF1
@@ -353,8 +357,8 @@
 #define INTEL_INSTR_SET_CF 0xF9
 #define INTEL_INSTR_CLR_IF 0xFA
 #define INTEL_INSTR_SET_IF 0xFB
-#define INTEL_INSTR_CLR_IF 0xFC
-#define INTEL_INSTR_SET_IF 0xFD
+#define INTEL_INSTR_CLR_DF 0xFC
+#define INTEL_INSTR_SET_DF 0xFD
 #define INTEL_INSTR_OP3b 0xFE
 #define INTEL_INSTR_OP3v 0xFF
 // #define INTEL_INSTR_ 0x00
