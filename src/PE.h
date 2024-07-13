@@ -451,6 +451,58 @@ public:
     void pushHalfWord(Pe32SectionHandler *section, const uint16_t &halfword, const bool &LSB);
     void pushWord(Pe32SectionHandler *section, const uint32_t &word, const bool &LSB);
     void pushDword(Pe32SectionHandler *section, const uint64_t &dword, const bool &LSB);
+
+
+class Pe64SectionHandler;
+class Pe64Handler {
+private:
+    std::vector<Pe64SectionHandler *> sectionHeaders32;
+    peHdr32 peHeader;
+    peOptHdrStdFields32 peStdFieldsHeader;
+    peOptHdrSpecFields32 peSpecFieldsHeader;
+    peOptHdrDataDirs peDataDirHeader;
+
+public:
+    Pe64Handler();
+    void push(std::ofstream &stream);
+    Pe64SectionHandler *addSeg(const char name[8], uint32_t characteristics, const char *type);
+
+    friend Pe64SectionHandler;
+};
+
+class Pe64SectionHandler {
+    Pe64Handler &peHandler;
+    peSectionHdr sectionHeader;
+    std::vector<uint8_t> data;
+
+    uint32_t sectionAlignment=1;
+    uint32_t fileAlignment=1;
+public:
+     const char *type;
+    Pe64SectionHandler(Pe64Handler &_peHandler, const char name[8], uint32_t characteristics, const char *_type);
+    bool isCode() {
+        return ((sectionHeader.s_characteristics&IMAGE_SCN_MEM_EXECUTE)!=0);
+    }
+    void pushHeader(std::ofstream &stream);
+    void pushData(std::ofstream &stream);
+
+    uint32_t getSize();
+    void setSectionAlign(const uint32_t& align);
+    void setFileAlign(const uint32_t& align);
+    void setOffset(const uint32_t &offset);
+    void setRVA(const uint32_t &Rva);
+
+    friend void pushChars(Pe64SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB);
+    friend void pushByte(Pe64SectionHandler *section, const uint8_t &byte);
+    friend void pushHalfWord(Pe64SectionHandler *section, const uint16_t &halfword, const bool &LSB);
+    friend void pushWord(Pe64SectionHandler *section, const uint32_t &word, const bool &LSB);
+    friend void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &LSB);
+};
+    void pushChars(Pe64SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB);
+    void pushByte(Pe64SectionHandler *section, const uint8_t &byte);
+    void pushHalfWord(Pe64SectionHandler *section, const uint16_t &halfword, const bool &LSB);
+    void pushWord(Pe64SectionHandler *section, const uint32_t &word, const bool &LSB);
+    void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &LSB);
 #pragma endregion// handlers
 
 #endif  // _PE_H
