@@ -58,211 +58,251 @@ void padBytes(std::ofstream &stream, const uint32_t &numBytes) {
     
 }
 
-#pragma region 32 bit reg helpers
-uint8_t RegToOffset32(const char *reg) {
-    uint8_t offset = 0;
-    if (strcmp(reg, "eAX") == 0) offset = INTEL_REG_OFF_eAX;
-    else if (strcmp(reg, "eCX") == 0) offset = INTEL_REG_OFF_eCX;
-    else if (strcmp(reg, "eDX") == 0) offset = INTEL_REG_OFF_eDX;
-    else if (strcmp(reg, "eBX") == 0) offset = INTEL_REG_OFF_eBX;
-    else if (strcmp(reg, "eSP") == 0) offset = INTEL_REG_OFF_eSP;
-    else if (strcmp(reg, "eBP") == 0) offset = INTEL_REG_OFF_eBP;
-    else if (strcmp(reg, "eSI") == 0) offset = INTEL_REG_OFF_eSI;
-    else if (strcmp(reg, "eDI") == 0) offset = INTEL_REG_OFF_eDI;
-    else {
-        std::cout << "Invalid register: \"" << reg << "\"." << std::endl;
-        return 150;
+struct registerInfo {
+    bool isValid=true;
+    unsigned char bit;
+    uint8_t offset;
+    uint8_t regOp;
+    uint8_t RM;
+};
+registerInfo processReg(const char* reg, const size_t& len) {
+    registerInfo info;
+    if (len==3u && reg[0]=='r') {// all 64 bit registers are 3 characters long and start with r
+        info.bit=64u;
+        if ((reg[1]=='a')&&(reg[2]=='x')) {
+            info.offset=INTEL_REG_OFF_rAX;
+        } else if ((reg[1]=='c')&&(reg[2]=='x')) {
+            info.offset=INTEL_REG_OFF_rCX;
+        } else if ((reg[1]=='d')&&(reg[2]=='x')) {
+            info.offset=INTEL_REG_OFF_rDX;
+        } else if ((reg[1]=='b')&&(reg[2]=='x')) {
+            info.offset=INTEL_REG_OFF_rBX;
+        } else if ((reg[1]=='s')&&(reg[2]=='p')) {
+            info.offset=INTEL_REG_OFF_rSP;
+        } else if ((reg[1]=='b')&&(reg[2]=='p')) {
+            info.offset=INTEL_REG_OFF_rBP;
+        } else if ((reg[1]=='s')&&(reg[2]=='i')) {
+            info.offset=INTEL_REG_OFF_rSI;
+        } else if ((reg[1]=='d')&&(reg[2]=='i')) {
+            info.offset=INTEL_REG_OFF_rDI;
+        } else { info.isValid=false; return info; }
+    } else if (len==3u && reg[0]=='e') {// all 32 bit registers are 3 characters long and start with e
+        info.bit=32u;
+        if ((reg[1]=='a')&&(reg[2]=='x')) {
+            info.offset=INTEL_REG_OFF_eAX;
+        } else if ((reg[1]=='c')&&(reg[2]=='x')) {
+            info.offset=INTEL_REG_OFF_eCX;
+        } else if ((reg[1]=='d')&&(reg[2]=='x')) {
+            info.offset=INTEL_REG_OFF_eDX;
+        } else if ((reg[1]=='b')&&(reg[2]=='x')) {
+            info.offset=INTEL_REG_OFF_eBX;
+        } else if ((reg[1]=='s')&&(reg[2]=='p')) {
+            info.offset=INTEL_REG_OFF_eSP;
+        } else if ((reg[1]=='b')&&(reg[2]=='p')) {
+            info.offset=INTEL_REG_OFF_eBP;
+        } else if ((reg[1]=='s')&&(reg[2]=='i')) {
+            info.offset=INTEL_REG_OFF_eSI;
+        } else if ((reg[1]=='d')&&(reg[2]=='i')) {
+            info.offset=INTEL_REG_OFF_eDI;
+        } else { info.isValid=false; return info; }
+    } else if (len==2u && (reg[1]=='h' || reg[1]=='l')) {// all 8 bit registers are 2 characters long and end with either h or l
+        info.bit=8u;
+        if ((reg[0]=='a')) {
+            info.offset=INTEL_REG_OFF_AL;
+        } else if ((reg[0]=='c')) {
+            info.offset=INTEL_REG_OFF_CL;
+        } else if ((reg[0]=='d')) {
+            info.offset=INTEL_REG_OFF_DL;
+        } else if ((reg[0]=='b')) {
+            info.offset=INTEL_REG_OFF_BL;
+        } else { info.isValid=false; return info; }
+        if (reg[1]=='h') info.offset+=4;
+    } else {//most likely either a 16 bit rigister or invalid
+        info.bit=16u;
+        if ((reg[0]=='a')&&(reg[1]=='x')) {
+            info.offset=INTEL_REG_OFF_AX;
+        } else if ((reg[0]=='c')&&(reg[1]=='x')) {
+            info.offset=INTEL_REG_OFF_CX;
+        } else if ((reg[0]=='d')&&(reg[1]=='x')) {
+            info.offset=INTEL_REG_OFF_DX;
+        } else if ((reg[0]=='b')&&(reg[1]=='x')) {
+            info.offset=INTEL_REG_OFF_BX;
+        } else if ((reg[0]=='s')&&(reg[1]=='p')) {
+            info.offset=INTEL_REG_OFF_SP;
+        } else if ((reg[0]=='b')&&(reg[1]=='p')) {
+            info.offset=INTEL_REG_OFF_BP;
+        } else if ((reg[0]=='s')&&(reg[1]=='i')) {
+            info.offset=INTEL_REG_OFF_SI;
+        } else if ((reg[0]=='d')&&(reg[1]=='i')) {
+            info.offset=INTEL_REG_OFF_DI;
+        } else { info.isValid=false; return info; }
     }
-    return offset;
+    info.regOp=info.offset<<3;
+    info.RM=info.offset;
+    return info;
 }
-uint8_t RegToModrmReg32(const char *reg) {
-    uint8_t offset = 0;
-    if (strcmp(reg, "eAX") == 0) offset = INTEL_ModRM_REG_eAX;
-    else if (strcmp(reg, "eCX") == 0) offset = INTEL_ModRM_REG_eCX;
-    else if (strcmp(reg, "eDX") == 0) offset = INTEL_ModRM_REG_eDX;
-    else if (strcmp(reg, "eBX") == 0) offset = INTEL_ModRM_REG_eBX;
-    else if (strcmp(reg, "eSP") == 0) offset = INTEL_ModRM_REG_eSP;
-    else if (strcmp(reg, "eBP") == 0) offset = INTEL_ModRM_REG_eBP;
-    else if (strcmp(reg, "eSI") == 0) offset = INTEL_ModRM_REG_eSI;
-    else if (strcmp(reg, "eDI") == 0) offset = INTEL_ModRM_REG_eDI;
-    else {
-        std::cout << "Invalid register." << std::endl;
-        return 150;
-    }
-    return offset;
-}
-uint8_t RegToModrmRM32(const char *reg) {
-    uint8_t offset = 0;
-    if (strcmp(reg, "eAX") == 0) offset = INTEL_ModRM_RM_eAX;
-    else if (strcmp(reg, "eCX") == 0) offset = INTEL_ModRM_RM_eCX;
-    else if (strcmp(reg, "eDX") == 0) offset = INTEL_ModRM_RM_eDX;
-    else if (strcmp(reg, "eBX") == 0) offset = INTEL_ModRM_RM_eBX;
-    else if (strcmp(reg, "eSP") == 0) offset = INTEL_ModRM_RM_eSP;
-    else if (strcmp(reg, "eBP") == 0) offset = INTEL_ModRM_RM_eBP;
-    else if (strcmp(reg, "eSI") == 0) offset = INTEL_ModRM_RM_eSI;
-    else if (strcmp(reg, "eDI") == 0) offset = INTEL_ModRM_RM_eDI;
-    else {
-        std::cout << "Invalid register." << std::endl;
-        return 150;
-    }
-    return offset;
-}
-#pragma endregion
 
-#pragma region 16 bit reg helpers
-uint8_t RegToOffset16(const char *reg) {
-    uint8_t offset = 0;
-    if (strcmp(reg, "AX") == 0) offset = INTEL_REG_OFF_AX;
-    else if (strcmp(reg, "CX") == 0) offset = INTEL_REG_OFF_CX;
-    else if (strcmp(reg, "DX") == 0) offset = INTEL_REG_OFF_DX;
-    else if (strcmp(reg, "BX") == 0) offset = INTEL_REG_OFF_BX;
-    else if (strcmp(reg, "SP") == 0) offset = INTEL_REG_OFF_SP;
-    else if (strcmp(reg, "BP") == 0) offset = INTEL_REG_OFF_BP;
-    else if (strcmp(reg, "SI") == 0) offset = INTEL_REG_OFF_SI;
-    else if (strcmp(reg, "DI") == 0) offset = INTEL_REG_OFF_DI;
-    else {
-        std::cout << "Invalid register: \"" << reg << "\"." << std::endl;
-        return 150;
-    }
-    return offset;
-}
-uint8_t RegToModrmReg16(const char *reg) {
-    uint8_t offset = 0;
-    if (strcmp(reg, "AX") == 0) offset = INTEL_ModRM_REG_AX;
-    else if (strcmp(reg, "CX") == 0) offset = INTEL_ModRM_REG_CX;
-    else if (strcmp(reg, "DX") == 0) offset = INTEL_ModRM_REG_DX;
-    else if (strcmp(reg, "BX") == 0) offset = INTEL_ModRM_REG_BX;
-    else if (strcmp(reg, "SP") == 0) offset = INTEL_ModRM_REG_SP;
-    else if (strcmp(reg, "BP") == 0) offset = INTEL_ModRM_REG_BP;
-    else if (strcmp(reg, "SI") == 0) offset = INTEL_ModRM_REG_SI;
-    else if (strcmp(reg, "DI") == 0) offset = INTEL_ModRM_REG_DI;
-    else {
-        std::cout << "Invalid register." << std::endl;
-        return 150;
-    }
-    return offset;
-}
-uint8_t RegToModrmRM16(const char *reg) {
-    uint8_t offset = 0;
-    if (strcmp(reg, "AX") == 0) offset = INTEL_ModRM_RM_AX;
-    else if (strcmp(reg, "CX") == 0) offset = INTEL_ModRM_RM_CX;
-    else if (strcmp(reg, "DX") == 0) offset = INTEL_ModRM_RM_DX;
-    else if (strcmp(reg, "BX") == 0) offset = INTEL_ModRM_RM_BX;
-    else if (strcmp(reg, "SP") == 0) offset = INTEL_ModRM_RM_SP;
-    else if (strcmp(reg, "BP") == 0) offset = INTEL_ModRM_RM_BP;
-    else if (strcmp(reg, "SI") == 0) offset = INTEL_ModRM_RM_SI;
-    else if (strcmp(reg, "DI") == 0) offset = INTEL_ModRM_RM_DI;
-    else {
-        std::cout << "Invalid register." << std::endl;
-        return 150;
-    }
-    return offset;
-}
-#pragma endregion
+struct numberInfo {
+    bool isValid=true;
+    unsigned long value;
+};
 
-#pragma region 8 bit reg helpers
-uint8_t RegToOffset8(const char *reg) {
-    uint8_t offset = 0;
-    if (strcmp(reg, "AL") == 0) offset = INTEL_REG_OFF_AL;
-    else if (strcmp(reg, "CL") == 0) offset = INTEL_REG_OFF_CL;
-    else if (strcmp(reg, "DL") == 0) offset = INTEL_REG_OFF_DL;
-    else if (strcmp(reg, "BL") == 0) offset = INTEL_REG_OFF_BL;
-    else if (strcmp(reg, "AH") == 0) offset = INTEL_REG_OFF_AH;
-    else if (strcmp(reg, "CH") == 0) offset = INTEL_REG_OFF_CH;
-    else if (strcmp(reg, "DH") == 0) offset = INTEL_REG_OFF_DH;
-    else if (strcmp(reg, "BH") == 0) offset = INTEL_REG_OFF_BH;
-    else {
-        std::cout << "Invalid register: \"" << reg << "\"." << std::endl;
-        return 150;
+numberInfo processNum(const char* num, const size_t& len) {
+    numberInfo info;
+    std::string numStr = "";
+    unsigned int numBase = 10;
+    if (num[0]=='0'&&(num[1]=='b'||num[1]=='d'||num[1]=='x')) {// for numbers in the form of 0xb0001101, 0d25, or 0x19
+        // loop through string until it reaches 20 characters, or finds the ending square bracket
+        bool foundEnd = false;
+        for (unsigned int i = 0; i < 20; i++) {
+            if (num[i+2]==']'||num[i+2]=='\0') {foundEnd=((len-2-i)<=1); break; }// found ending square bracket, however... if the end of the square bracket is not the end of the argument, it is invalid
+            else if (num[i+2]>='0' && num[i+2]<='9') {
+                numStr+=num[i+2];
+            } else break;// if there is a character that is not a 
+        }
+        if (!foundEnd) { info.isValid=false; return info; }
+        // parse the number out of the string, in the correct base based on the number abbreviation
+        if (num[1]=='b') numBase=2;
+        else if (num[1]=='x') numBase=16;
+    } else {
+        // loop through string until it reaches 20 characters, or finds the ending square bracket
+        bool foundEnd = false;
+        for (unsigned int i = 0; i < 20; i++) {
+            if (num[i]==']'||num[i]=='\0') {foundEnd=((len-i)<=1); break; }// found ending square bracket, however... if the end of the square bracket is not the end of the argument, it is invalid
+            else if (num[i]>='0' && num[i]<='9') {
+                numStr+=num[i];
+            } else break;// if there is a character that is not a 
+        }
+        if (!foundEnd) { info.isValid=false; return info; }
     }
-    return offset;
+    char* p;
+    info.value=strtol(numStr.c_str(),&p,numBase);// the character p represents the first character that "strtol" finds that is not valid, or '\0' if it did not find an invalid character
+    if (*p!=0) { info.isValid=false; return info; }
+    return info;
 }
-uint8_t RegToModrmReg8(const char *reg) {
-    uint8_t offset = 0;
-    if (strcmp(reg, "AL") == 0) offset = INTEL_ModRM_REG_AL;
-    else if (strcmp(reg, "CL") == 0) offset = INTEL_ModRM_REG_CL;
-    else if (strcmp(reg, "DL") == 0) offset = INTEL_ModRM_REG_DL;
-    else if (strcmp(reg, "BL") == 0) offset = INTEL_ModRM_REG_BL;
-    else if (strcmp(reg, "AH") == 0) offset = INTEL_ModRM_REG_AH;
-    else if (strcmp(reg, "CH") == 0) offset = INTEL_ModRM_REG_CH;
-    else if (strcmp(reg, "DH") == 0) offset = INTEL_ModRM_REG_DH;
-    else if (strcmp(reg, "BH") == 0) offset = INTEL_ModRM_REG_BH;
-    else {
-        std::cout << "Invalid register." << std::endl;
-        return 150;
+
+struct instructionArgInfo { // isRegister and isNumber will only ever be true if isIndirect is true
+    bool isValid=true;
+    bool isIndirect=false;
+    size_t strSize;
+    unsigned char bit=0; // for a number, this is irrelavent
+    bool hasRegister=false;
+    uint8_t regOffset;
+    uint8_t regRegOp;
+    uint8_t regRM;
+    bool hasNumber=false;
+    unsigned long numValue;
+};
+instructionArgInfo processArg(const char* arg) {
+    instructionArgInfo info;
+    info.strSize = std::string(arg).size();
+    if (arg[0]=='[') {
+        info.isIndirect=true;
+        if (arg[0]>='0' && arg[0]<='9') {
+            // parse a number
+            numberInfo numInfo = processNum(arg,info.strSize);
+            if (!numInfo.isValid) { info.isValid=false; return info;}
+            info.hasNumber=true;
+            info.numValue=numInfo.value;
+        } else {// most likely either a register or invalid
+            // check if it seems like it
+            size_t regLen = 0;
+            const char firstChar = std::tolower(arg[1]);
+            if (firstChar=='e' || firstChar=='r') regLen=3; // most likely eax,ecx,edx,ebx,esp,ebp,esi,edi, rax,rcx,rdx,rbx,rsp,rbp,rsi,or rdi
+            else if (firstChar=='a' || firstChar=='c' || firstChar=='d' || firstChar=='b' || firstChar=='s' || firstChar=='b') regLen=2;// most likely ax,cx,dx,bx,sp,bp,si,di, ah,ch,dh,bh,al,cl,dl,or bl
+            else { info.isValid=false; return info; }
+            // parse a register
+            if (arg[regLen+1]=='+') {
+                info.hasNumber=true;
+            } else if (arg[regLen+1]!=']') { info.isValid=false; return info; }
+            std::string regRef = ((regLen==3)?"aaa":"aa");
+            regRef[0]=std::tolower(arg[1]); regRef[1]=std::tolower(arg[2]); if (regLen==3) regRef[2]=std::tolower(arg[3]);// copy first 2 or 3 characters into "regRef"
+            registerInfo regInfo = processReg(regRef.c_str(), regLen);
+            if (!regInfo.isValid) { info.isValid=false; return info; }
+            info.hasRegister = true;
+            info.bit=regInfo.bit;
+            info.regOffset = regInfo.offset;
+            info.regRegOp = regInfo.regOp;
+            info.regRM = regInfo.RM;
+            if (info.hasNumber) {
+                size_t numberStartingIndex = 2u+regLen;// plus 2, one for square bracket, and one for the plus sign
+                numberInfo numInfo = processNum(arg+numberStartingIndex,info.strSize-numberStartingIndex);
+                if (!numInfo.isValid) { info.isValid=false; return info;}
+                info.numValue=numInfo.value;
+            }
+        }
+    } else if (arg[0]>='0' && arg[0]<='9') {
+        // parse a number
+        numberInfo numInfo = processNum(arg,info.strSize);
+        if (!numInfo.isValid) { info.isValid=false; return info;}
+        info.hasNumber=true;
+        info.numValue=numInfo.value;
+    } else {// most likely either a register or invalid
+        // check if it seems like it 
+        const char firstChar = std::tolower(arg[0]);
+        if (info.strSize<2||info.strSize>3) { info.isValid=false; return info; }
+        // parse a register
+        std::string regRef=((info.strSize==3)?"aaa":"aa");
+        regRef[0]=std::tolower(arg[0]); regRef[1]=std::tolower(arg[1]); if (info.strSize==3) regRef[2]=std::tolower(arg[2]);// copy first 2 or 3 characters into "regRef"
+        registerInfo regInfo = processReg(regRef.c_str(), regRef.size());
+        if (!regInfo.isValid) { info.isValid=false; return info; }
+        info.hasRegister=true;
+        info.bit=regInfo.bit;
+        info.regOffset=regInfo.offset;
+        info.regRegOp=regInfo.regOp;
+        info.regRM=regInfo.RM;
     }
-    return offset;
+    return info;
 }
-uint8_t RegToModrmRM8(const char *reg) {
-    uint8_t offset = 0;
-    if (strcmp(reg, "AL") == 0) offset = INTEL_ModRM_RM_AL;
-    else if (strcmp(reg, "CL") == 0) offset = INTEL_ModRM_RM_CL;
-    else if (strcmp(reg, "DL") == 0) offset = INTEL_ModRM_RM_DL;
-    else if (strcmp(reg, "BL") == 0) offset = INTEL_ModRM_RM_BL;
-    else if (strcmp(reg, "AH") == 0) offset = INTEL_ModRM_RM_AH;
-    else if (strcmp(reg, "CH") == 0) offset = INTEL_ModRM_RM_CH;
-    else if (strcmp(reg, "DH") == 0) offset = INTEL_ModRM_RM_DH;
-    else if (strcmp(reg, "BH") == 0) offset = INTEL_ModRM_RM_BH;
-    else {
-        std::cout << "Invalid register." << std::endl;
-        return 150;
-    }
-    return offset;
+
+std::ostream& operator<<(std::ostream& o, const instructionArgInfo& info) {
+    o << "{" << std::endl;
+    o << "\tisValid: " << (info.isValid?"true":"false");
+    if (!info.isValid) return o << std::endl << "}";
+    else o << "," << std::endl;
+    o << "\tisIndirect: " << (info.isIndirect?"true,":"false,") << std::endl;
+    o << "\tstrSize: " << (int)info.strSize << "," << std::endl;
+    o << "\tbit: " << (int)info.bit << "," << std::endl;
+    o << "\thasRegister: " << (info.hasRegister?"true,":"false,") << std::endl;
+    o << "\tregOffset: " << (int)info.regOffset << "," << std::endl;
+    o << "\tregRegOp: " << (int)info.regRegOp << "," << std::endl;
+    o << "\tregRM: " << (int)info.regRM << "," << std::endl;
+    o << "\thasNumber: " << (info.hasNumber?"true,":"false,") << std::endl;
+    o << "\tnumValue: " << info.numValue << "," << std::endl;
+    return o << "}";
 }
-#pragma endregion
 
 #pragma endregion helper functions
 
 #pragma region instructions
 
 #pragma region ADD
-//2 bytes
+// dst: destination
+// src: source
+// equivilent to dst = dst + src;
+// uses codes 0x00 - 0x05 as well as general instructions 0x80 - 0x83 with modrm OP bits set to 0
+// valid forms:
+//      ADD reg reg
+//      ADD reg num
+//      ADD reg [reg] // reference the value in reg as a virtual memory address
+//      ADD reg [num] // reference the value 25 as a virtual memory address
+//      ADD [reg] reg
+//      ADD [reg] num
+//      ADD [reg] [reg] // reference the value in reg as a virtual memory address
+//      ADD [reg] [num] // reference the value 25 as a virtual memory address
+// where reg can be AL,CL,DL,BL,AH,CH,DH,BH, AX,CX,DX,BX,SP,BP,SI,DI, eAX,eCX,eDX,eBX,eSP,eBP,eSI,eDI, rAX,rCX,rDX,rBX,rSP,rBP,rSI, or rDI
+// and num can be in the form of 25 (decimal,) 0d25 (also decimal,) 0x19 (hexi-decimal,) or 0b00011001 (binary)
 template <typename T>
-void ADDb(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_ADD_RMb_REGb);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg8(reg1)|RegToModrmRM8(reg2));
-}
-//2 bytes if reg is eAX, otherwise 3 bytes
-template <typename T>
-void ADDb(T &receiver, const char *reg, const uint8_t &value) {
-    uint8_t rm = RegToModrmRM8(reg);
-    if (rm == 0) {// reg == eAX
-        pushByte(receiver, INTEL_INSTR_ADD_AL_Ib);
-        pushByte(receiver, value);
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMb_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_ADD_RM_I|rm);
-        pushByte(receiver, value);
-    }
-}
-//2 bytes
-template <typename T>
-void ADDv(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_ADD_RMv_REGv);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg32(reg1)|RegToModrmRM32(reg2));
-}
-// 3,4,5 or 5 bytes
-template <typename T>
-void ADDv(T &receiver, const char *reg, const uint32_t &value) {
-    uint8_t rm = RegToModrmRM32(reg);
-    if (value>255) {
-        if (rm==0) {// reg == eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_ADD_eAX_Iv);
-            pushWord(receiver, value, true);
-        } else {// reg != eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
-            pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_ADD_RM_I|RegToModrmRM32(reg));
-            pushWord(receiver, value, true);
-        }
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMv_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_ADD_RM_I|RegToModrmRM32(reg));
-        pushByte(receiver, value);
-    }
+void ADD(T &receiver, const char* dst, const char* src) {
+    instructionArgInfo dstInfo = processArg(dst);
+    instructionArgInfo srcInfo = processArg(src);
+    std::cout << "dst: " << dstInfo << std::endl;
+    std::cout << "src: " << srcInfo << std::endl;
 }
 #pragma endregion ADD
 
-#pragma region OR
+
+/*#pragma region OR
 //2 bytes
 template <typename T>
 void ORb(T &receiver, const char *reg1, const char *reg2) {
@@ -307,676 +347,12 @@ void ORv(T &receiver, const char *reg, const uint32_t &value) {
         pushByte(receiver, value);
     }
 }
-#pragma endregion OR
+#pragma endregion OR*/
 
-#pragma region ADC
-//2 bytes
-template <typename T>
-void ADCb(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_ADC_RMb_REGb);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg8(reg1)|RegToModrmRM8(reg2));
-}
-//2 bytes if reg is eAX, otherwise 3 bytes
-template <typename T>
-void ADCb(T &receiver, const char *reg, const uint8_t &value) {
-    uint8_t rm = RegToModrmRM8(reg);
-    if (rm == 0) {// reg == eAX
-        pushByte(receiver, INTEL_INSTR_ADC_AL_Ib);
-        pushByte(receiver, value);
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMb_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_ADC_RM_I|rm);
-        pushByte(receiver, value);
-    }
-}
-//2 bytes
-template <typename T>
-void ADCv(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_ADC_RMv_REGv);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg32(reg1)|RegToModrmRM32(reg2));
-}
-// 3,4,5 or 5 bytes
-template <typename T>
-void ADCv(T &receiver, const char *reg, const uint32_t &value) {
-    uint8_t rm = RegToModrmRM32(reg);
-    if (value>255) {
-        if (rm==0) {// reg == eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_ADC_eAX_Iv);
-            pushWord(receiver, value, true);
-        } else {// reg != eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
-            pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_ADC_RM_I|RegToModrmRM32(reg));
-            pushWord(receiver, value, true);
-        }
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMv_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_ADC_RM_I|RegToModrmRM32(reg));
-        pushByte(receiver, value);
-    }
-}
-#pragma endregion ADC
 
-#pragma region SBB
-//2 bytes
-template <typename T>
-void SBBb(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_SBB_RMb_REGb);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg8(reg1)|RegToModrmRM8(reg2));
-}
-//2 bytes if reg is eAX, otherwise 3 bytes
-template <typename T>
-void SBBb(T &receiver, const char *reg, const uint8_t &value) {
-    uint8_t rm = RegToModrmRM8(reg);
-    if (rm == 0) {// reg == eAX
-        pushByte(receiver, INTEL_INSTR_SBB_AL_Ib);
-        pushByte(receiver, value);
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMb_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_SBB_RM_I|rm);
-        pushByte(receiver, value);
-    }
-}
-//2 bytes
-template <typename T>
-void SBBv(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_SBB_RMv_REGv);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg32(reg1)|RegToModrmRM32(reg2));
-}
-// 3,4,5 or 5 bytes
-template <typename T>
-void SBBv(T &receiver, const char *reg, const uint32_t &value) {
-    uint8_t rm = RegToModrmRM32(reg);
-    if (value>255) {
-        if (rm==0) {// reg == eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_SBB_eAX_Iv);
-            pushWord(receiver, value, true);
-        } else {// reg != eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
-            pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_SBB_RM_I|RegToModrmRM32(reg));
-            pushWord(receiver, value, true);
-        }
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMv_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_SBB_RM_I|RegToModrmRM32(reg));
-        pushByte(receiver, value);
-    }
-}
-#pragma endregion SBB
-
-#pragma region AND
-//2 bytes
-template <typename T>
-void ANDb(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_AND_RMb_REGb);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg8(reg1)|RegToModrmRM8(reg2));
-}
-//2 bytes if reg is eAX, otherwise 3 bytes
-template <typename T>
-void ANDb(T &receiver, const char *reg, const uint8_t &value) {
-    uint8_t rm = RegToModrmRM8(reg);
-    if (rm == 0) {// reg == eAX
-        pushByte(receiver, INTEL_INSTR_AND_AL_Ib);
-        pushByte(receiver, value);
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMb_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_AND_RM_I|rm);
-        pushByte(receiver, value);
-    }
-}
-//2 bytes
-template <typename T>
-void ANDv(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_AND_RMv_REGv);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg32(reg1)|RegToModrmRM32(reg2));
-}
-// 3,4,5 or 5 bytes
-template <typename T>
-void ANDv(T &receiver, const char *reg, const uint32_t &value) {
-    uint8_t rm = RegToModrmRM32(reg);
-    if (value>255) {
-        if (rm==0) {// reg == eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_AND_eAX_Iv);
-            pushWord(receiver, value, true);
-        } else {// reg != eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
-            pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_AND_RM_I|RegToModrmRM32(reg));
-            pushWord(receiver, value, true);
-        }
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMv_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_AND_RM_I|RegToModrmRM32(reg));
-        pushByte(receiver, value);
-    }
-}
-#pragma endregion AND
-
-#pragma region SUB
-//2 bytes
-template <typename T>
-void SUBb(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_SUB_RMb_REGb);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg8(reg1)|RegToModrmRM8(reg2));
-}
-//2 bytes if reg is eAX, otherwise 3 bytes
-template <typename T>
-void SUBb(T &receiver, const char *reg, const uint8_t &value) {
-    uint8_t rm = RegToModrmRM8(reg);
-    if (rm == 0) {// reg == eAX
-        pushByte(receiver, INTEL_INSTR_SUB_AL_Ib);
-        pushByte(receiver, value);
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMb_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_SUB_RM_I|rm);
-        pushByte(receiver, value);
-    }
-}
-//2 bytes
-template <typename T>
-void SUBv(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_SUB_RMv_REGv);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg32(reg1)|RegToModrmRM32(reg2));
-}
-// 3,4,5 or 5 bytes
-template <typename T>
-void SUBv(T &receiver, const char *reg, const uint32_t &value) {
-    uint8_t rm = RegToModrmRM32(reg);
-    if (value>255) {
-        if (rm==0) {// reg == eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_SUB_eAX_Iv);
-            pushWord(receiver, value, true);
-        } else {// reg != eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
-            pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_SUB_RM_I|RegToModrmRM32(reg));
-            pushWord(receiver, value, true);
-        }
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMv_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_SUB_RM_I|RegToModrmRM32(reg));
-        pushByte(receiver, value);
-    }
-}
-#pragma endregion SUB
-
-#pragma region XOR
-//2 bytes
-template <typename T>
-void XORb(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_XOR_RMb_REGb);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg8(reg1)|RegToModrmRM8(reg2));
-}
-//2 bytes if reg is eAX, otherwise 3 bytes
-template <typename T>
-void XORb(T &receiver, const char *reg, const uint8_t &value) {
-    uint8_t rm = RegToModrmRM8(reg);
-    if (rm == 0) {// reg == eAX
-        pushByte(receiver, INTEL_INSTR_XOR_AL_Ib);
-        pushByte(receiver, value);
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMb_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_XOR_RM_I|rm);
-        pushByte(receiver, value);
-    }
-}
-//2 bytes
-template <typename T>
-void XORv(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_XOR_RMv_REGv);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg32(reg1)|RegToModrmRM32(reg2));
-}
-// 3,4,5 or 5 bytes
-template <typename T>
-void XORv(T &receiver, const char *reg, const uint32_t &value) {
-    uint8_t rm = RegToModrmRM32(reg);
-    if (value>255) {
-        if (rm==0) {// reg == eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_XOR_eAX_Iv);
-            pushWord(receiver, value, true);
-        } else {// reg != eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
-            pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_XOR_RM_I|RegToModrmRM32(reg));
-            pushWord(receiver, value, true);
-        }
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMv_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_XOR_RM_I|RegToModrmRM32(reg));
-        pushByte(receiver, value);
-    }
-}
-#pragma endregion XOR
-
-#pragma region CMP
-//2 bytes
-template <typename T>
-void CMPb(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_CMP_RMb_REGb);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg8(reg1)|RegToModrmRM8(reg2));
-}
-//2 bytes if reg is eAX, otherwise 3 bytes
-template <typename T>
-void CMPb(T &receiver, const char *reg, const uint8_t &value) {
-    uint8_t rm = RegToModrmRM8(reg);
-    if (rm == 0) {// reg == eAX
-        pushByte(receiver, INTEL_INSTR_CMP_AL_Ib);
-        pushByte(receiver, value);
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMb_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_CMP_RM_I|rm);
-        pushByte(receiver, value);
-    }
-}
-//2 bytes
-template <typename T>
-void CMPv(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_CMP_RMv_REGv);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg32(reg1)|RegToModrmRM32(reg2));
-}
-// 3,4,5 or 5 bytes
-template <typename T>
-void CMPv(T &receiver, const char *reg, const uint32_t &value) {
-    uint8_t rm = RegToModrmRM32(reg);
-    if (value>255) {
-        if (rm==0) {// reg == eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_CMP_eAX_Iv);
-            pushWord(receiver, value, true);
-        } else {// reg != eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
-            pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_CMP_RM_I|RegToModrmRM32(reg));
-            pushWord(receiver, value, true);
-        }
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMv_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_CMP_RM_I|RegToModrmRM32(reg));
-        pushByte(receiver, value);
-    }
-}
-#pragma endregion CMP
-
-#pragma region INC
-//has indirect version
-//2 bytes
-template <typename T>
-void INCb(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR_OP3b);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP3_INC_RM|RegToModrmRM8(reg));
-}
-//has indirect version
-//1 byte
-template <typename T>
-void INCv(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR32_INCpRv+RegToOffset32(reg));
-}
-#pragma endregion INC
-
-#pragma region DEC
-//has indirect version
-//2 bytes
-template <typename T>
-void DECb(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR_OP3b);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP3_DEC_RM|RegToModrmRM8(reg));
-}
-//has indirect version
-//1 byte
-template <typename T>
-void DECv(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR32_DECpRv+RegToOffset32(reg));
-}
-#pragma endregion DEC
-
-#pragma region CALL
-//5 bytes
-template <typename T>
-void CALL(T &receiver, const uint32_t &value) {
-    pushByte(receiver, INTEL_INSTR_CALL_Jv);
-    pushWord(receiver, value, true);
-}
-//2 bytes
-template <typename T>
-void CALL(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR_OP3v);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP3_CALL_RM|RegToModrmRM32(reg));
-}
-#pragma endregion CALL
-
-#pragma region JMP
-//2 bytes
-template <typename T>
-void JMPb(T &receiver, const uint8_t &value) {
-    pushByte(receiver, INTEL_INSTR_JMP_Jb);
-    pushByte(receiver, value);
-}
-//5 bytes
-template <typename T>
-void JMPv(T &receiver, const uint32_t &value) {
-    pushByte(receiver, INTEL_INSTR_JMP_Jv);
-    pushWord(receiver, value, true);
-}
-//2 bytes
-template <typename T>
-void JMPv(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR_OP3v);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP3_JMP_RM|RegToModrmRM32(reg));
-}
-#pragma endregion JMP
-
-#pragma region PUSH
-//2 bytes
-template <typename T>
-void PUSHb(T &receiver, const uint8_t &value) {
-    pushByte(receiver, INTEL_INSTR_PUSH_Ib);
-    pushByte(receiver, value);
-}
-//5 bytes
-template <typename T>
-void PUSHv(T &receiver, const uint32_t &value) {
-    pushByte(receiver, INTEL_INSTR_PUSH_Iv);
-    pushWord(receiver, value, true);
-}
-//1 byte
-template <typename T>
-void PUSHv(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR32_PUSHpRv+RegToOffset32(reg));
-}
-#pragma endregion PUSH
-
-//1 byte
-template <typename T>
-void POP(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR32_POPpRv+RegToOffset32(reg));
-}
-
-#pragma region J
-template <typename T>
-void JOV(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_Ov);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JNOV(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_NOv);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JULT(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_uLT);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JUGE(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_uGT);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JET(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_ET);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JNE(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_NE);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JULE(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_uLE);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JUGT(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_uGT);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JS(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_Sign);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JNS(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_NSign);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JP(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_Parity);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JNP(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_NParity);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JLT(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_LT);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JGE(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_GE);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JLE(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_LE);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JGT(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JIF_GT);
-    pushByte(receiver,value);
-}
-template <typename T>
-void JCXZ(T &receiver, const uint8_t &value) {
-    pushByte(receiver,INTEL_INSTR_JMP_eCXeq0_Jb);
-    pushByte(receiver,value);
-}
-#pragma endregion J
-
-//1 byte
-template <typename T>
-void NOP(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_NOP);
-}
-
-#pragma region XCHG
-//2 bytes
-template <typename T>
-void XCHGb(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_XCHG_REGb_RMb);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg8(reg1)|RegToModrmRM8(reg2));
-}
-//1 byte if either reg is eAX, otherwise 2 bytes
-template <typename T>
-void XCHGv(T &receiver, const char *reg1, const char *reg2) {
-    uint8_t reg = RegToModrmReg32(reg1);
-    if (reg==0) {// reg1 == eAX
-        pushByte(receiver, INTEL_INSTR_XCHG_eAX_REGpRv+RegToOffset32(reg2));// might be NOP lol
-    } else {
-        uint8_t rm = RegToModrmRM32(reg2);
-        if (rm==0) {// reg2 == eAX
-            pushByte(receiver, INTEL_INSTR_XCHG_eAX_REGpRv+RegToOffset32(reg1));
-        } else {
-            pushByte(receiver, INTEL_INSTR_XCHG_REGv_RMv);
-            pushByte(receiver, INTEL_ModRM_MOD_Reg|reg|rm);
-        }
-    }
-}
-#pragma endregion XCHG
-
-#pragma region MOV
-//2 bytes
-template <typename T>
-void MOVb(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_MOV_RMb_REGb);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg8(reg1)|RegToModrmRM8(reg2));
-}
-//2 bytes
-template <typename T>
-void MOVv(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_MOV_RMv_REGv);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg32(reg1)|RegToModrmRM32(reg2));
-}
-//1 byte
-template <typename T>
-void MOVb(T &receiver, const char *reg, const uint8_t &value) {
-    pushByte(receiver, INTEL_INSTR_MOV_REGpRb_Ib+RegToOffset8(reg));
-    pushByte(receiver,value);
-}
-//1 byte
-template <typename T>
-void MOVv(T &receiver, const char *reg, const uint32_t &value) {
-    pushByte(receiver, INTEL_INSTR_MOV_REGpRv_Iv+RegToOffset32(reg));
-    pushWord(receiver,value,true);
-}
-#pragma endregion MOV
-
-#pragma region RET
-//3 bytes
-template <typename T>
-void RETN(T &receiver, const uint16_t &value) {
-    pushByte(receiver, INTEL_INSTR_RETN_I16);
-    pushHalfWord(receiver, value, true);
-}
-//1 byte
-template <typename T>
-void RETN(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_RETN);
-}
-//3 bytes
-template <typename T>
-void RETF(T &receiver, const uint16_t &value) {
-    pushByte(receiver, INTEL_INSTR_RETF_I16);
-    pushHalfWord(receiver, value, true);
-}
-//1 byte
-template <typename T>
-void RETF(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_RETF);
-}
-#pragma endregion RET
-
-#pragma region INT
-//1 byte
-template <typename T>
-void INT(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_INT);
-}
-//2 bytes
-template <typename T>
-void INT(T &receiver, const uint8_t &value) {
-    pushByte(receiver, INTEL_INSTR_INT_Ib);
-    pushByte(receiver, value);
-}
-#pragma endregion INT
-
-#pragma region LOOP
-//2 bytes
-template <typename T>
-void LOOPNE(T &receiver, const uint8_t &value) {
-    pushByte(receiver, INTEL_INSTR_LOOPn0_eCX_Jb);
-    pushByte(receiver, value);
-}
-//2 bytes
-template <typename T>
-void LOOPET(T &receiver, const uint8_t &value) {
-    pushByte(receiver, INTEL_INSTR_LOOP0_eCX_Jb);
-    pushByte(receiver, value);
-}
-//2 bytes
-template <typename T>
-void LOOP(T &receiver, const uint8_t &value) {
-    pushByte(receiver, INTEL_INSTR_LOOP_eCX_Jb);
-    pushByte(receiver, value);
-}
-#pragma endregion LOOP
-
-//1 byte
-template <typename T>
-void HLT(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_HLT);
-}
-
-#pragma region OP2
-//3 bytes
-template <typename T>
-void TESTb(T &receiver, const char *reg, const uint8_t &value) {
-    pushByte(receiver, INTEL_INSTR_OP2b);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP2_TEST_RM_I|RegToModrmRM8(reg));
-    pushByte(receiver, value);
-}
-//6 bytes
-template <typename T>
-void TESTv(T &receiver, const char *reg, const uint32_t &value) {
-    pushByte(receiver, INTEL_INSTR_OP2v);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP2_TEST_RM_I|RegToModrmRM32(reg));
-    pushWord(receiver, value, true);
-}
-//2 bytes
-template <typename T>
-void NOTb(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR_OP2b);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP2_NOT_RM|RegToModrmRM8(reg));
-}
-//2 bytes
-template <typename T>
-void NOTv(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR_OP2v);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP2_NOT_RM|RegToModrmRM32(reg));
-}
-//2 bytes
-template <typename T>
-void NEGb(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR_OP2b);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP2_NEG_RM|RegToModrmRM8(reg));
-}
-//2 bytes
-template <typename T>
-void NEGv(T &receiver, const char *reg) {
-    pushByte(receiver, INTEL_INSTR_OP2v);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP2_NEG_RM|RegToModrmRM32(reg));
-}
-#pragma endregion OP2
-
-#pragma region clr/set flag instructions
-//1 byte
-template <typename T>
-void CLC(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_CLR_CF);
-}
-//1 byte
-template <typename T>
-void STC(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_SET_CF);
-}
-//1 byte
-template <typename T>
-void CLI(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_CLR_IF);
-}
-//1 byte
-template <typename T>
-void STI(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_SET_IF);
-}
-//1 byte
-template <typename T>
-void CLD(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_CLR_DF);
-}
-//1 byte
-template <typename T>
-void STD(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_SET_DF);
-}
-#pragma endregion clr/set flag instructions
-
-#pragma region instatiations
+#pragma region template instatiations
 //std::ofstream
-template void ADDb(std::ofstream &receiver, const char *reg1, const char *reg2);
-template void ADDb(std::ofstream &receiver, const char *reg, const uint8_t &value);
-template void ADDv(std::ofstream &receiver, const char *reg1, const char *reg2);
-template void ADDv(std::ofstream &receiver, const char *reg, const uint32_t &value);
+template void ADD(std::ofstream &receiver, const char *acc, const char *src);
 template void ORb(std::ofstream &receiver, const char *reg1, const char *reg2);
 template void ORb(std::ofstream &receiver, const char *reg, const uint8_t &value);
 template void ORv(std::ofstream &receiver, const char *reg1, const char *reg2);
@@ -1066,10 +442,7 @@ template void CLD(std::ofstream &receiver);
 template void STD(std::ofstream &receiver);
 
 //std::vector<uint8_t>
-template void ADDb(std::vector<uint8_t> &receiver, const char *reg1, const char *reg2);
-template void ADDb(std::vector<uint8_t> &receiver, const char *reg, const uint8_t &value);
-template void ADDv(std::vector<uint8_t> &receiver, const char *reg1, const char *reg2);
-template void ADDv(std::vector<uint8_t> &receiver, const char *reg, const uint32_t &value);
+template void ADD(std::vector<uint8_t> &receiver, const char *acc, const char *src);
 template void ORb(std::vector<uint8_t> &receiver, const char *reg1, const char *reg2);
 template void ORb(std::vector<uint8_t> &receiver, const char *reg, const uint8_t &value);
 template void ORv(std::vector<uint8_t> &receiver, const char *reg1, const char *reg2);
@@ -1159,10 +532,7 @@ template void CLD(std::vector<uint8_t> &receiver);
 template void STD(std::vector<uint8_t> &receiver);
 
 //ElfSegmentHandler *
-template void ADDb(ElfSegmentHandler *&receiver, const char *reg1, const char *reg2);
-template void ADDb(ElfSegmentHandler *&receiver, const char *reg, const uint8_t &value);
-template void ADDv(ElfSegmentHandler *&receiver, const char *reg1, const char *reg2);
-template void ADDv(ElfSegmentHandler *&receiver, const char *reg, const uint32_t &value);
+template void ADD(ElfSegmentHandler *&receiver, const char *acc, const char *src);
 template void ORb(ElfSegmentHandler *&receiver, const char *reg1, const char *reg2);
 template void ORb(ElfSegmentHandler *&receiver, const char *reg, const uint8_t &value);
 template void ORv(ElfSegmentHandler *&receiver, const char *reg1, const char *reg2);
@@ -1252,10 +622,7 @@ template void CLD(ElfSegmentHandler *&receiver);
 template void STD(ElfSegmentHandler *&receiver);
 
 //Pe32SectionHandler *
-template void ADDb(Pe32SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void ADDb(Pe32SectionHandler *&receiver, const char *reg, const uint8_t &value);
-template void ADDv(Pe32SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void ADDv(Pe32SectionHandler *&receiver, const char *reg, const uint32_t &value);
+template void ADD(Pe32SectionHandler *&receiver, const char *acc, const char *src);
 template void ORb(Pe32SectionHandler *&receiver, const char *reg1, const char *reg2);
 template void ORb(Pe32SectionHandler *&receiver, const char *reg, const uint8_t &value);
 template void ORv(Pe32SectionHandler *&receiver, const char *reg1, const char *reg2);
@@ -1345,45 +712,42 @@ template void CLD(Pe32SectionHandler *&receiver);
 template void STD(Pe32SectionHandler *&receiver);
 
 //Pe64SectionHandler *
-template void ADDb(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void ADDb(Pe64SectionHandler *&receiver, const char *reg, const uint8_t &value);
-template void ADDv(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void ADDv(Pe64SectionHandler *&receiver, const char *reg, const uint32_t &value);
+template void ADD(Pe64SectionHandler *&receiver, const char *acc, const char *src);
 template void ORb(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
 template void ORb(Pe64SectionHandler *&receiver, const char *reg, const uint8_t &value);
 template void ORv(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void ORv(Pe64SectionHandler *&receiver, const char *reg, const uint32_t &value);
+template void ORv(Pe64SectionHandler *&receiver, const char *reg, const uint64_t &value);
 template void ADCb(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
 template void ADCb(Pe64SectionHandler *&receiver, const char *reg, const uint8_t &value);
 template void ADCv(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void ADCv(Pe64SectionHandler *&receiver, const char *reg, const uint32_t &value);
+template void ADCv(Pe64SectionHandler *&receiver, const char *reg, const uint64_t &value);
 template void SBBb(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
 template void SBBb(Pe64SectionHandler *&receiver, const char *reg, const uint8_t &value);
 template void SBBv(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void SBBv(Pe64SectionHandler *&receiver, const char *reg, const uint32_t &value);
+template void SBBv(Pe64SectionHandler *&receiver, const char *reg, const uint64_t &value);
 template void ANDb(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
 template void ANDb(Pe64SectionHandler *&receiver, const char *reg, const uint8_t &value);
 template void ANDv(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void ANDv(Pe64SectionHandler *&receiver, const char *reg, const uint32_t &value);
+template void ANDv(Pe64SectionHandler *&receiver, const char *reg, const uint64_t &value);
 template void SUBb(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
 template void SUBb(Pe64SectionHandler *&receiver, const char *reg, const uint8_t &value);
 template void SUBv(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void SUBv(Pe64SectionHandler *&receiver, const char *reg, const uint32_t &value);
+template void SUBv(Pe64SectionHandler *&receiver, const char *reg, const uint64_t &value);
 template void XORb(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
 template void XORb(Pe64SectionHandler *&receiver, const char *reg, const uint8_t &value);
 template void XORv(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void XORv(Pe64SectionHandler *&receiver, const char *reg, const uint32_t &value);
+template void XORv(Pe64SectionHandler *&receiver, const char *reg, const uint64_t &value);
 template void CMPb(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
 template void CMPb(Pe64SectionHandler *&receiver, const char *reg, const uint8_t &value);
 template void CMPv(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
-template void CMPv(Pe64SectionHandler *&receiver, const char *reg, const uint32_t &value);
+template void CMPv(Pe64SectionHandler *&receiver, const char *reg, const uint64_t &value);
 template void INCb(Pe64SectionHandler *&receiver, const char *reg);
 template void INCv(Pe64SectionHandler *&receiver, const char *reg);
 template void DECb(Pe64SectionHandler *&receiver, const char *reg);
 template void DECv(Pe64SectionHandler *&receiver, const char *reg);
 template void CALL(Pe64SectionHandler *&receiver, const uint32_t &value);
 template void CALL(Pe64SectionHandler *&receiver, const char *reg);
-template void JMPv(Pe64SectionHandler *&receiver, const uint32_t &value);
+template void JMPv(Pe64SectionHandler *&receiver, const uint64_t &value);
 template void JMPv(Pe64SectionHandler *&receiver, const char *reg);
 template void JMPb(Pe64SectionHandler *&receiver, const uint8_t &value);
 template void PUSHb(Pe64SectionHandler *&receiver, const uint8_t &value);
@@ -1413,7 +777,7 @@ template void XCHGv(Pe64SectionHandler *&receiver, const char *reg1, const char 
 template void MOVb(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
 template void MOVv(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);
 template void MOVb(Pe64SectionHandler *&receiver, const char *reg, const uint8_t &value);
-template void MOVv(Pe64SectionHandler *&receiver, const char *reg, const uint32_t &value);
+template void MOVv(Pe64SectionHandler *&receiver, const char *reg, const uint64_t &value);
 template void RETN(Pe64SectionHandler *&receiver, const uint16_t &value);
 template void RETN(Pe64SectionHandler *&receiver);
 template void RETF(Pe64SectionHandler *&receiver, const uint16_t &value);
@@ -1425,7 +789,7 @@ template void LOOPET(Pe64SectionHandler *&receiver, const uint8_t &value);
 template void LOOP(Pe64SectionHandler *&receiver, const uint8_t &value);
 template void HLT(Pe64SectionHandler *&receiver);
 template void TESTb(Pe64SectionHandler *&receiver, const char *reg1, const uint8_t &value);
-template void TESTv(Pe64SectionHandler *&receiver, const char *reg1, const uint32_t &value);
+template void TESTv(Pe64SectionHandler *&receiver, const char *reg1, const uint64_t &value);
 template void NOTb(Pe64SectionHandler *&receiver, const char *reg);
 template void NOTv(Pe64SectionHandler *&receiver, const char *reg);
 template void NEGb(Pe64SectionHandler *&receiver, const char *reg);
@@ -1436,6 +800,6 @@ template void CLI(Pe64SectionHandler *&receiver);
 template void STI(Pe64SectionHandler *&receiver);
 template void CLD(Pe64SectionHandler *&receiver);
 template void STD(Pe64SectionHandler *&receiver);
-#pragma endregion instatiations
+#pragma endregion template instatiations
 
 #pragma endregion instructions

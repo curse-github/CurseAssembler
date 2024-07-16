@@ -44,15 +44,23 @@ uint8_t RegToOffset8(const char *reg);
 uint8_t RegToModrmReg8(const char *reg);
 uint8_t RegToModrmRM8(const char *reg);
 
+// dst: destination
+// src: source
+// equivilent to dst = dst + src;
 // uses codes 0x00 - 0x05 as well as general instructions 0x80 - 0x83 with modrm OP bits set to 0
+// valid forms:
+//      ADD reg reg
+//      ADD reg num
+//      ADD reg [reg] // reference the value in reg as a virtual memory address
+//      ADD reg [num] // reference the value 25 as a virtual memory address
+//      ADD [reg] reg
+//      ADD [reg] num
+//      ADD [reg] [reg] // reference the value in reg as a virtual memory address
+//      ADD [reg] [num] // reference the value 25 as a virtual memory address
+// where reg can be AL,CL,DL,BL,AH,CH,DH,BH, AX,CX,DX,BX,SP,BP,SI,DI, eAX,eCX,eDX,eBX,eSP,eBP,eSI,eDI, rAX,rCX,rDX,rBX,rSP,rBP,rSI, or rDI
+// and num can be in the form of 25 (decimal,) 0d25 (also decimal,) 0x19 (hexi-decimal,) or 0b00011001 (binary)
 template<typename T>
-void ADDb(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void ADDb(T &receiver, const char *reg, const uint8_t &value);
-template<typename T>
-void ADDv(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void ADDv(T &receiver, const char *reg, const uint32_t &value);
+void ADD(T &receiver, const char* dst, const char* src);
 
 // uses codes 0x08 - 0x0D as well as general instructions 0x80 - 0x83 with modrm OP bits set to 1
 template<typename T>
@@ -63,6 +71,8 @@ template<typename T>
 void ORv(T &receiver, const char *reg1, const char *reg2);
 template<typename T>
 void ORv(T &receiver, const char *reg, const uint32_t &value);
+template<typename T>
+void ORv(T &receiver, const char *reg, const uint64_t &value);
 
 // uses codes 0x10 - 0x15 as well as general instructions 0x80 - 0x83 with modrm OP bits set to 2
 template<typename T>
@@ -73,6 +83,8 @@ template<typename T>
 void ADCv(T &receiver, const char *reg1, const char *reg2);
 template<typename T>
 void ADCv(T &receiver, const char *reg, const uint32_t &value);
+template<typename T>
+void ADCv(T &receiver, const char *reg, const uint64_t &value);
 
 // uses codes 0x18 - 0x1D as well as general instructions 0x80 - 0x83 with modrm OP bits set to 3
 template<typename T>
@@ -83,6 +95,8 @@ template<typename T>
 void SBBv(T &receiver, const char *reg1, const char *reg2);
 template<typename T>
 void SBBv(T &receiver, const char *reg, const uint32_t &value);
+template<typename T>
+void SBBv(T &receiver, const char *reg, const uint64_t &value);
 
 // uses codes 0x20 - 0x25 as well as general instructions 0x80 - 0x83 with modrm OP bits set to 4
 template<typename T>
@@ -93,6 +107,8 @@ template<typename T>
 void ANDv(T &receiver, const char *reg1, const char *reg2);
 template<typename T>
 void ANDv(T &receiver, const char *reg, const uint32_t &value);
+template<typename T>
+void ANDv(T &receiver, const char *reg, const uint64_t &value);
 
 // uses codes 0x28 - 0x2D as well as general instructions 0x80 - 0x83 with modrm OP bits set to 5
 template<typename T>
@@ -103,6 +119,8 @@ template<typename T>
 void SUBv(T &receiver, const char *reg1, const char *reg2);
 template<typename T>
 void SUBv(T &receiver, const char *reg, const uint32_t &value);
+template<typename T>
+void SUBv(T &receiver, const char *reg, const uint64_t &value);
 
 // uses codes 0x30 - 0x35 as well as general instructions 0x80 - 0x83 with modrm OP bits set to 6
 template<typename T>
@@ -113,6 +131,8 @@ template<typename T>
 void XORv(T &receiver, const char *reg1, const char *reg2);
 template<typename T>
 void XORv(T &receiver, const char *reg, const uint32_t &value);
+template<typename T>
+void XORv(T &receiver, const char *reg, const uint64_t &value);
 
 // uses codes 0x38 - 0x3D as well as general instructions 0x80 - 0x83 with modrm OP bits set to 7
 template<typename T>
@@ -123,6 +143,8 @@ template<typename T>
 void CMPv(T &receiver, const char *reg1, const char *reg2);
 template<typename T>
 void CMPv(T &receiver, const char *reg, const uint32_t &value);
+template<typename T>
+void CMPv(T &receiver, const char *reg, const uint64_t &value);
 
 //uses codes 0x40 - 0x47 as well as general instructions 0xFE and 0xFF with modrm OP bits set to 0 for indirect
 template <typename T>
@@ -157,6 +179,8 @@ void JMPb(T &receiver, const uint8_t &value);
 //uses code 0xE9
 template <typename T>
 void JMPv(T &receiver, const uint32_t &value);
+template <typename T>
+void JMPv(T &receiver, const uint64_t &value);
 //uses general instruction 0xFF with modrm OP bits set to 4 for indirect addressing
 template <typename T>
 void JMPv(T &receiver, const char *reg);
@@ -261,6 +285,8 @@ void MOVb(T &receiver, const char *reg, const uint8_t &value);
 //uses codes 0xB8 - 0xBF and possibly 0xC7
 template <typename T>
 void MOVv(T &receiver, const char *reg, const uint32_t &value);
+template <typename T>
+void MOVv(T &receiver, const char *reg, const uint64_t &value);
 
 //uses code 0xC2
 template <typename T>
@@ -305,6 +331,8 @@ void TESTb(T &receiver, const char *reg1, const uint8_t &value);
 // these uses general instruction 0xF7 with modrm OP bits set to 0
 template <typename T>
 void TESTv(T &receiver, const char *reg1, const uint32_t &value);
+template <typename T>
+void TESTv(T &receiver, const char *reg1, const uint64_t &value);
 //uses general instruction 0xF6 with modrm OP bits set to 2
 template <typename T>
 void NOTb(T &receiver, const char *reg);

@@ -8,6 +8,15 @@
 #define INTEL_ModRM_MOD_Reg 0b11000000
 
 // instruction REG bits
+//64 bit
+#define INTEL_ModRM_REG_rAX 0b00000000
+#define INTEL_ModRM_REG_rCX 0b00001000
+#define INTEL_ModRM_REG_rDX 0b00010000
+#define INTEL_ModRM_REG_rBX 0b00011000
+#define INTEL_ModRM_REG_rSP 0b00100000
+#define INTEL_ModRM_REG_rBP 0b00101000
+#define INTEL_ModRM_REG_rSI 0b00110000
+#define INTEL_ModRM_REG_rDI 0b00111000
 //32 bit
 #define INTEL_ModRM_REG_eAX 0b00000000
 #define INTEL_ModRM_REG_eCX 0b00001000
@@ -96,6 +105,15 @@
 #define INTEL_ModRM_RM_DisplaceOnly 0b00000101
 
 // instruction offsets
+//64 bit
+#define INTEL_REG_OFF_rAX 0
+#define INTEL_REG_OFF_rCX 1
+#define INTEL_REG_OFF_rDX 2
+#define INTEL_REG_OFF_rBX 3
+#define INTEL_REG_OFF_rSP 4
+#define INTEL_REG_OFF_rBP 5
+#define INTEL_REG_OFF_rSI 6
+#define INTEL_REG_OFF_rDI 7
 //32 bit
 #define INTEL_REG_OFF_eAX 0
 #define INTEL_REG_OFF_eCX 1
@@ -193,9 +211,9 @@
 //0x41-0x47 are offsets of INC+r
 #define INTEL_INSTR32_DECpRv 0x48
 //0x49-0x4F are offsets of DEC+r
-#define INTEL_INSTR32_PUSHpRv 0x50
+#define INTEL_INSTR_PUSHpRv 0x50
 //0x51-0x57 are offsets of PUSH+r
-#define INTEL_INSTR32_POPpRv 0x58
+#define INTEL_INSTR_POPpRv 0x58
 //0x59-0x5F are offsets of POP+r
 //#define INTEL_INSTR_ 0x60
 //#define INTEL_INSTR_ 0x61

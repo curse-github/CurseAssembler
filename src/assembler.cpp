@@ -63,7 +63,8 @@ int main(int argc, char *argv[]) {
             // sub eSP 0x20
             // mov eSP 0x0f
             // cal 0x0e
-        PUSHv(textSec,"eBP");
+        ADD(textSec,"[eBI+125]","[RcX+0b11010000]");
+        /*PUSHv(textSec,"eBP");
         MOVv(textSec,"eBP", "eSP");
         SUBv(textSec,"eSP", 32);
         MOVv(textSec,"eSP",15);
@@ -80,7 +81,7 @@ int main(int argc, char *argv[]) {
         pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x00000000,false);pushWord(idataSec,0x25005F65,false);pushWord(idataSec,0x78697400,false);
         pushWord(idataSec,0x00300000,false);pushWord(idataSec,0x6170692D,false);pushWord(idataSec,0x6D732D77,false);pushWord(idataSec,0x696E2D63,false);
         pushWord(idataSec,0x72742D72,false);pushWord(idataSec,0x756E7469,false);pushWord(idataSec,0x6D652D6C,false);pushWord(idataSec,0x312D312D,false);
-        pushWord(idataSec,0x302E646C,false);pushWord(idataSec,0x6C000000,false);
+        pushWord(idataSec,0x302E646C,false);pushWord(idataSec,0x6C000000,false);*/
 
         peHandler.push(outFile);
         outFile.close();
