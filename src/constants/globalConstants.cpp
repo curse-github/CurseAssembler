@@ -546,17 +546,18 @@ void ADD(T &receiver, const char* dst, const char* src) {
             } else {// dst cannot be a number, so dst is just a register
                 if (dstInfo.reg1Offset==0) { // src is either eAX, or rAX
                     // ex: add eAX, num
-                    if (srcInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+                    if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                     pushByte(receiver, INTEL_INSTR_ADD_eAX_Iv);
                     pushWord(receiver, srcInfo.numValue, true);
                     std::cout << "add " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
+                } else {
+                    // ex: add reg, num
+                    if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+                    pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
+                    pushByte(receiver, (INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_ADD_RM_I|dstInfo.reg1RM));
+                    pushWord(receiver, srcInfo.numValue, true);
+                    std::cout << "add " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
                 }
-                // ex: add reg, num
-                if (srcInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
-                pushByte(receiver, (INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_ADD_RM_I|dstInfo.reg1RM));
-                pushWord(receiver, srcInfo.numValue, true);
-                std::cout << "add " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             }
         } else if (srcInfo.hasReg1) {
             // src is just a register
@@ -596,6 +597,7 @@ void ADD(T &receiver, const char* dst, const char* src) {
                 }
             } else {// dst cannot be a number, so dst is just a register
                 // ex: add reg, reg
+                if (srcInfo.bit!=dstInfo.bit) { std::cout << "Operand size mis-match." << std::endl; return; }
                 if (srcInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                 pushByte(receiver, INTEL_INSTR_ADD_RMv_REGv);
                 pushByte(receiver, (INTEL_ModRM_MOD_Reg|srcInfo.reg1RegOp|dstInfo.reg1RM));
