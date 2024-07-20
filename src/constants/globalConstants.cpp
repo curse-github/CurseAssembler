@@ -192,7 +192,7 @@ numberInfo processNum(const char* num, const size_t& len) {
             else if ((chr>='0' && chr<='9') || (chr>='a' && chr<='z')) {
                 info.len++; numStr+=chr;
             } else if (chr=='_'||chr==',') { info.len++; continue; }//ignore underscores and commas
-            else {info.reason="Invalid character '"+num[i+2]+std::string("'."); break;}// if there is a character that is not a number
+            else {info.reason="1Invalid character '"+num[i+2]+std::string("'."); break;}// if there is a character that is not a number
         }
         if (!foundEnd) { if (info.reason.empty()) info.reason="Could not find end of Number"; info.isValid=false; return info; }
         // get number base based on the number abbreviation
@@ -207,14 +207,14 @@ numberInfo processNum(const char* num, const size_t& len) {
             else if ((chr>='0' && chr<='9') || (chr>='a' && chr<='z')) {
                 info.len++; numStr+=chr;
             } else if (chr=='_'||chr==',') { info.len++; continue; }//ignore underscores and commas
-            else {info.reason="Invalid character '"+chr+std::string("'."); break;}// if there is a character that is not a number
+            else {info.reason="1Invalid character '"+chr+std::string("'."); break;}// if there is a character that is not a number
         }
         if (!foundEnd) { if (info.reason.empty()) info.reason="Could not find end of Number"; info.isValid=false; return info; }
     }
     // parse number from the string
     char* p;
     info.value=strtol(numStr.c_str(),&p,numBase);// the character p represents the first character that "strtol" finds that is not valid, or '\0' if it did not find an invalid character
-    if (*p!=0) { info.isValid=false; info.reason="Invalid character '"+*p+std::string("'."); return info; }
+    if (*p!=0) { info.isValid=false; info.reason="2Invalid character '"+*p+std::string("'."); return info; }
     return info;
 }
 
@@ -372,7 +372,7 @@ instructionArgInfo processArg(const char* arg) {
                 } else { info.reason="Too many registers in address."; info.isValid=false; return info; }
                 if (arg[cursor]=='+') {cursor++; continue; }
                 else break;
-            }
+            } else { info.reason="Could not find end of string."; info.isValid=false; return info; }
         }
         if (arg[cursor]!=']') { info.reason="Ending square bracket not found."; info.isValid=false; return info; }
         else if (arg[cursor+1]!='\0') { info.reason="Junk data found after argument."; info.isValid=false; return info; }
@@ -387,7 +387,7 @@ instructionArgInfo processArg(const char* arg) {
     } else {// most likely either a register or invalid
         // check if it seems like it 
         const char firstChar = std::tolower(arg[0]);
-        if (info.strSize<2||info.strSize>3) { info.reason="invalid value \""+std::string(arg)+std::string("\""); info.isValid=false; return info; }
+        if (info.strSize<2||info.strSize>3) { info.reason="Invalid value \""+std::string(arg)+std::string("\""); info.isValid=false; return info; }
         // parse a register
         registerInfo regInfo;
         if (info.strSize==3) {
@@ -402,7 +402,7 @@ instructionArgInfo processArg(const char* arg) {
             cursor=2u;
         }
         if (!regInfo.isValid) { info.reason=regInfo.reason; info.isValid=false; return info; }
-        if (arg[cursor]!='\0') { info.reason="junk data found after argument";info.isValid=false; return info;}
+        if (arg[cursor]!='\0') { info.reason="Junk data found after argument";info.isValid=false; return info;}
         info.hasReg1=true;
         info.bit=regInfo.bit;
         info.reg1Offset=regInfo.offset;
@@ -510,8 +510,8 @@ void ADD(T &receiver, const char* dst, const char* src) {
             // src is just an immutable
             if (dstInfo.isIndirect) {
                 if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// will requre the SIB byte
-                    if (dstInfo.hasReg1 && dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"rBP\" is an invalid address base" << std::endl; return; }
-                    if (dstInfo.hasReg2 && dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"rSP\" is an invalid address base" << std::endl; return; }
+                    if (dstInfo.hasReg1 && dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << " \"" << dstInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+                    if (dstInfo.hasReg2 && dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid address index" << std::endl; return; }
                     // ex: add [reg+reg*scale+num], num
                     if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                     pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
