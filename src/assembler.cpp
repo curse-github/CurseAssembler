@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
             // mov eSP 0x0f
             // call 0x0e
         
-        /*
+        
         ADD(textSec,"[edi]","eax");
         ADD(textSec,"[rcx*2]","eax");
         ADD(textSec,"[0x012c]","eax");
@@ -183,13 +183,7 @@ int main(int argc, char *argv[]) {
         ADD(textSec,"eax","[edi+0x012c+0x012c]"); // [edi+0x0258]
         ADD(textSec,"eax","[rcx*2+0x012c+0x012c]"); // [rcx*2+0x0258]
         ADD(textSec,"eax","[0x012c+0x012c+0x012c]"); // [0x384]
-        */
-        ADD(textSec,"[eax+eax*2]","eax");
-        ADD(textSec,"[eax*2]","eax");
-        ADD(textSec,"[eax]","eax");
-        ADD(textSec,"[eax+eax*2+1]","eax");
-        ADD(textSec,"[eax*2+1]","eax");
-        ADD(textSec,"[eax+1]","eax");
+        
 
         /*
         ADD(textSec,"eax","eax");

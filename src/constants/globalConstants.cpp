@@ -515,9 +515,14 @@ void ADD(T &receiver, const char* dst, const char* src) {
                     // ex: add [reg+reg*scale+num], num
                     if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                     pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_Address|INTEL_ModRM_OP1_ADD_RM_I|INTEL_ModRM_RM_NoDisplace));
-                    pushByte(receiver, ((dstInfo.hasReg2?(dstInfo.reg2Index|dstInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None))|(dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None)));
-                    pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true);// push either the displacement or a 0
+                    const uint8_t Mod = ((dstInfo.hasNumber && dstInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+                    const uint8_t RegOp = INTEL_ModRM_OP1_ADD_RM_I;
+                    const uint8_t ScaleIndex = (dstInfo.hasReg2?(dstInfo.reg2Index|dstInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
+                    const uint8_t Base = (dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None);
+                    pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
+                    pushByte(receiver, (ScaleIndex|Base));
+                    if (dstInfo.hasNumber || !dstInfo.hasReg1) // displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                        pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
                     pushWord(receiver, srcInfo.numValue, true);
                     std::cout << "add dword ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
                 } else {
@@ -562,9 +567,14 @@ void ADD(T &receiver, const char* dst, const char* src) {
                     if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                     if (srcInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                     pushByte(receiver, INTEL_INSTR_ADD_RMv_REGv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_Address|srcInfo.reg1RegOp|INTEL_ModRM_RM_NoDisplace));
-                    pushByte(receiver, ((dstInfo.hasReg2?(dstInfo.reg2Index|dstInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None))|(dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None)));
-                    pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true);// push either the displacement or a 0
+                    const uint8_t Mod = ((dstInfo.hasNumber && dstInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+                    const uint8_t RegOp = srcInfo.reg1RegOp;
+                    const uint8_t ScaleIndex = (dstInfo.hasReg2?(dstInfo.reg2Index|dstInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
+                    const uint8_t Base = (dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None);
+                    pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
+                    pushByte(receiver, (ScaleIndex|Base));
+                    if (dstInfo.hasNumber || !dstInfo.hasReg1) // displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                        pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
                     std::cout << "add " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
                 } else {
                     if (dstInfo.hasNumber) { // dst is address with a register + a number
@@ -600,9 +610,14 @@ void ADD(T &receiver, const char* dst, const char* src) {
             if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, INTEL_INSTR_ADD_REGv_RMv);
-            pushByte(receiver, (INTEL_ModRM_MOD_Address|dstInfo.reg1RegOp|INTEL_ModRM_RM_NoDisplace));
-            pushByte(receiver, ((srcInfo.hasReg2?(srcInfo.reg2Index|srcInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None))|(srcInfo.hasReg1?srcInfo.reg1Base:INTEL_SIB_Base_None)));
-            pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true);// push either the displacement or a 0
+            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+            const uint8_t RegOp = dstInfo.reg1RegOp;
+            const uint8_t ScaleIndex = (srcInfo.hasReg2?(srcInfo.reg2Index|srcInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
+            const uint8_t Base = (srcInfo.hasReg1?srcInfo.reg1Base:INTEL_SIB_Base_None);
+            pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
+            pushByte(receiver, (ScaleIndex|Base));
+            if (srcInfo.hasNumber || !srcInfo.hasReg1) // displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
             std::cout << "add " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         } else {
             if (srcInfo.hasNumber) { // dst is address with a register + a number
