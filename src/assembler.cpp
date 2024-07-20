@@ -1,6 +1,7 @@
 #include <fstream>
 #include <string>
 #include <cstring>
+#include <iostream>
 
 #include "globalConstants.h"
 
@@ -36,15 +37,15 @@ int main(int argc, char *argv[]) {
             // EXIT exit_code
 
         //4 bytes
-        pushWord(dataSeg, exit_code, elfHandler.isLSB());
+        //pushWord(dataSeg, exit_code, elfHandler.isLSB());
         //5 bytes
         //MOVeaxAddr32(textSeg, VirtAddr32 + sizeof(elfHdr32) + sizeof(elfSegmentHdr32) * 2);
         //5 bytes
-        MOVv<ElfSegmentHandler *>(textSeg,"eBX",LINUX_SYSCALL_EXIT);
+        //MOVv<ElfSegmentHandler *>(textSeg,"eBX",LINUX_SYSCALL_EXIT);
         //1 bytes
-        XCHGv<ElfSegmentHandler *>(textSeg,"eAX","eBX");
+        //XCHGv<ElfSegmentHandler *>(textSeg,"eAX","eBX");
         //2 bytes
-        INT(textSeg,0x80);
+        //INT(textSeg,0x80);
         //17 bytes total
 
         elfHandler.push(outFile);
@@ -62,8 +63,211 @@ int main(int argc, char *argv[]) {
             // mov eBP eSP
             // sub eSP 0x20
             // mov eSP 0x0f
-            // cal 0x0e
-        ADD(textSec,"[eBI+125]","[RcX+0b11010000]");
+            // call 0x0e
+        
+        /*
+        ADD(textSec,"[edi]","eax");
+        ADD(textSec,"[rcx*2]","eax");
+        ADD(textSec,"[0x012c]","eax");
+        ADD(textSec,"[edi+edi]","eax"); // [edi*2]
+        //ADD(textSec,"[rcx*2+edi]","eax"); // invalid
+        ADD(textSec,"[0x012c+edi]","eax");
+        //ADD(textSec,"[edi+rcx*2]","eax"); // invalid
+        ADD(textSec,"[rcx*2+rcx*2]","eax"); // [rcx*4]
+        ADD(textSec,"[0x012c+rcx*2]","eax");
+        ADD(textSec,"[edi+0x012c]","eax");
+        ADD(textSec,"[rcx*2+0x012c]","eax");
+        ADD(textSec,"[0x012c+0x012c]","eax");
+        ADD(textSec,"[edi+edi+edi]","eax"); // [edi+edi*2]
+        //ADD(textSec,"[rcx*2+edi+edi]","eax"); // invalid
+        ADD(textSec,"[0x012c+edi+edi]","eax"); // [edi*2+0x12c]
+        //ADD(textSec,"[edi+rcx*2+edi]","eax"); // invalid
+        //ADD(textSec,"[rcx*2+rcx*2+edi]","eax"); // invalid
+        //ADD(textSec,"[0x012c+rcx*2+edi]","eax");// invalid
+        ADD(textSec,"[edi+0x012c+edi]","eax"); // [edi*2+0x012c]
+        //ADD(textSec,"[rcx*2+0x012c+edi]","eax");// invalid
+        ADD(textSec,"[0x012c+0x012c+edi]","eax"); // [edi+0x0258]
+        //ADD(textSec,"[edi+edi+rcx*2]","eax"); // invalid
+        //ADD(textSec,"[rcx*2+edi+rcx*2]","eax"); // invalid
+        //ADD(textSec,"[0x012c+edi+rcx*2]","eax"); // invalid
+        //ADD(textSec,"[edi+rcx*2+rcx*2]","eax"); // invalid
+        //ADD(textSec,"[rcx*2+rcx*2+rcx*2]","eax"); // invalid
+        ADD(textSec,"[0x012c+rcx*2+rcx*2]","eax"); // [rcx*4+0x012c]
+        //ADD(textSec,"[edi+0x012c+rcx*2]","eax"); // invalid
+        ADD(textSec,"[rcx*2+0x012c+rcx*2]","eax"); // [rcx*4+0x012c]
+        ADD(textSec,"[0x012c+0x012c+rcx*2]","eax"); // [rcx*2+0x0258]
+        ADD(textSec,"[edi+edi+0x012c]","eax"); // [edi*2+0x012c]
+        //ADD(textSec,"[rcx*2+edi+0x012c]","eax"); // invalid
+        ADD(textSec,"[0x012c+edi+0x012c]","eax"); // [edi+0x0258]
+        //ADD(textSec,"[edi+rcx*2+0x012c]","eax"); // invalid
+        ADD(textSec,"[rcx*2+rcx*2+0x012c]","eax"); // [rcx*4+0x012c]
+        ADD(textSec,"[0x012c+rcx*2+0x012c]","eax"); // [rcx*2+0x0258]
+        ADD(textSec,"[edi+0x012c+0x012c]","eax"); // [edi+0x0258]
+        ADD(textSec,"[rcx*2+0x012c+0x012c]","eax"); // [rcx*2+0x0258]
+        ADD(textSec,"[0x012c+0x012c+0x012c]","eax"); // [0x384]
+        ADD(textSec,"[edi]","0x012c");
+        ADD(textSec,"[rcx*2]","0x012c");
+        ADD(textSec,"[0x012c]","0x012c");
+        ADD(textSec,"[edi+edi]","0x012c"); // [edi*2]
+        //ADD(textSec,"[rcx*2+edi]","0x012c"); // invalid
+        ADD(textSec,"[0x012c+edi]","0x012c");
+        //ADD(textSec,"[edi+rcx*2]","0x012c"); // invalid
+        ADD(textSec,"[rcx*2+rcx*2]","0x012c"); // [rcx*4]
+        ADD(textSec,"[0x012c+rcx*2]","0x012c");
+        ADD(textSec,"[edi+0x012c]","0x012c");
+        ADD(textSec,"[rcx*2+0x012c]","0x012c");
+        ADD(textSec,"[0x012c+0x012c]","0x012c");
+        ADD(textSec,"[edi+edi+edi]","0x012c"); // [edi+edi*2]
+        //ADD(textSec,"[rcx*2+edi+edi]","0x012c"); // invalid
+        ADD(textSec,"[0x012c+edi+edi]","0x012c"); // [edi*2+0x12c]
+        //ADD(textSec,"[edi+rcx*2+edi]","0x012c"); // invalid
+        //ADD(textSec,"[rcx*2+rcx*2+edi]","0x012c"); // invalid
+        //ADD(textSec,"[0x012c+rcx*2+edi]","0x012c");// invalid
+        ADD(textSec,"[edi+0x012c+edi]","0x012c"); // [edi*2+0x012c]
+        //ADD(textSec,"[rcx*2+0x012c+edi]","0x012c");// invalid
+        ADD(textSec,"[0x012c+0x012c+edi]","0x012c"); // [edi+0x0258]
+        //ADD(textSec,"[edi+edi+rcx*2]","0x012c"); // invalid
+        //ADD(textSec,"[rcx*2+edi+rcx*2]","0x012c"); // invalid
+        //ADD(textSec,"[0x012c+edi+rcx*2]","0x012c"); // invalid
+        //ADD(textSec,"[edi+rcx*2+rcx*2]","0x012c"); // invalid
+        //ADD(textSec,"[rcx*2+rcx*2+rcx*2]","0x012c"); // invalid
+        ADD(textSec,"[0x012c+rcx*2+rcx*2]","0x012c"); // [rcx*4+0x012c]
+        //ADD(textSec,"[edi+0x012c+rcx*2]","0x012c"); // invalid
+        ADD(textSec,"[rcx*2+0x012c+rcx*2]","0x012c"); // [rcx*4+0x012c]
+        ADD(textSec,"[0x012c+0x012c+rcx*2]","0x012c"); // [rcx*2+0x0258]
+        ADD(textSec,"[edi+edi+0x012c]","0x012c"); // [edi*2+0x012c]
+        //ADD(textSec,"[rcx*2+edi+0x012c]","0x012c"); // invalid
+        ADD(textSec,"[0x012c+edi+0x012c]","0x012c"); // [edi+0x0258]
+        //ADD(textSec,"[edi+rcx*2+0x012c]","0x012c"); // invalid
+        ADD(textSec,"[rcx*2+rcx*2+0x012c]","0x012c"); // [rcx*4+0x012c]
+        ADD(textSec,"[0x012c+rcx*2+0x012c]","0x012c"); // [rcx*2+0x0258]
+        ADD(textSec,"[edi+0x012c+0x012c]","0x012c"); // [edi+0x0258]
+        ADD(textSec,"[rcx*2+0x012c+0x012c]","0x012c"); // [rcx*2+0x0258]
+        ADD(textSec,"[0x012c+0x012c+0x012c]","0x012c"); // [0x384]
+        ADD(textSec,"eax","[edi]");
+        ADD(textSec,"eax","[rcx*2]");
+        ADD(textSec,"eax","[0x012c]");
+        ADD(textSec,"eax","[edi+edi]"); // [edi*2]
+        //ADD(textSec,"eax","[rcx*2+edi]"); // invalid
+        ADD(textSec,"eax","[0x012c+edi]");
+        //ADD(textSec,"eax","[edi+rcx*2]"); // invalid
+        ADD(textSec,"eax","[rcx*2+rcx*2]"); // [rcx*4]
+        ADD(textSec,"eax","[0x012c+rcx*2]");
+        ADD(textSec,"eax","[edi+0x012c]");
+        ADD(textSec,"eax","[rcx*2+0x012c]");
+        ADD(textSec,"eax","[0x012c+0x012c]");
+        ADD(textSec,"eax","[edi+edi+edi]"); // [edi+edi*2]
+        //ADD(textSec,"eax","[rcx*2+edi+edi]"); // invalid
+        ADD(textSec,"eax","[0x012c+edi+edi]"); // [edi*2+0x12c]
+        //ADD(textSec,"eax","[edi+rcx*2+edi]"); // invalid
+        //ADD(textSec,"eax","[rcx*2+rcx*2+edi]"); // invalid
+        //ADD(textSec,"eax","[0x012c+rcx*2+edi]");// invalid
+        ADD(textSec,"eax","[edi+0x012c+edi]"); // [edi*2+0x012c]
+        //ADD(textSec,"eax","[rcx*2+0x012c+edi]");// invalid
+        ADD(textSec,"eax","[0x012c+0x012c+edi]"); // [edi+0x0258]
+        //ADD(textSec,"eax","[edi+edi+rcx*2]"); // invalid
+        //ADD(textSec,"eax","[rcx*2+edi+rcx*2]"); // invalid
+        //ADD(textSec,"eax","[0x012c+edi+rcx*2]"); // invalid
+        //ADD(textSec,"eax","[edi+rcx*2+rcx*2]"); // invalid
+        //ADD(textSec,"eax","[rcx*2+rcx*2+rcx*2]"); // invalid
+        ADD(textSec,"eax","[0x012c+rcx*2+rcx*2]"); // [rcx*4+0x012c]
+        //ADD(textSec,"eax","[edi+0x012c+rcx*2]"); // invalid
+        ADD(textSec,"eax","[rcx*2+0x012c+rcx*2]"); // [rcx*4+0x012c]
+        ADD(textSec,"eax","[0x012c+0x012c+rcx*2]"); // [rcx*2+0x0258]
+        ADD(textSec,"eax","[edi+edi+0x012c]"); // [edi*2+0x012c]
+        //ADD(textSec,"eax","[rcx*2+edi+0x012c]"); // invalid
+        ADD(textSec,"eax","[0x012c+edi+0x012c]"); // [edi+0x0258]
+        //ADD(textSec,"eax","[edi+rcx*2+0x012c]"); // invalid
+        ADD(textSec,"eax","[rcx*2+rcx*2+0x012c]"); // [rcx*4+0x012c]
+        ADD(textSec,"eax","[0x012c+rcx*2+0x012c]"); // [rcx*2+0x0258]
+        ADD(textSec,"eax","[edi+0x012c+0x012c]"); // [edi+0x0258]
+        ADD(textSec,"eax","[rcx*2+0x012c+0x012c]"); // [rcx*2+0x0258]
+        ADD(textSec,"eax","[0x012c+0x012c+0x012c]"); // [0x384]
+        */
+        ADD(textSec,"[eax+eax*2]","eax");
+        ADD(textSec,"[eax*2]","eax");
+        ADD(textSec,"[eax]","eax");
+        ADD(textSec,"[eax+eax*2+1]","eax");
+        ADD(textSec,"[eax*2+1]","eax");
+        ADD(textSec,"[eax+1]","eax");
+
+        /*
+        ADD(textSec,"eax","eax");
+        ADD(textSec,"rax","eax"); // invalid
+        ADD(textSec,"0xfa","eax"); // invalid
+        ADD(textSec,"0x012c","eax"); // invalid
+        ADD(textSec,"[eax]","eax");
+        ADD(textSec,"[rax]","eax");
+        ADD(textSec,"[0xfa]","eax");
+        ADD(textSec,"[0x012c]","eax");
+        ADD(textSec,"[eax+0xfa]","eax");
+        ADD(textSec,"[rax+0xfa]","eax");
+        ADD(textSec,"[eax+0x012c]","eax");
+        ADD(textSec,"[rax+0x012c]","eax");
+        ADD(textSec,"eax","rax"); // invalid
+        ADD(textSec,"rax","rax");
+        ADD(textSec,"0xfa","rax"); // invalid
+        ADD(textSec,"0x012c","rax"); // invalid
+        ADD(textSec,"[eax]","rax");
+        ADD(textSec,"[rax]","rax");
+        ADD(textSec,"[0xfa]","rax");
+        ADD(textSec,"[0x012c]","rax");
+        ADD(textSec,"[eax+0xfa]","rax");
+        ADD(textSec,"[rax+0xfa]","rax");
+        ADD(textSec,"[eax+0x012c]","rax");
+        ADD(textSec,"[rax+0x012c]","rax");
+        ADD(textSec,"eax","0xfa");
+        ADD(textSec,"rax","0xfa");
+        ADD(textSec,"0xfa","0xfa"); // invalid
+        ADD(textSec,"0x012c","0xfa"); // invalid
+        ADD(textSec,"[eax]","0xfa");
+        ADD(textSec,"[rax]","0xfa");
+        ADD(textSec,"[0xfa]","0xfa");
+        ADD(textSec,"[0x012c]","0xfa");
+        ADD(textSec,"[eax+0xfa]","0xfa");
+        ADD(textSec,"[rax+0xfa]","0xfa");
+        ADD(textSec,"[eax+0x012c]","0xfa");
+        ADD(textSec,"[rax+0x012c]","0xfa");
+        ADD(textSec,"eax","0x012c");
+        ADD(textSec,"rax","0x012c");
+        ADD(textSec,"0xfa","0x012c"); // invalid
+        ADD(textSec,"0x012c","0x012c"); // invalid
+        ADD(textSec,"[eax]","0x012c");
+        ADD(textSec,"[rax]","0x012c");
+        ADD(textSec,"[0xfa]","0x012c");
+        ADD(textSec,"[0x012c]","0x012c");
+        ADD(textSec,"[eax+0xfa]","0x012c");
+        ADD(textSec,"[rax+0xfa]","0x012c");
+        ADD(textSec,"[eax+0x012c]","0x012c");
+        ADD(textSec,"[rax+0x012c]","0x012c");
+        ADD(textSec,"eax","[eax]");
+        ADD(textSec,"rax","[eax]");
+        ADD(textSec,"0xfa","[eax]"); // invalid
+        ADD(textSec,"0x012c","[eax]"); // invalid
+        ADD(textSec,"[eax]","[eax]"); // invalid
+        ADD(textSec,"[rax]","[eax]"); // invalid
+        ADD(textSec,"[0xfa]","[eax]"); // invalid
+        ADD(textSec,"[0x012c]","[eax]"); // invalid
+        ADD(textSec,"[eax+0xfa]","[eax]"); // invalid
+        ADD(textSec,"[rax+0xfa]","[eax]"); // invalid
+        ADD(textSec,"[eax+0x012c]","[eax]"); // invalid
+        ADD(textSec,"[rax+0x012c]","[eax]"); // invalid
+        ADD(textSec,"eax","[rax]");
+        ADD(textSec,"rax","[rax]");
+        ADD(textSec,"0xfa","[rax]"); // invalid
+        ADD(textSec,"0x012c","[rax]"); // invalid
+        ADD(textSec,"[eax]","[rax]"); // invalid
+        ADD(textSec,"[rax]","[rax]"); // invalid
+        ADD(textSec,"[0xfa]","[rax]"); // invalid
+        ADD(textSec,"[0x012c]","[rax]"); // invalid
+        ADD(textSec,"[eax+0xfa]","[rax]"); // invalid
+        ADD(textSec,"[rax+0xfa]","[rax]"); // invalid
+        ADD(textSec,"[eax+0x012c]","[rax]"); // invalid
+        ADD(textSec,"[rax+0x012c]","[rax]"); // invalid
+        */
+
+        std::cout << std::endl;
+        
         /*PUSHv(textSec,"eBP");
         MOVv(textSec,"eBP", "eSP");
         SUBv(textSec,"eSP", 32);

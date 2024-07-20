@@ -1,51 +1,53 @@
 #ifndef _INTEL_CONSTANTS_H
 #define _INTEL_CONSTANTS_H
 
-// mod bits
+#include <cstdint>
+
+// instruction RM byte mod bits
 #define INTEL_ModRM_MOD_Address 0b00000000
-#define INTEL_ModRM_MOD_1byteDisplacement 0b01000000
-#define INTEL_ModRM_MOD_4byteDisplacement 0b10000000
+#define INTEL_ModRM_MOD_1byteDisp 0b01000000
+#define INTEL_ModRM_MOD_4byteDisp 0b10000000
 #define INTEL_ModRM_MOD_Reg 0b11000000
 
-// instruction REG bits
+// instruction RM byte Reg/Op bits
 //64 bit
-#define INTEL_ModRM_REG_rAX 0b00000000
-#define INTEL_ModRM_REG_rCX 0b00001000
-#define INTEL_ModRM_REG_rDX 0b00010000
-#define INTEL_ModRM_REG_rBX 0b00011000
-#define INTEL_ModRM_REG_rSP 0b00100000
-#define INTEL_ModRM_REG_rBP 0b00101000
-#define INTEL_ModRM_REG_rSI 0b00110000
-#define INTEL_ModRM_REG_rDI 0b00111000
+#define INTEL_ModRM_RgOp_rAX 0b00000000
+#define INTEL_ModRM_RgOp_rCX 0b00001000
+#define INTEL_ModRM_RgOp_rDX 0b00010000
+#define INTEL_ModRM_RgOp_rBX 0b00011000
+#define INTEL_ModRM_RgOp_rSP 0b00100000
+#define INTEL_ModRM_RgOp_rBP 0b00101000
+#define INTEL_ModRM_RgOp_rSI 0b00110000
+#define INTEL_ModRM_RgOp_rDI 0b00111000
 //32 bit
-#define INTEL_ModRM_REG_eAX 0b00000000
-#define INTEL_ModRM_REG_eCX 0b00001000
-#define INTEL_ModRM_REG_eDX 0b00010000
-#define INTEL_ModRM_REG_eBX 0b00011000
-#define INTEL_ModRM_REG_eSP 0b00100000
-#define INTEL_ModRM_REG_eBP 0b00101000
-#define INTEL_ModRM_REG_eSI 0b00110000
-#define INTEL_ModRM_REG_eDI 0b00111000
+#define INTEL_ModRM_RgOp_eAX 0b00000000
+#define INTEL_ModRM_RgOp_eCX 0b00001000
+#define INTEL_ModRM_RgOp_eDX 0b00010000
+#define INTEL_ModRM_RgOp_eBX 0b00011000
+#define INTEL_ModRM_RgOp_eSP 0b00100000
+#define INTEL_ModRM_RgOp_eBP 0b00101000
+#define INTEL_ModRM_RgOp_eSI 0b00110000
+#define INTEL_ModRM_RgOp_eDI 0b00111000
 //16 bit
-#define INTEL_ModRM_REG_AX 0b00000000
-#define INTEL_ModRM_REG_CX 0b00001000
-#define INTEL_ModRM_REG_DX 0b00010000
-#define INTEL_ModRM_REG_BX 0b00011000
-#define INTEL_ModRM_REG_SP 0b00100000
-#define INTEL_ModRM_REG_BP 0b00101000
-#define INTEL_ModRM_REG_SI 0b00110000
-#define INTEL_ModRM_REG_DI 0b00111000
+#define INTEL_ModRM_RgOp_AX 0b00000000
+#define INTEL_ModRM_RgOp_CX 0b00001000
+#define INTEL_ModRM_RgOp_DX 0b00010000
+#define INTEL_ModRM_RgOp_BX 0b00011000
+#define INTEL_ModRM_RgOp_SP 0b00100000
+#define INTEL_ModRM_RgOp_BP 0b00101000
+#define INTEL_ModRM_RgOp_SI 0b00110000
+#define INTEL_ModRM_RgOp_DI 0b00111000
 //8 bit
-#define INTEL_ModRM_REG_AL 0b00000000
-#define INTEL_ModRM_REG_CL 0b00001000
-#define INTEL_ModRM_REG_DL 0b00010000
-#define INTEL_ModRM_REG_BL 0b00011000
-#define INTEL_ModRM_REG_AH 0b00100000
-#define INTEL_ModRM_REG_CH 0b00101000
-#define INTEL_ModRM_REG_DH 0b00110000
-#define INTEL_ModRM_REG_BH 0b00111000
+#define INTEL_ModRM_RgOp_AL 0b00000000
+#define INTEL_ModRM_RgOp_CL 0b00001000
+#define INTEL_ModRM_RgOp_DL 0b00010000
+#define INTEL_ModRM_RgOp_BL 0b00011000
+#define INTEL_ModRM_RgOp_AH 0b00100000
+#define INTEL_ModRM_RgOp_CH 0b00101000
+#define INTEL_ModRM_RgOp_DH 0b00110000
+#define INTEL_ModRM_RgOp_BH 0b00111000
 
-#pragma region mod R/M opcodes
+#pragma region mod RegOp opcodes
 #define INTEL_ModRM_OP1_ADD_RM_I 0b00000000// 0
 #define INTEL_ModRM_OP1_OR_RM_I 0b00001000// 1
 #define INTEL_ModRM_OP1_ADC_RM_I 0b00010000// 2
@@ -70,9 +72,18 @@
 #define INTEL_ModRM_OP3_JMP_RM 0b00100000// 4
 #define INTEL_ModRM_OP3_JMPF_m 0b00101000// 5
 #define INTEL_ModRM_OP3_PUSH_RM 0b00110000// 6
-#pragma endregion region mod R/M opcodes
+#pragma endregion region mod RegOp opcodes
 
-// instruction RM bits
+// instruction RM byte R/M bits
+//64 bit
+#define INTEL_ModRM_RM_rAX 0b00000000
+#define INTEL_ModRM_RM_rCX 0b00000001
+#define INTEL_ModRM_RM_rDX 0b00000010
+#define INTEL_ModRM_RM_rBX 0b00000011
+#define INTEL_ModRM_RM_rSP 0b00000100
+#define INTEL_ModRM_RM_rBP 0b00000101
+#define INTEL_ModRM_RM_rSI 0b00000110
+#define INTEL_ModRM_RM_rDI 0b00000111
 //32 bit
 #define INTEL_ModRM_RM_eAX 0b00000000
 #define INTEL_ModRM_RM_eCX 0b00000001
@@ -103,6 +114,53 @@
 
 #define INTEL_ModRM_RM_NoDisplace 0b00000100
 #define INTEL_ModRM_RM_DisplaceOnly 0b00000101
+
+// instruction SIB byte 2 Scale bits
+#define INTEL_SIB_Scale_None 0b00000000
+#define INTEL_SIB_Scale_1 0b00000000
+#define INTEL_SIB_Scale_2 0b01000000
+#define INTEL_SIB_Scale_4 0b10000000
+#define INTEL_SIB_Scale_8 0b11000000
+uint8_t intToSIBScale(const unsigned int& num);
+unsigned int SIBScaleToInt(const uint8_t& scale);
+
+// instruction SIB byte 2 Index bits
+#define INTEL_SIB_Index_None 0b00100000
+//64 bit
+#define INTEL_SIB_Index_rAX 0b00000000
+#define INTEL_SIB_Index_rCX 0b00001000
+#define INTEL_SIB_Index_rDX 0b00010000
+#define INTEL_SIB_Index_rBX 0b00011000
+#define INTEL_SIB_Index_rBP 0b00101000
+#define INTEL_SIB_Index_rSI 0b00110000
+#define INTEL_SIB_Index_rDI 0b00111000
+//32 bit
+#define INTEL_SIB_Index_eAX 0b00000000
+#define INTEL_SIB_Index_eCX 0b00001000
+#define INTEL_SIB_Index_eDX 0b00010000
+#define INTEL_SIB_Index_eBX 0b00011000
+#define INTEL_SIB_Index_eBP 0b00101000
+#define INTEL_SIB_Index_eSI 0b00110000
+#define INTEL_SIB_Index_eDI 0b00111000
+
+// instruction SIB byte 2 Base bits
+#define INTEL_SIB_Base_None 0b00000101
+//64 bit
+#define INTEL_SIB_Base_rAX 0b00000000
+#define INTEL_SIB_Base_rCX 0b00000001
+#define INTEL_SIB_Base_rDX 0b00000010
+#define INTEL_SIB_Base_rBX 0b00000011
+#define INTEL_SIB_Base_rSP 0b00000100
+#define INTEL_SIB_Base_rSI 0b00000110
+#define INTEL_SIB_Base_rDI 0b00000111
+//32 bit
+#define INTEL_SIB_Base_eAX 0b00000000
+#define INTEL_SIB_Base_eCX 0b00000001
+#define INTEL_SIB_Base_eDX 0b00000010
+#define INTEL_SIB_Base_eBX 0b00000011
+#define INTEL_SIB_Base_eSP 0b00000100
+#define INTEL_SIB_Base_eSI 0b00000110
+#define INTEL_SIB_Base_eDI 0b00000111
 
 // instruction offsets
 //64 bit
@@ -210,6 +268,7 @@
 #define INTEL_INSTR32_INCpRv 0x40
 //0x41-0x47 are offsets of INC+r
 #define INTEL_INSTR32_DECpRv 0x48
+#define INTEL_INSTR64_OperandSz_OVRD 0x48
 //0x49-0x4F are offsets of DEC+r
 #define INTEL_INSTR_PUSHpRv 0x50
 //0x51-0x57 are offsets of PUSH+r
@@ -221,7 +280,7 @@
 //#define INTEL_INSTR_ 0x63
 #define INTEL_INSTR_FS_OVRD 0x64
 #define INTEL_INSTR_GS_OVRD 0x65
-#define INTEL_INSTR_OperandSz_OVRD 0x66
+#define INTEL_INSTR32_OperandSz_OVRD 0x66
 #define INTEL_INSTR_AddrSz_OVRD 0x67
 #define INTEL_INSTR_PUSH_Iv 0x68
 //#define INTEL_INSTR_ 0x69

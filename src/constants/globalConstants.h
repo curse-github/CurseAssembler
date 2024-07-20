@@ -10,19 +10,29 @@ const uint32_t Align32 = 0x00000200;
 const uint64_t VirtAddr64 = 0x0000000000400000;
 const uint64_t Align64 = 0x0000000000000200;
 
+#define SECTION_ALIGN 0x1000u
+#define FILE_ALIGN 0x200u
+
+extern uint8_t bitMode;
+
+void pushChars(std::ostream &stream, const uint8_t *chars, uint32_t len, const bool &LSB);
 void pushChars(std::ofstream &stream, const uint8_t *chars, uint32_t len, const bool &LSB);
 void pushChars(std::vector<uint8_t> &vector, const uint8_t *chars, uint32_t len, const bool &LSB);
 void pushChars(std::ofstream &stream, std::vector<uint8_t> &vector);
 
+void pushByte(std::ostream &stream, const uint8_t &byte);
 void pushByte(std::ofstream &stream, const uint8_t &byte);
 void pushByte(std::vector<uint8_t> &vector, const uint8_t &byte);
 
+void pushHalfWord(std::ostream &stream, const uint16_t &halfword, const bool &LSB);
 void pushHalfWord(std::ofstream &stream, const uint16_t &halfword, const bool &LSB);
 void pushHalfWord(std::vector<uint8_t> &vector, const uint16_t &halfword, const bool &LSB);
 
+void pushWord(std::ostream &stream, const uint32_t &word, const bool &LSB);
 void pushWord(std::ofstream &stream, const uint32_t &word, const bool &LSB);
 void pushWord(std::vector<uint8_t> &vector, const uint32_t &word, const bool &LSB);
 
+void pushDword(std::ostream &stream, const uint64_t &dword, const bool &LSB);
 void pushDword(std::ofstream &stream, const uint64_t &dword, const bool &LSB);
 void pushDword(std::vector<uint8_t> &vector, const uint64_t &dword, const bool &LSB);
 
@@ -30,19 +40,6 @@ void padBytes(std::ofstream &stream, const uint32_t &numBytes);
 
 #include "ELF.h"
 #include "PE.h"
-
-//32 bit reg helpers, for registers eAX, eCX, eDX, eBX, eSP, eBP, eSI, and eDI
-uint8_t RegToOffset32(const char *reg);
-uint8_t RegToModrmReg32(const char *reg);
-uint8_t RegToModrmRM32(const char *reg);
-//16 bit reg helpers, for registers AX, CX, DX, BX, SP, BP, SI, and DI
-uint8_t RegToOffset16(const char *reg);
-uint8_t RegToModrmReg16(const char *reg);
-uint8_t RegToModrmRM16(const char *reg);
-//8 bit reg helpers, for registers AL, CL, DL, BL, AH, CH, DH, and BH
-uint8_t RegToOffset8(const char *reg);
-uint8_t RegToModrmReg8(const char *reg);
-uint8_t RegToModrmRM8(const char *reg);
 
 // dst: destination
 // src: source
@@ -61,90 +58,20 @@ uint8_t RegToModrmRM8(const char *reg);
 // and num can be in the form of 25 (decimal,) 0d25 (also decimal,) 0x19 (hexi-decimal,) or 0b00011001 (binary)
 template<typename T>
 void ADD(T &receiver, const char* dst, const char* src);
-
-// uses codes 0x08 - 0x0D as well as general instructions 0x80 - 0x83 with modrm OP bits set to 1
-template<typename T>
-void ORb(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void ORb(T &receiver, const char *reg, const uint8_t &value);
-template<typename T>
-void ORv(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void ORv(T &receiver, const char *reg, const uint32_t &value);
-template<typename T>
-void ORv(T &receiver, const char *reg, const uint64_t &value);
-
-// uses codes 0x10 - 0x15 as well as general instructions 0x80 - 0x83 with modrm OP bits set to 2
-template<typename T>
-void ADCb(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void ADCb(T &receiver, const char *reg, const uint8_t &value);
-template<typename T>
-void ADCv(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void ADCv(T &receiver, const char *reg, const uint32_t &value);
-template<typename T>
-void ADCv(T &receiver, const char *reg, const uint64_t &value);
-
-// uses codes 0x18 - 0x1D as well as general instructions 0x80 - 0x83 with modrm OP bits set to 3
-template<typename T>
-void SBBb(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void SBBb(T &receiver, const char *reg, const uint8_t &value);
-template<typename T>
-void SBBv(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void SBBv(T &receiver, const char *reg, const uint32_t &value);
-template<typename T>
-void SBBv(T &receiver, const char *reg, const uint64_t &value);
-
-// uses codes 0x20 - 0x25 as well as general instructions 0x80 - 0x83 with modrm OP bits set to 4
-template<typename T>
-void ANDb(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void ANDb(T &receiver, const char *reg, const uint8_t &value);
-template<typename T>
-void ANDv(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void ANDv(T &receiver, const char *reg, const uint32_t &value);
-template<typename T>
-void ANDv(T &receiver, const char *reg, const uint64_t &value);
-
-// uses codes 0x28 - 0x2D as well as general instructions 0x80 - 0x83 with modrm OP bits set to 5
-template<typename T>
-void SUBb(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void SUBb(T &receiver, const char *reg, const uint8_t &value);
-template<typename T>
-void SUBv(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void SUBv(T &receiver, const char *reg, const uint32_t &value);
-template<typename T>
-void SUBv(T &receiver, const char *reg, const uint64_t &value);
-
-// uses codes 0x30 - 0x35 as well as general instructions 0x80 - 0x83 with modrm OP bits set to 6
-template<typename T>
-void XORb(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void XORb(T &receiver, const char *reg, const uint8_t &value);
-template<typename T>
-void XORv(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void XORv(T &receiver, const char *reg, const uint32_t &value);
-template<typename T>
-void XORv(T &receiver, const char *reg, const uint64_t &value);
-
-// uses codes 0x38 - 0x3D as well as general instructions 0x80 - 0x83 with modrm OP bits set to 7
-template<typename T>
-void CMPb(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void CMPb(T &receiver, const char *reg, const uint8_t &value);
-template<typename T>
-void CMPv(T &receiver, const char *reg1, const char *reg2);
-template<typename T>
-void CMPv(T &receiver, const char *reg, const uint32_t &value);
-template<typename T>
-void CMPv(T &receiver, const char *reg, const uint64_t &value);
+template <typename T>
+void OR(T &receiver, const char* dst, const char* src);
+template <typename T>
+void ADC(T &receiver, const char* dst, const char* src);
+template <typename T>
+void SBB(T &receiver, const char* dst, const char* src);
+template <typename T>
+void AND(T &receiver, const char* dst, const char* src);
+template <typename T>
+void SUB(T &receiver, const char* dst, const char* src);
+template <typename T>
+void XOR(T &receiver, const char* dst, const char* src);
+template <typename T>
+void CMP(T &receiver, const char* dst, const char* src);
 
 //uses codes 0x40 - 0x47 as well as general instructions 0xFE and 0xFF with modrm OP bits set to 0 for indirect
 template <typename T>

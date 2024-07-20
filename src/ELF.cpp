@@ -43,6 +43,7 @@ void pushDword(ElfSegmentHandler *segment, const uint64_t &dword, const bool &LS
 
 #pragma region elfHandler
 ElfHandler::ElfHandler() : elfHeader() {
+    bitMode=32;
 }
 void ElfHandler::push(std::ofstream &stream) {
     bool LSB = elfHeader.e_encoding == ELF_ENCODING_LSB;  // is little endian

@@ -14,7 +14,7 @@
 #include "peConstants.h"
 
 #pragma region structs
-struct peHdr32 {  // 22 bytes
+struct peHdr {  // 22 bytes
     uint8_t p_magic[4];
     uint16_t p_machine;
     uint16_t p_numberOfSections;    // limited at 96 sections
@@ -23,7 +23,7 @@ struct peHdr32 {  // 22 bytes
     uint32_t p_numberOfSymbols;
     uint16_t p_sizeOfOptionalHeader;  // not optional for executables
     uint16_t p_characteristics;
-    peHdr32() {
+    peHdr() {
         p_magic[0] = 'P';
         p_magic[1] = 'E';
         p_magic[2] = '\0';
@@ -141,8 +141,8 @@ struct peOptHdrSpecFields32 {
     uint32_t p_numberAndSizeOfDataDirs;
     peOptHdrSpecFields32() {
         p_imageBase = VirtAddr32;
-        p_sectionAlignment = 0x1000;
-        p_fileAlignment = 0x200;
+        p_sectionAlignment = SECTION_ALIGN;
+        p_fileAlignment = FILE_ALIGN;
         p_majorOperatingSystemVersion = 4;
         p_minorOperatingSystemVersion = 0;
         p_majorImageVersion = 0;
@@ -196,8 +196,11 @@ struct peOptHdrSpecFields64 {
     uint16_t p_minorImageVersion;
     uint16_t p_majorSubsystemVersion;
     uint16_t p_minorSubsystemVersion;
-    uint16_t p_win32VersionValue;
+    uint16_t p_win32VersionValue; // must always be 0
+    // must be multiple of p_sectionAlignment
     uint32_t p_sizeOfImage;
+    // size of MS-DOS stub, PE header, optional header, and all section headers
+    // must be a multiple of p_fileAlignment
     uint32_t p_sizeOfHeaders;
     uint32_t p_checkSum;
     uint16_t p_subSystem;
@@ -206,12 +209,12 @@ struct peOptHdrSpecFields64 {
     uint64_t p_sizeOfStackCommit;
     uint64_t p_sizeOfHeapReserve;
     uint64_t p_sizeOfHeapCommit;
-    uint32_t p_loaderFlags;
+    uint32_t p_loaderFlags; // must always be 0
     uint32_t p_numberAndSizeOfDataDirs;
     peOptHdrSpecFields64() {
         p_imageBase = VirtAddr32;
-        p_sectionAlignment = 0x1000;
-        p_fileAlignment = 0x200;
+        p_sectionAlignment = SECTION_ALIGN;
+        p_fileAlignment = FILE_ALIGN;
         p_majorOperatingSystemVersion = 4;
         p_minorOperatingSystemVersion = 0;
         p_majorImageVersion = 0;
@@ -405,7 +408,7 @@ class Pe32SectionHandler;
 class Pe32Handler {
 private:
     std::vector<Pe32SectionHandler *> sectionHeaders32;
-    peHdr32 peHeader;
+    peHdr peHeader;
     peOptHdrStdFields32 peStdFieldsHeader;
     peOptHdrSpecFields32 peSpecFieldsHeader;
     peOptHdrDataDirs peDataDirHeader;
@@ -456,10 +459,10 @@ public:
 class Pe64SectionHandler;
 class Pe64Handler {
 private:
-    std::vector<Pe64SectionHandler *> sectionHeaders32;
-    peHdr32 peHeader;
-    peOptHdrStdFields32 peStdFieldsHeader;
-    peOptHdrSpecFields32 peSpecFieldsHeader;
+    std::vector<Pe64SectionHandler *> sectionHeaders64;
+    peHdr peHeader;
+    peOptHdrStdFields64 peStdFieldsHeader;
+    peOptHdrSpecFields64 peSpecFieldsHeader;
     peOptHdrDataDirs peDataDirHeader;
 
 public:

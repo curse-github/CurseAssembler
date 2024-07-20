@@ -58,6 +58,7 @@ void pushDword(Pe32SectionHandler *section, const uint64_t &dword, const bool &L
 
 #pragma region Pe32Handler
 Pe32Handler::Pe32Handler() : peHeader(), peStdFieldsHeader(), peSpecFieldsHeader(), peDataDirHeader() {
+    bitMode=32;
 }
 void Pe32Handler::push(std::ofstream &stream) {
     // 100 bytes of MZ header
@@ -71,13 +72,10 @@ void Pe32Handler::push(std::ofstream &stream) {
     pushWord(stream,0x6D6F6465u,false);pushWord(stream,0x2E0D0D0Au,false);pushWord(stream,0x24000000u,false);pushWord(stream,0x00000000u,false);// 0x00000080
     for (int i = 0; i < 8; i++) { pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false); }
 
-    #define SECTION_ALIGN 0x1000u
-    #define FILE_ALIGN 0x200u
-
     uint16_t numHeaders = sectionHeaders32.size();
     peHeader.p_numberOfSections = numHeaders;
     peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields32) + sizeof(peOptHdrSpecFields32) + sizeof(peOptHdrDataDirs);
-    peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr32) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr));
+    peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr));
     uint32_t baseOffset = roundToAlign(0x100 + peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
     peSpecFieldsHeader.p_sizeOfHeaders = roundToAlign(peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
     //checksum?
@@ -138,7 +136,7 @@ void Pe32Handler::push(std::ofstream &stream) {
     peSpecFieldsHeader.push(stream);
     peDataDirHeader.push(stream);
     for (uint32_t i = 0; i < numHeaders; i++) sectionHeaders32[i]->pushHeader(stream);// push all sections headers
-    padBytes(stream,baseOffset-(0x100 + sizeof(peHdr32) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr))));
+    padBytes(stream,baseOffset-(0x100 + sizeof(peHdr) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr))));
 
     for (uint32_t i = 0; i < numHeaders; i++) {// push all section content
         sectionHeaders32[i]->pushData(stream);
@@ -200,6 +198,7 @@ void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &L
 
 #pragma region Pe64Handler
 Pe64Handler::Pe64Handler() : peHeader(), peStdFieldsHeader(), peSpecFieldsHeader(), peDataDirHeader() {
+    bitMode=64;
 }
 void Pe64Handler::push(std::ofstream &stream) {
     // 100 bytes of MZ header
@@ -213,13 +212,11 @@ void Pe64Handler::push(std::ofstream &stream) {
     pushWord(stream,0x6D6F6465u,false);pushWord(stream,0x2E0D0D0Au,false);pushWord(stream,0x24000000u,false);pushWord(stream,0x00000000u,false);// 0x00000080
     for (int i = 0; i < 8; i++) { pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false); }
 
-    #define SECTION_ALIGN 0x1000u
-    #define FILE_ALIGN 0x200u
 
-    uint16_t numHeaders = sectionHeaders32.size();
+    uint16_t numHeaders = sectionHeaders64.size();
     peHeader.p_numberOfSections = numHeaders;
     peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields32) + sizeof(peOptHdrSpecFields32) + sizeof(peOptHdrDataDirs);
-    peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr32) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr));
+    peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr));
     uint32_t baseOffset = roundToAlign(0x100 + peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
     peSpecFieldsHeader.p_sizeOfHeaders = roundToAlign(peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
     //checksum?
@@ -235,27 +232,27 @@ void Pe64Handler::push(std::ofstream &stream) {
     uint32_t runningRVA = roundToAlign(baseOffset,SECTION_ALIGN);
     std::cout << "runningRVA: 0x" << std::hex << runningRVA << std::endl;
     for (uint32_t i = 0; i < numHeaders; i++) {
-        sectionHeaders32[i]->setOffset(runningOffset);
-        sectionHeaders32[i]->setRVA(runningRVA);
-        sectionHeaders32[i]->setSectionAlign(SECTION_ALIGN);
-        sectionHeaders32[i]->setFileAlign(FILE_ALIGN);
-        uint32_t sectionSize = sectionHeaders32[i]->getSize();
+        sectionHeaders64[i]->setOffset(runningOffset);
+        sectionHeaders64[i]->setRVA(runningRVA);
+        sectionHeaders64[i]->setSectionAlign(SECTION_ALIGN);
+        sectionHeaders64[i]->setFileAlign(FILE_ALIGN);
+        uint32_t sectionSize = sectionHeaders64[i]->getSize();
         uint32_t virtSize = roundToAlign(sectionSize,SECTION_ALIGN);
         uint32_t fileSize = roundToAlign(sectionSize,FILE_ALIGN);
-        if (strcmp(sectionHeaders32[i]->type,"") != 0) {
-            if (strcmp(sectionHeaders32[i]->type,"entry") == 0) {
+        if (strcmp(sectionHeaders64[i]->type,"") != 0) {
+            if (strcmp(sectionHeaders64[i]->type,"entry") == 0) {
                 entryPoint = runningRVA;
-            } else if (strcmp(sectionHeaders32[i]->type,"exception") == 0) {
+            } else if (strcmp(sectionHeaders64[i]->type,"exception") == 0) {
                 peDataDirHeader.p_exceptionTableRVA = runningRVA;
                 peDataDirHeader.p_exceptionTableSize = sectionSize;
-            } else if (strcmp(sectionHeaders32[i]->type,"import") == 0) {
+            } else if (strcmp(sectionHeaders64[i]->type,"import") == 0) {
                 peDataDirHeader.p_importTableRVA = runningRVA;
                 peDataDirHeader.p_importTableSize = sectionSize;
             }
         }
         runningRVA += virtSize;
         
-        if (sectionHeaders32[i]->isCode()) sizeOfCode+=fileSize;
+        if (sectionHeaders64[i]->isCode()) sizeOfCode+=fileSize;
         else {
             sizeOfInitializedData+=fileSize;
             sizeOfUninitializedData+=0;
@@ -272,24 +269,23 @@ void Pe64Handler::push(std::ofstream &stream) {
 
     peStdFieldsHeader.p_addressOfEntryPoint = entryPoint;
     peStdFieldsHeader.p_baseOfCode = 0x1000;
-    peStdFieldsHeader.p_baseOfData = 0;
     peSpecFieldsHeader.p_sizeOfImage = runningRVA;
     // push all the data
     peHeader.push(stream);
     peStdFieldsHeader.push(stream);
     peSpecFieldsHeader.push(stream);
     peDataDirHeader.push(stream);
-    for (uint32_t i = 0; i < numHeaders; i++) sectionHeaders32[i]->pushHeader(stream);// push all sections headers
-    padBytes(stream,baseOffset-(0x100 + sizeof(peHdr32) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr))));
+    for (unsigned int i = 0; i < numHeaders; i++) sectionHeaders64[i]->pushHeader(stream);// push all sections headers
+    padBytes(stream,baseOffset-(0x100 + sizeof(peHdr) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr))));
 
-    for (uint32_t i = 0; i < numHeaders; i++) {// push all section content
-        sectionHeaders32[i]->pushData(stream);
-        padBytes(stream,0x200-(sectionHeaders32[i]->getSize()%(0x200)));
+    for (unsigned int i = 0; i < numHeaders; i++) {// push all section content
+        sectionHeaders64[i]->pushData(stream);
+        padBytes(stream,0x200-(sectionHeaders64[i]->getSize()%(0x200)));
     }
 }
 Pe64SectionHandler *Pe64Handler::addSeg(const char name[8], uint32_t characteristics, const char *type) {
     Pe64SectionHandler *hdr = new Pe64SectionHandler(*this, name, characteristics, type);
-    sectionHeaders32.push_back(hdr);
+    sectionHeaders64.push_back(hdr);
     return hdr;
 }
 #pragma endregion// Pe64Handler

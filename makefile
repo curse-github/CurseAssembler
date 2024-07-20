@@ -3,10 +3,10 @@ Win32: ./assembler.exe
 Linux: ./assembler.out
 	./assembler.out Linux small
 	chmod 777 ./small.out
-./assembler.exe: makeBin ./bin/globalConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o
-	g++ -g ./bin/globalConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o -I ./src -I ./src/constants -o ./assembler.exe
-./assembler.out: makeBin ./bin/globalConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o
-	g++ -g ./bin/globalConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o -I ./src -I ./src/constants -o ./assembler.out
+./assembler.exe: makeBin ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o
+	g++ -g ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o -I ./src -I ./src/constants -o ./assembler.exe
+./assembler.out: makeBin ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o
+	g++ -g ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o -I ./src -I ./src/constants -o ./assembler.out
 ./bin/assembler.o: makeBin ./src/constants/globalConstants.h ./src/ELF.h ./src/PE.h ./src/assembler.cpp
 	g++ -c -g ./src/assembler.cpp -I ./src -I ./src/constants -o ./bin/assembler.o
 ./bin/PE.o: makeBin ./src/constants/peConstants.h ./src/constants/globalConstants.h ./src/PE.h ./src/PE.cpp
@@ -15,6 +15,8 @@ Linux: ./assembler.out
 	g++ -c -g ./src/ELF.cpp -I ./src -I ./src/constants -o ./bin/ELF.o
 ./bin/globalConstants.o: makeBin ./src/constants/intelConstants.h ./src/constants/globalConstants.h ./src/constants/globalConstants.cpp
 	g++ -c -g ./src/constants/globalConstants.cpp -I ./src -I ./src/constants -o ./bin/globalConstants.o
+./bin/intelConstants.o: makeBin ./src/constants/intelConstants.h ./src/constants/intelConstants.cpp
+	g++ -c -g ./src/constants/intelConstants.cpp -I ./src -I ./src/constants -o ./bin/intelConstants.o
 
 makeBin:
 	-mkdir bin
