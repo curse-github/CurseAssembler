@@ -65,50 +65,232 @@ int main(int argc, char *argv[]) {
             // mov eSP 0x0f
             // call 0x0e
         
-        ADD(textSec,"eat","eax");
-        ADD(textSec,"eax","eat");
-        ADD(textSec,"ep","eax");
-        ADD(textSec,"eax","ep");
-        ADD(textSec,"999888777666555444333222111000999","eax");
-        ADD(textSec,"eax","999888777666555444333222111000999");
-        ADD(textSec,"999$","eax");
-        ADD(textSec,"eax","999$");
-        ADD(textSec,"999a","eax");
-        ADD(textSec,"eax","999a");
-        ADD(textSec,"0b111002","0b111002");
-        ADD(textSec,"[ll]","eax");
-        ADD(textSec,"eax","[ll]");
-        ADD(textSec,"[al]","eax");
-        ADD(textSec,"[cx]","eax");
-        ADD(textSec,"eax","[al]");
-        ADD(textSec,"eax","[cx]");
-        ADD(textSec,"[eax+eax+eax+eax*2]","eax");
-        ADD(textSec,"eax","[eax+eax+eax+eax*2]");
-        ADD(textSec,"[eax*2+ecx*2]","eax");
-        ADD(textSec,"eax","[eax*2+ecx*2]");
-        ADD(textSec,"[eax+eax+eax+eax]","eax");
-        ADD(textSec,"eax","[eax+eax+eax+eax]");
-        ADD(textSec,"[eax","eax");
-        ADD(textSec,"eax","[eax");
-        ADD(textSec,"[eax] d","eax");
-        ADD(textSec,"eax","[eax] d");
-        ADD(textSec,"125]","eax");
-        ADD(textSec,"eax","125]");
-        ADD(textSec,"eaxd","eax");
-        ADD(textSec,"eax","eaxd");
-        ADD(textSec,"","eax");
-        ADD(textSec,"eax","");
-        std::cout << std::endl << std::endl;
-        ADD(textSec,"[eax]","[eax]");
-        ADD(textSec,"15","eax");
-        ADD(textSec,"[ebp+eax*2]","15");
-        ADD(textSec,"[ebp+eax*2]","eax");
-        ADD(textSec,"eax","[ebp+eax*2]");
-        ADD(textSec,"[eax+esp*2]","15");
-        ADD(textSec,"[eax+esp*2]","eax");
-        ADD(textSec,"eax","[eax+esp*2]");
-        ADD(textSec,"eax","rax");
-        ADD(textSec,"rax","ecx");
+        ADD(textSec,"eax","eax");
+        ADD(textSec,"ecx","eax");
+        ADD(textSec,"[eax]","eax");
+        ADD(textSec,"[ecx]","eax");
+        ADD(textSec,"[rax]","eax");
+        ADD(textSec,"[rcx]","eax");
+        ADD(textSec,"[0x012c]","eax");
+        ADD(textSec,"[eax+0x012c]","eax");
+        ADD(textSec,"[ecx+0x012c]","eax");
+        ADD(textSec,"[rax+0x012c]","eax");
+        ADD(textSec,"[rcx+0x012c]","eax");
+        ADD(textSec,"[eax*4+0x012c]","eax");
+        ADD(textSec,"[ecx*4+0x012c]","eax");
+        ADD(textSec,"[rax*4+0x012c]","eax");
+        ADD(textSec,"[rcx*4+0x012c]","eax");
+        ADD(textSec,"[eax+ecx*4]","eax");
+        ADD(textSec,"[ecx+eax*4]","eax");
+        ADD(textSec,"[rax+rcx*4]","eax");
+        ADD(textSec,"[rcx+rax*4]","eax");
+        ADD(textSec,"[eax+ecx*4+0x012c]","eax");
+        ADD(textSec,"[ecx+eax*4+0x012c]","eax");
+        ADD(textSec,"[rax+rcx*4+0x012c]","eax");
+        ADD(textSec,"[rcx+rax*4+0x012c]","eax");
+        
+        ADD(textSec,"eax","ecx");
+        ADD(textSec,"ecx","ecx");
+        ADD(textSec,"[eax]","ecx");
+        ADD(textSec,"[ecx]","ecx");
+        ADD(textSec,"[rax]","ecx");
+        ADD(textSec,"[rcx]","ecx");
+        ADD(textSec,"[0x012c]","ecx");
+        ADD(textSec,"[eax+0x012c]","ecx");
+        ADD(textSec,"[ecx+0x012c]","ecx");
+        ADD(textSec,"[rax+0x012c]","ecx");
+        ADD(textSec,"[rcx+0x012c]","ecx");
+        ADD(textSec,"[eax*4+0x012c]","ecx");
+        ADD(textSec,"[ecx*4+0x012c]","ecx");
+        ADD(textSec,"[rax*4+0x012c]","ecx");
+        ADD(textSec,"[rcx*4+0x012c]","ecx");
+        ADD(textSec,"[eax+ecx*4]","ecx");
+        ADD(textSec,"[ecx+eax*4]","ecx");
+        ADD(textSec,"[rax+rcx*4]","ecx");
+        ADD(textSec,"[rcx+rax*4]","ecx");
+        ADD(textSec,"[eax+ecx*4+0x012c]","ecx");
+        ADD(textSec,"[ecx+eax*4+0x012c]","ecx");
+        ADD(textSec,"[rax+rcx*4+0x012c]","ecx");
+        ADD(textSec,"[rcx+rax*4+0x012c]","ecx");
+        
+        ADD(textSec,"rax","rax");
+        ADD(textSec,"rcx","rax");
+        ADD(textSec,"[eax]","rax");
+        ADD(textSec,"[ecx]","rax");
+        ADD(textSec,"[rax]","rax");
+        ADD(textSec,"[rcx]","rax");
+        ADD(textSec,"[0x012c]","rax");
+        ADD(textSec,"[eax+0x012c]","rax");
+        ADD(textSec,"[ecx+0x012c]","rax");
+        ADD(textSec,"[rax+0x012c]","rax");
+        ADD(textSec,"[rcx+0x012c]","rax");
+        ADD(textSec,"[eax*4+0x012c]","rax");
+        ADD(textSec,"[ecx*4+0x012c]","rax");
+        ADD(textSec,"[rax*4+0x012c]","rax");
+        ADD(textSec,"[rcx*4+0x012c]","rax");
+        ADD(textSec,"[eax+ecx*4]","rax");
+        ADD(textSec,"[ecx+eax*4]","rax");
+        ADD(textSec,"[rax+rcx*4]","rax");
+        ADD(textSec,"[rcx+rax*4]","rax");
+        ADD(textSec,"[eax+ecx*4+0x012c]","rax");
+        ADD(textSec,"[ecx+eax*4+0x012c]","rax");
+        ADD(textSec,"[rax+rcx*4+0x012c]","rax");
+        ADD(textSec,"[rcx+rax*4+0x012c]","rax");
+        
+        ADD(textSec,"rax","rcx");
+        ADD(textSec,"rcx","rcx");
+        ADD(textSec,"[eax]","rcx");
+        ADD(textSec,"[ecx]","rcx");
+        ADD(textSec,"[rax]","rcx");
+        ADD(textSec,"[rcx]","rcx");
+        ADD(textSec,"[0x012c]","rcx");
+        ADD(textSec,"[eax+0x012c]","rcx");
+        ADD(textSec,"[ecx+0x012c]","rcx");
+        ADD(textSec,"[rax+0x012c]","rcx");
+        ADD(textSec,"[rcx+0x012c]","rcx");
+        ADD(textSec,"[eax*4+0x012c]","rcx");
+        ADD(textSec,"[ecx*4+0x012c]","rcx");
+        ADD(textSec,"[rax*4+0x012c]","rcx");
+        ADD(textSec,"[rcx*4+0x012c]","rcx");
+        ADD(textSec,"[eax+ecx*4]","rcx");
+        ADD(textSec,"[ecx+eax*4]","rcx");
+        ADD(textSec,"[rax+rcx*4]","rcx");
+        ADD(textSec,"[rcx+rax*4]","rcx");
+        ADD(textSec,"[eax+ecx*4+0x012c]","rcx");
+        ADD(textSec,"[ecx+eax*4+0x012c]","rcx");
+        ADD(textSec,"[rax+rcx*4+0x012c]","rcx");
+        ADD(textSec,"[rcx+rax*4+0x012c]","rcx");
+        
+        ADD(textSec,"eax","0x012c");
+        ADD(textSec,"ecx","0x012c");
+        ADD(textSec,"rax","0x012c");
+        ADD(textSec,"rcx","0x012c");
+        ADD(textSec,"[eax]","0x012c");
+        ADD(textSec,"[ecx]","0x012c");
+        ADD(textSec,"[rax]","0x012c");
+        ADD(textSec,"[rcx]","0x012c");
+        ADD(textSec,"[0x012c]","0x012c");
+        ADD(textSec,"[eax+0x012c]","0x012c");
+        ADD(textSec,"[ecx+0x012c]","0x012c");
+        ADD(textSec,"[rax+0x012c]","0x012c");
+        ADD(textSec,"[rcx+0x012c]","0x012c");
+        ADD(textSec,"[eax*4+0x012c]","0x012c");
+        ADD(textSec,"[ecx*4+0x012c]","0x012c");
+        ADD(textSec,"[rax*4+0x012c]","0x012c");
+        ADD(textSec,"[rcx*4+0x012c]","0x012c");
+        ADD(textSec,"[eax+ecx*4]","0x012c");
+        ADD(textSec,"[ecx+eax*4]","0x012c");
+        ADD(textSec,"[rax+rcx*4]","0x012c");
+        ADD(textSec,"[rcx+rax*4]","0x012c");
+        ADD(textSec,"[eax+ecx*4+0x012c]","0x012c");
+        ADD(textSec,"[ecx+eax*4+0x012c]","0x012c");
+        ADD(textSec,"[rax+rcx*4+0x012c]","0x012c");
+        ADD(textSec,"[rcx+rax*4+0x012c]","0x012c");
+        
+        ADD(textSec,"eax","[eax]");
+        ADD(textSec,"ecx","[eax]");
+        ADD(textSec,"rax","[eax]");
+        ADD(textSec,"rcx","[eax]");
+        
+        ADD(textSec,"eax","[ecx]");
+        ADD(textSec,"ecx","[ecx]");
+        ADD(textSec,"rax","[ecx]");
+        ADD(textSec,"rcx","[ecx]");
+        
+        ADD(textSec,"eax","[rax]");
+        ADD(textSec,"ecx","[rax]");
+        ADD(textSec,"rax","[rax]");
+        ADD(textSec,"rcx","[rax]");
+        
+        ADD(textSec,"eax","[rcx]");
+        ADD(textSec,"ecx","[rcx]");
+        ADD(textSec,"rax","[rcx]");
+        ADD(textSec,"rcx","[rcx]");
+        
+        ADD(textSec,"eax","[0x012c]");
+        ADD(textSec,"ecx","[0x012c]");
+        ADD(textSec,"rax","[0x012c]");
+        ADD(textSec,"rcx","[0x012c]");
+        
+        ADD(textSec,"eax","[eax+0x012c]");
+        ADD(textSec,"ecx","[eax+0x012c]");
+        ADD(textSec,"rax","[eax+0x012c]");
+        ADD(textSec,"rcx","[eax+0x012c]");
+        
+        ADD(textSec,"eax","[ecx+0x012c]");
+        ADD(textSec,"ecx","[ecx+0x012c]");
+        ADD(textSec,"rax","[ecx+0x012c]");
+        ADD(textSec,"rcx","[ecx+0x012c]");
+        
+        ADD(textSec,"eax","[rax+0x012c]");
+        ADD(textSec,"ecx","[rax+0x012c]");
+        ADD(textSec,"rax","[rax+0x012c]");
+        ADD(textSec,"rcx","[rax+0x012c]");
+        
+        ADD(textSec,"eax","[rcx+0x012c]");
+        ADD(textSec,"ecx","[rcx+0x012c]");
+        ADD(textSec,"rax","[rcx+0x012c]");
+        ADD(textSec,"rcx","[rcx+0x012c]");
+        
+        ADD(textSec,"eax","[eax*4+0x012c]");
+        ADD(textSec,"ecx","[eax*4+0x012c]");
+        ADD(textSec,"rax","[eax*4+0x012c]");
+        ADD(textSec,"rcx","[eax*4+0x012c]");
+        
+        ADD(textSec,"eax","[ecx*4+0x012c]");
+        ADD(textSec,"ecx","[ecx*4+0x012c]");
+        ADD(textSec,"rax","[ecx*4+0x012c]");
+        ADD(textSec,"rcx","[ecx*4+0x012c]");
+        
+        ADD(textSec,"eax","[rax*4+0x012c]");
+        ADD(textSec,"ecx","[rax*4+0x012c]");
+        ADD(textSec,"rax","[rax*4+0x012c]");
+        ADD(textSec,"rcx","[rax*4+0x012c]");
+        
+        ADD(textSec,"eax","[rcx*4+0x012c]");
+        ADD(textSec,"ecx","[rcx*4+0x012c]");
+        ADD(textSec,"rax","[rcx*4+0x012c]");
+        ADD(textSec,"rcx","[rcx*4+0x012c]");
+        
+        ADD(textSec,"eax","[eax+ecx*4]");
+        ADD(textSec,"ecx","[eax+ecx*4]");
+        ADD(textSec,"rax","[eax+ecx*4]");
+        ADD(textSec,"rcx","[eax+ecx*4]");
+        
+        ADD(textSec,"eax","[ecx+eax*4]");
+        ADD(textSec,"ecx","[ecx+eax*4]");
+        ADD(textSec,"rax","[ecx+eax*4]");
+        ADD(textSec,"rcx","[ecx+eax*4]");
+        
+        ADD(textSec,"eax","[rax+rcx*4]");
+        ADD(textSec,"ecx","[rax+rcx*4]");
+        ADD(textSec,"rax","[rax+rcx*4]");
+        ADD(textSec,"rcx","[rax+rcx*4]");
+        
+        ADD(textSec,"eax","[rcx+rax*4]");
+        ADD(textSec,"ecx","[rcx+rax*4]");
+        ADD(textSec,"rax","[rcx+rax*4]");
+        ADD(textSec,"rcx","[rcx+rax*4]");
+        
+        ADD(textSec,"eax","[eax+ecx*4+0x012c]");
+        ADD(textSec,"ecx","[eax+ecx*4+0x012c]");
+        ADD(textSec,"rax","[eax+ecx*4+0x012c]");
+        ADD(textSec,"rcx","[eax+ecx*4+0x012c]");
+        
+        ADD(textSec,"eax","[ecx+eax*4+0x012c]");
+        ADD(textSec,"ecx","[ecx+eax*4+0x012c]");
+        ADD(textSec,"rax","[ecx+eax*4+0x012c]");
+        ADD(textSec,"rcx","[ecx+eax*4+0x012c]");
+        
+        ADD(textSec,"eax","[rax+rcx*4+0x012c]");
+        ADD(textSec,"ecx","[rax+rcx*4+0x012c]");
+        ADD(textSec,"rax","[rax+rcx*4+0x012c]");
+        ADD(textSec,"rcx","[rax+rcx*4+0x012c]");
+        
+        ADD(textSec,"eax","[rcx+rax*4+0x012c]");
+        ADD(textSec,"ecx","[rcx+rax*4+0x012c]");
+        ADD(textSec,"rax","[rcx+rax*4+0x012c]");
+        ADD(textSec,"rcx","[rcx+rax*4+0x012c]");
 
         std::cout << std::endl;
         
