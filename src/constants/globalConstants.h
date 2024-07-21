@@ -41,21 +41,6 @@ void padBytes(std::ofstream &stream, const uint32_t &numBytes);
 #include "ELF.h"
 #include "PE.h"
 
-// dst: destination
-// src: source
-// equivilent to dst = dst + src;
-// uses codes 0x00 - 0x05 as well as general instructions 0x80 - 0x83 with modrm OP bits set to 0
-// valid forms:
-//      ADD reg reg
-//      ADD reg num
-//      ADD reg [reg] // reference the value in reg as a virtual memory address
-//      ADD reg [num] // reference the value 25 as a virtual memory address
-//      ADD [reg] reg
-//      ADD [reg] num
-//      ADD [reg] [reg] // reference the value in reg as a virtual memory address
-//      ADD [reg] [num] // reference the value 25 as a virtual memory address
-// where reg can be AL,CL,DL,BL,AH,CH,DH,BH, AX,CX,DX,BX,SP,BP,SI,DI, eAX,eCX,eDX,eBX,eSP,eBP,eSI,eDI, rAX,rCX,rDX,rBX,rSP,rBP,rSI, or rDI
-// and num can be in the form of 25 (decimal,) 0d25 (also decimal,) 0x19 (hexi-decimal,) or 0b00011001 (binary)
 template<typename T>
 void ADD(T &receiver, const char* dst, const char* src);
 template <typename T>
@@ -72,18 +57,10 @@ template <typename T>
 void XOR(T &receiver, const char* dst, const char* src);
 template <typename T>
 void CMP(T &receiver, const char* dst, const char* src);
-
-//uses codes 0x40 - 0x47 as well as general instructions 0xFE and 0xFF with modrm OP bits set to 0 for indirect
 template <typename T>
-void INCb(T &receiver, const char *reg);
+void INC(T &receiver, const char *arg);
 template <typename T>
-void INCv(T &receiver, const char *reg);
-
-//uses codes 0x48 - 0x4F as well as general instructions 0xFE and 0xFF with modrm OP bits set to 1 for indirect
-template <typename T>
-void DECb(T &receiver, const char *reg);
-template <typename T>
-void DECv(T &receiver, const char *reg);
+void DEC(T &receiver, const char *arg);
 
 //uses code 0xE8
 template <typename T>

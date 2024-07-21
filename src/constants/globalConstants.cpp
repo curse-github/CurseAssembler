@@ -510,11 +510,11 @@ void ADD(T &receiver, const char* dst, const char* src) {
         // This is done up here because it is used in all 4 cases below and is the exact same value regardless
         const uint8_t RegOp = srcInfo.hasReg1?srcInfo.reg1RegOp:INTEL_ModRM_OP1_ADD_RM_I;
         if (dstInfo.isIndirect) {
-            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// will requre the SIB byte
+            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// Will requre the SIB byte
                 if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
                 if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
-                // ex: add [reg+reg*scale+num], reg/num
-                if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+                // ex: add [reg+reg*scale+num], (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                 if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                 pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_ADD_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);// Specify if src is a register or an immutable
                 const uint8_t Mod = ((dstInfo.hasNumber && dstInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
@@ -524,27 +524,18 @@ void ADD(T &receiver, const char* dst, const char* src) {
                 pushByte(receiver, (ScaleIndex|Base));
                 if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
                     pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
-                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
                 std::cout << "add " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             } else {
-                if (dstInfo.hasNumber) { // dst is address with a register + a number, if it was just a number it would be caught by the if statement above
-                    // ex: add [reg+num], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_ADD_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|RegOp|dstInfo.reg1RM));
-                    pushWord(receiver, dstInfo.numValue, true);
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "add " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                } else { // dst is address with just a register
-                    // ex: add [reg], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_ADD_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_Address|RegOp|dstInfo.reg1RM));
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "add " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                }
+                // ex: add ([reg+num] or [reg]), (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+                if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+                pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_ADD_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
+                const uint8_t Mod = dstInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+                pushByte(receiver, (Mod|RegOp|dstInfo.reg1RM));
+                if (dstInfo.hasNumber) pushWord(receiver, dstInfo.numValue, true);
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
+                std::cout << "add " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             }
         } else if (dstInfo.reg1Offset==INTEL_REG_OFF_eAX && srcInfo.hasNumber) {
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -552,49 +543,41 @@ void ADD(T &receiver, const char* dst, const char* src) {
             pushWord(receiver, srcInfo.numValue, true);
             std::cout << "add " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         } else {// dst cannot be a number, so dst is just a register
-            // ex: add reg, reg/num
+            // ex: add reg, (reg or num)
             if (srcInfo.hasReg1 && (srcInfo.bit!=dstInfo.bit)) { std::cout << "Operand size mis-match." << std::endl; return; }
             if ((srcInfo.hasReg1 && (srcInfo.bit==64)) || (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_ADD_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
             pushByte(receiver, (INTEL_ModRM_MOD_Reg|RegOp|dstInfo.reg1RM));
-            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
             std::cout << "add " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         }
     } else {
         // src is indirect, which means that dst is just a register. Because both cant be indirect, and dst cant be just a number
-        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// will requre the SIB byte
+        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// Will requre the SIB byte
             if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
             if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
             // ex: add reg, [reg+reg*scale+num]
-            if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, INTEL_INSTR_ADD_REGv_RMv);
-            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
             const uint8_t RegOp = dstInfo.reg1RegOp;
             const uint8_t ScaleIndex = (srcInfo.hasReg2?(srcInfo.reg2Index|srcInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
             const uint8_t Base = (srcInfo.hasReg1?srcInfo.reg1Base:INTEL_SIB_Base_None);
             pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
             pushByte(receiver, (ScaleIndex|Base));
             if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
-                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
+                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement
             std::cout << "add " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         } else {
-            if (srcInfo.hasNumber) { // dst is address with a register + a number
-                // ex: add reg, [reg+num]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_ADD_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                pushWord(receiver, srcInfo.numValue, true);
-                std::cout << "add " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            } else { // dst is address with just a register
-                // ex: add reg, [reg]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_ADD_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_Address|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                std::cout << "add " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            }
+            // ex: add reg, ([reg+num] or [reg])
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg1 && (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+            pushByte(receiver, INTEL_INSTR_ADD_REGv_RMv);
+            const uint8_t Mod = srcInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+            pushByte(receiver, (Mod|dstInfo.reg1RegOp|srcInfo.reg1RM));
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);
+            std::cout << "add " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         }
     }
 }
@@ -614,11 +597,11 @@ void OR(T &receiver, const char* dst, const char* src) {
         // This is done up here because it is used in all 4 cases below and is the exact same value regardless
         const uint8_t RegOp = srcInfo.hasReg1?srcInfo.reg1RegOp:INTEL_ModRM_OP1_OR_RM_I;
         if (dstInfo.isIndirect) {
-            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// will requre the SIB byte
-                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid orress base" << std::endl; return; }
-                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid orress index" << std::endl; return; }
-                // ex: or [reg+reg*scale+num], reg/num
-                if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// Will requre the SIB byte
+                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
+                // ex: or [reg+reg*scale+num], (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                 if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                 pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_OR_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);// Specify if src is a register or an immutable
                 const uint8_t Mod = ((dstInfo.hasNumber && dstInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
@@ -626,29 +609,20 @@ void OR(T &receiver, const char* dst, const char* src) {
                 const uint8_t Base = (dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None);
                 pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
                 pushByte(receiver, (ScaleIndex|Base));
-                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be ored if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
                     pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
-                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
                 std::cout << "or " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             } else {
-                if (dstInfo.hasNumber) { // dst is orress with a register + a number, if it was just a number it would be caught by the if statement above
-                    // ex: or [reg+num], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_OR_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|RegOp|dstInfo.reg1RM));
-                    pushWord(receiver, dstInfo.numValue, true);
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "or " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                } else { // dst is orress with just a register
-                    // ex: or [reg], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_OR_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_Address|RegOp|dstInfo.reg1RM));
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "or " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                }
+                // ex: or ([reg+num] or [reg]), (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+                if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+                pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_OR_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
+                const uint8_t Mod = dstInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+                pushByte(receiver, (Mod|RegOp|dstInfo.reg1RM));
+                if (dstInfo.hasNumber) pushWord(receiver, dstInfo.numValue, true);
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
+                std::cout << "or " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             }
         } else if (dstInfo.reg1Offset==INTEL_REG_OFF_eAX && srcInfo.hasNumber) {
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -656,49 +630,41 @@ void OR(T &receiver, const char* dst, const char* src) {
             pushWord(receiver, srcInfo.numValue, true);
             std::cout << "or " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         } else {// dst cannot be a number, so dst is just a register
-            // ex: or reg, reg/num
+            // ex: or reg, (reg or num)
             if (srcInfo.hasReg1 && (srcInfo.bit!=dstInfo.bit)) { std::cout << "Operand size mis-match." << std::endl; return; }
             if ((srcInfo.hasReg1 && (srcInfo.bit==64)) || (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_OR_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
             pushByte(receiver, (INTEL_ModRM_MOD_Reg|RegOp|dstInfo.reg1RM));
-            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
             std::cout << "or " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         }
     } else {
         // src is indirect, which means that dst is just a register. Because both cant be indirect, and dst cant be just a number
-        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// will requre the SIB byte
-            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid orress base" << std::endl; return; }
-            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid orress index" << std::endl; return; }
+        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// Will requre the SIB byte
+            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
             // ex: or reg, [reg+reg*scale+num]
-            if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, INTEL_INSTR_OR_REGv_RMv);
-            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
             const uint8_t RegOp = dstInfo.reg1RegOp;
             const uint8_t ScaleIndex = (srcInfo.hasReg2?(srcInfo.reg2Index|srcInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
             const uint8_t Base = (srcInfo.hasReg1?srcInfo.reg1Base:INTEL_SIB_Base_None);
             pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
             pushByte(receiver, (ScaleIndex|Base));
-            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be ored if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
-                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
+            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement
             std::cout << "or " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         } else {
-            if (srcInfo.hasNumber) { // dst is orress with a register + a number
-                // ex: or reg, [reg+num]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_OR_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                pushWord(receiver, srcInfo.numValue, true);
-                std::cout << "or " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            } else { // dst is orress with just a register
-                // ex: or reg, [reg]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_OR_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_Address|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                std::cout << "or " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            }
+            // ex: or reg, ([reg+num] or [reg])
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg1 && (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+            pushByte(receiver, INTEL_INSTR_OR_REGv_RMv);
+            const uint8_t Mod = srcInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+            pushByte(receiver, (Mod|dstInfo.reg1RegOp|srcInfo.reg1RM));
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);
+            std::cout << "or " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         }
     }
 }
@@ -718,11 +684,11 @@ void ADC(T &receiver, const char* dst, const char* src) {
         // This is done up here because it is used in all 4 cases below and is the exact same value regardless
         const uint8_t RegOp = srcInfo.hasReg1?srcInfo.reg1RegOp:INTEL_ModRM_OP1_ADC_RM_I;
         if (dstInfo.isIndirect) {
-            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// will requre the SIB byte
-                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid adcress base" << std::endl; return; }
-                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid adcress index" << std::endl; return; }
-                // ex: adc [reg+reg*scale+num], reg/num
-                if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// Will requre the SIB byte
+                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
+                // ex: adc [reg+reg*scale+num], (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                 if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                 pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_ADC_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);// Specify if src is a register or an immutable
                 const uint8_t Mod = ((dstInfo.hasNumber && dstInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
@@ -730,29 +696,20 @@ void ADC(T &receiver, const char* dst, const char* src) {
                 const uint8_t Base = (dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None);
                 pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
                 pushByte(receiver, (ScaleIndex|Base));
-                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be adced if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
                     pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
-                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
                 std::cout << "adc " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             } else {
-                if (dstInfo.hasNumber) { // dst is adcress with a register + a number, if it was just a number it would be caught by the if statement above
-                    // ex: adc [reg+num], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_ADC_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|RegOp|dstInfo.reg1RM));
-                    pushWord(receiver, dstInfo.numValue, true);
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "adc " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                } else { // dst is adcress with just a register
-                    // ex: adc [reg], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_ADC_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_Address|RegOp|dstInfo.reg1RM));
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "adc " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                }
+                // ex: adc ([reg+num] or [reg]), (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+                if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+                pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_ADC_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
+                const uint8_t Mod = dstInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+                pushByte(receiver, (Mod|RegOp|dstInfo.reg1RM));
+                if (dstInfo.hasNumber) pushWord(receiver, dstInfo.numValue, true);
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
+                std::cout << "adc " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             }
         } else if (dstInfo.reg1Offset==INTEL_REG_OFF_eAX && srcInfo.hasNumber) {
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -760,49 +717,41 @@ void ADC(T &receiver, const char* dst, const char* src) {
             pushWord(receiver, srcInfo.numValue, true);
             std::cout << "adc " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         } else {// dst cannot be a number, so dst is just a register
-            // ex: adc reg, reg/num
+            // ex: adc reg, (reg or num)
             if (srcInfo.hasReg1 && (srcInfo.bit!=dstInfo.bit)) { std::cout << "Operand size mis-match." << std::endl; return; }
             if ((srcInfo.hasReg1 && (srcInfo.bit==64)) || (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_ADC_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
             pushByte(receiver, (INTEL_ModRM_MOD_Reg|RegOp|dstInfo.reg1RM));
-            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
             std::cout << "adc " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         }
     } else {
         // src is indirect, which means that dst is just a register. Because both cant be indirect, and dst cant be just a number
-        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// will requre the SIB byte
-            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid adcress base" << std::endl; return; }
-            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid adcress index" << std::endl; return; }
+        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// Will requre the SIB byte
+            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
             // ex: adc reg, [reg+reg*scale+num]
-            if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, INTEL_INSTR_ADC_REGv_RMv);
-            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
             const uint8_t RegOp = dstInfo.reg1RegOp;
             const uint8_t ScaleIndex = (srcInfo.hasReg2?(srcInfo.reg2Index|srcInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
             const uint8_t Base = (srcInfo.hasReg1?srcInfo.reg1Base:INTEL_SIB_Base_None);
             pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
             pushByte(receiver, (ScaleIndex|Base));
-            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be adced if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
-                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
+            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement
             std::cout << "adc " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         } else {
-            if (srcInfo.hasNumber) { // dst is adcress with a register + a number
-                // ex: adc reg, [reg+num]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_ADC_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                pushWord(receiver, srcInfo.numValue, true);
-                std::cout << "adc " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            } else { // dst is adcress with just a register
-                // ex: adc reg, [reg]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_ADC_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_Address|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                std::cout << "adc " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            }
+            // ex: adc reg, ([reg+num] or [reg])
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg1 && (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+            pushByte(receiver, INTEL_INSTR_ADC_REGv_RMv);
+            const uint8_t Mod = srcInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+            pushByte(receiver, (Mod|dstInfo.reg1RegOp|srcInfo.reg1RM));
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);
+            std::cout << "adc " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         }
     }
 }
@@ -822,11 +771,11 @@ void SBB(T &receiver, const char* dst, const char* src) {
         // This is done up here because it is used in all 4 cases below and is the exact same value regardless
         const uint8_t RegOp = srcInfo.hasReg1?srcInfo.reg1RegOp:INTEL_ModRM_OP1_SBB_RM_I;
         if (dstInfo.isIndirect) {
-            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// will requre the SIB byte
-                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid sbbress base" << std::endl; return; }
-                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid sbbress index" << std::endl; return; }
-                // ex: sbb [reg+reg*scale+num], reg/num
-                if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// Will requre the SIB byte
+                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
+                // ex: sbb [reg+reg*scale+num], (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                 if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                 pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_SBB_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);// Specify if src is a register or an immutable
                 const uint8_t Mod = ((dstInfo.hasNumber && dstInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
@@ -834,29 +783,20 @@ void SBB(T &receiver, const char* dst, const char* src) {
                 const uint8_t Base = (dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None);
                 pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
                 pushByte(receiver, (ScaleIndex|Base));
-                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be sbbed if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
                     pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
-                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
                 std::cout << "sbb " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             } else {
-                if (dstInfo.hasNumber) { // dst is sbbress with a register + a number, if it was just a number it would be caught by the if statement above
-                    // ex: sbb [reg+num], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_SBB_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|RegOp|dstInfo.reg1RM));
-                    pushWord(receiver, dstInfo.numValue, true);
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "sbb " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                } else { // dst is sbbress with just a register
-                    // ex: sbb [reg], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_SBB_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_Address|RegOp|dstInfo.reg1RM));
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "sbb " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                }
+                // ex: sbb ([reg+num] or [reg]), (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+                if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+                pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_SBB_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
+                const uint8_t Mod = dstInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+                pushByte(receiver, (Mod|RegOp|dstInfo.reg1RM));
+                if (dstInfo.hasNumber) pushWord(receiver, dstInfo.numValue, true);
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
+                std::cout << "sbb " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             }
         } else if (dstInfo.reg1Offset==INTEL_REG_OFF_eAX && srcInfo.hasNumber) {
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -864,49 +804,41 @@ void SBB(T &receiver, const char* dst, const char* src) {
             pushWord(receiver, srcInfo.numValue, true);
             std::cout << "sbb " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         } else {// dst cannot be a number, so dst is just a register
-            // ex: sbb reg, reg/num
+            // ex: sbb reg, (reg or num)
             if (srcInfo.hasReg1 && (srcInfo.bit!=dstInfo.bit)) { std::cout << "Operand size mis-match." << std::endl; return; }
             if ((srcInfo.hasReg1 && (srcInfo.bit==64)) || (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_SBB_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
             pushByte(receiver, (INTEL_ModRM_MOD_Reg|RegOp|dstInfo.reg1RM));
-            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
             std::cout << "sbb " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         }
     } else {
         // src is indirect, which means that dst is just a register. Because both cant be indirect, and dst cant be just a number
-        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// will requre the SIB byte
-            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid sbbress base" << std::endl; return; }
-            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid sbbress index" << std::endl; return; }
+        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// Will requre the SIB byte
+            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
             // ex: sbb reg, [reg+reg*scale+num]
-            if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, INTEL_INSTR_SBB_REGv_RMv);
-            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
             const uint8_t RegOp = dstInfo.reg1RegOp;
             const uint8_t ScaleIndex = (srcInfo.hasReg2?(srcInfo.reg2Index|srcInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
             const uint8_t Base = (srcInfo.hasReg1?srcInfo.reg1Base:INTEL_SIB_Base_None);
             pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
             pushByte(receiver, (ScaleIndex|Base));
-            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be sbbed if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
-                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
+            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement
             std::cout << "sbb " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         } else {
-            if (srcInfo.hasNumber) { // dst is sbbress with a register + a number
-                // ex: sbb reg, [reg+num]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_SBB_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                pushWord(receiver, srcInfo.numValue, true);
-                std::cout << "sbb " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            } else { // dst is sbbress with just a register
-                // ex: sbb reg, [reg]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_SBB_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_Address|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                std::cout << "sbb " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            }
+            // ex: sbb reg, ([reg+num] or [reg])
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg1 && (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+            pushByte(receiver, INTEL_INSTR_SBB_REGv_RMv);
+            const uint8_t Mod = srcInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+            pushByte(receiver, (Mod|dstInfo.reg1RegOp|srcInfo.reg1RM));
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);
+            std::cout << "sbb " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         }
     }
 }
@@ -926,11 +858,11 @@ void AND(T &receiver, const char* dst, const char* src) {
         // This is done up here because it is used in all 4 cases below and is the exact same value regardless
         const uint8_t RegOp = srcInfo.hasReg1?srcInfo.reg1RegOp:INTEL_ModRM_OP1_AND_RM_I;
         if (dstInfo.isIndirect) {
-            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// will requre the SIB byte
-                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid andress base" << std::endl; return; }
-                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid andress index" << std::endl; return; }
-                // ex: and [reg+reg*scale+num], reg/num
-                if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// Will requre the SIB byte
+                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
+                // ex: and [reg+reg*scale+num], (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                 if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                 pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_AND_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);// Specify if src is a register or an immutable
                 const uint8_t Mod = ((dstInfo.hasNumber && dstInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
@@ -938,29 +870,20 @@ void AND(T &receiver, const char* dst, const char* src) {
                 const uint8_t Base = (dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None);
                 pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
                 pushByte(receiver, (ScaleIndex|Base));
-                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be anded if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
                     pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
-                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
                 std::cout << "and " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             } else {
-                if (dstInfo.hasNumber) { // dst is andress with a register + a number, if it was just a number it would be caught by the if statement above
-                    // ex: and [reg+num], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_AND_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|RegOp|dstInfo.reg1RM));
-                    pushWord(receiver, dstInfo.numValue, true);
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "and " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                } else { // dst is andress with just a register
-                    // ex: and [reg], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_AND_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_Address|RegOp|dstInfo.reg1RM));
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "and " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                }
+                // ex: and ([reg+num] or [reg]), (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+                if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+                pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_AND_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
+                const uint8_t Mod = dstInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+                pushByte(receiver, (Mod|RegOp|dstInfo.reg1RM));
+                if (dstInfo.hasNumber) pushWord(receiver, dstInfo.numValue, true);
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
+                std::cout << "and " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             }
         } else if (dstInfo.reg1Offset==INTEL_REG_OFF_eAX && srcInfo.hasNumber) {
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -968,49 +891,41 @@ void AND(T &receiver, const char* dst, const char* src) {
             pushWord(receiver, srcInfo.numValue, true);
             std::cout << "and " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         } else {// dst cannot be a number, so dst is just a register
-            // ex: and reg, reg/num
+            // ex: and reg, (reg or num)
             if (srcInfo.hasReg1 && (srcInfo.bit!=dstInfo.bit)) { std::cout << "Operand size mis-match." << std::endl; return; }
             if ((srcInfo.hasReg1 && (srcInfo.bit==64)) || (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_AND_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
             pushByte(receiver, (INTEL_ModRM_MOD_Reg|RegOp|dstInfo.reg1RM));
-            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
             std::cout << "and " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         }
     } else {
         // src is indirect, which means that dst is just a register. Because both cant be indirect, and dst cant be just a number
-        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// will requre the SIB byte
-            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid andress base" << std::endl; return; }
-            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid andress index" << std::endl; return; }
+        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// Will requre the SIB byte
+            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
             // ex: and reg, [reg+reg*scale+num]
-            if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, INTEL_INSTR_AND_REGv_RMv);
-            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
             const uint8_t RegOp = dstInfo.reg1RegOp;
             const uint8_t ScaleIndex = (srcInfo.hasReg2?(srcInfo.reg2Index|srcInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
             const uint8_t Base = (srcInfo.hasReg1?srcInfo.reg1Base:INTEL_SIB_Base_None);
             pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
             pushByte(receiver, (ScaleIndex|Base));
-            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be anded if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
-                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
+            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement
             std::cout << "and " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         } else {
-            if (srcInfo.hasNumber) { // dst is andress with a register + a number
-                // ex: and reg, [reg+num]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_AND_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                pushWord(receiver, srcInfo.numValue, true);
-                std::cout << "and " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            } else { // dst is andress with just a register
-                // ex: and reg, [reg]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_AND_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_Address|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                std::cout << "and " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            }
+            // ex: and reg, ([reg+num] or [reg])
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg1 && (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+            pushByte(receiver, INTEL_INSTR_AND_REGv_RMv);
+            const uint8_t Mod = srcInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+            pushByte(receiver, (Mod|dstInfo.reg1RegOp|srcInfo.reg1RM));
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);
+            std::cout << "and " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         }
     }
 }
@@ -1030,11 +945,11 @@ void SUB(T &receiver, const char* dst, const char* src) {
         // This is done up here because it is used in all 4 cases below and is the exact same value regardless
         const uint8_t RegOp = srcInfo.hasReg1?srcInfo.reg1RegOp:INTEL_ModRM_OP1_SUB_RM_I;
         if (dstInfo.isIndirect) {
-            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// will requre the SIB byte
-                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid subress base" << std::endl; return; }
-                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid subress index" << std::endl; return; }
-                // ex: sub [reg+reg*scale+num], reg/num
-                if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// Will requre the SIB byte
+                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
+                // ex: sub [reg+reg*scale+num], (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                 if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                 pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_SUB_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);// Specify if src is a register or an immutable
                 const uint8_t Mod = ((dstInfo.hasNumber && dstInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
@@ -1042,29 +957,20 @@ void SUB(T &receiver, const char* dst, const char* src) {
                 const uint8_t Base = (dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None);
                 pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
                 pushByte(receiver, (ScaleIndex|Base));
-                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be subed if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
                     pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
-                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
                 std::cout << "sub " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             } else {
-                if (dstInfo.hasNumber) { // dst is subress with a register + a number, if it was just a number it would be caught by the if statement above
-                    // ex: sub [reg+num], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_SUB_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|RegOp|dstInfo.reg1RM));
-                    pushWord(receiver, dstInfo.numValue, true);
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "sub " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                } else { // dst is subress with just a register
-                    // ex: sub [reg], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_SUB_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_Address|RegOp|dstInfo.reg1RM));
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "sub " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                }
+                // ex: sub ([reg+num] or [reg]), (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+                if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+                pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_SUB_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
+                const uint8_t Mod = dstInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+                pushByte(receiver, (Mod|RegOp|dstInfo.reg1RM));
+                if (dstInfo.hasNumber) pushWord(receiver, dstInfo.numValue, true);
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
+                std::cout << "sub " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             }
         } else if (dstInfo.reg1Offset==INTEL_REG_OFF_eAX && srcInfo.hasNumber) {
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -1072,49 +978,41 @@ void SUB(T &receiver, const char* dst, const char* src) {
             pushWord(receiver, srcInfo.numValue, true);
             std::cout << "sub " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         } else {// dst cannot be a number, so dst is just a register
-            // ex: sub reg, reg/num
+            // ex: sub reg, (reg or num)
             if (srcInfo.hasReg1 && (srcInfo.bit!=dstInfo.bit)) { std::cout << "Operand size mis-match." << std::endl; return; }
             if ((srcInfo.hasReg1 && (srcInfo.bit==64)) || (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_SUB_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
             pushByte(receiver, (INTEL_ModRM_MOD_Reg|RegOp|dstInfo.reg1RM));
-            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
             std::cout << "sub " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         }
     } else {
         // src is indirect, which means that dst is just a register. Because both cant be indirect, and dst cant be just a number
-        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// will requre the SIB byte
-            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid subress base" << std::endl; return; }
-            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid subress index" << std::endl; return; }
+        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// Will requre the SIB byte
+            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
             // ex: sub reg, [reg+reg*scale+num]
-            if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, INTEL_INSTR_SUB_REGv_RMv);
-            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
             const uint8_t RegOp = dstInfo.reg1RegOp;
             const uint8_t ScaleIndex = (srcInfo.hasReg2?(srcInfo.reg2Index|srcInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
             const uint8_t Base = (srcInfo.hasReg1?srcInfo.reg1Base:INTEL_SIB_Base_None);
             pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
             pushByte(receiver, (ScaleIndex|Base));
-            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be subed if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
-                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
+            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement
             std::cout << "sub " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         } else {
-            if (srcInfo.hasNumber) { // dst is subress with a register + a number
-                // ex: sub reg, [reg+num]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_SUB_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                pushWord(receiver, srcInfo.numValue, true);
-                std::cout << "sub " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            } else { // dst is subress with just a register
-                // ex: sub reg, [reg]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_SUB_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_Address|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                std::cout << "sub " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            }
+            // ex: sub reg, ([reg+num] or [reg])
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg1 && (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+            pushByte(receiver, INTEL_INSTR_SUB_REGv_RMv);
+            const uint8_t Mod = srcInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+            pushByte(receiver, (Mod|dstInfo.reg1RegOp|srcInfo.reg1RM));
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);
+            std::cout << "sub " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         }
     }
 }
@@ -1134,11 +1032,11 @@ void XOR(T &receiver, const char* dst, const char* src) {
         // This is done up here because it is used in all 4 cases below and is the exact same value regardless
         const uint8_t RegOp = srcInfo.hasReg1?srcInfo.reg1RegOp:INTEL_ModRM_OP1_XOR_RM_I;
         if (dstInfo.isIndirect) {
-            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// will requre the SIB byte
-                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid xorress base" << std::endl; return; }
-                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid xorress index" << std::endl; return; }
-                // ex: xor [reg+reg*scale+num], reg/num
-                if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// Will requre the SIB byte
+                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
+                // ex: xor [reg+reg*scale+num], (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                 if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                 pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_XOR_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);// Specify if src is a register or an immutable
                 const uint8_t Mod = ((dstInfo.hasNumber && dstInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
@@ -1146,29 +1044,20 @@ void XOR(T &receiver, const char* dst, const char* src) {
                 const uint8_t Base = (dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None);
                 pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
                 pushByte(receiver, (ScaleIndex|Base));
-                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be xored if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
                     pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
-                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
                 std::cout << "xor " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             } else {
-                if (dstInfo.hasNumber) { // dst is xorress with a register + a number, if it was just a number it would be caught by the if statement above
-                    // ex: xor [reg+num], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_XOR_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|RegOp|dstInfo.reg1RM));
-                    pushWord(receiver, dstInfo.numValue, true);
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "xor " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                } else { // dst is xorress with just a register
-                    // ex: xor [reg], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_XOR_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_Address|RegOp|dstInfo.reg1RM));
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "xor " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                }
+                // ex: xor ([reg+num] or [reg]), (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+                if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+                pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_XOR_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
+                const uint8_t Mod = dstInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+                pushByte(receiver, (Mod|RegOp|dstInfo.reg1RM));
+                if (dstInfo.hasNumber) pushWord(receiver, dstInfo.numValue, true);
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
+                std::cout << "xor " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             }
         } else if (dstInfo.reg1Offset==INTEL_REG_OFF_eAX && srcInfo.hasNumber) {
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -1176,49 +1065,41 @@ void XOR(T &receiver, const char* dst, const char* src) {
             pushWord(receiver, srcInfo.numValue, true);
             std::cout << "xor " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         } else {// dst cannot be a number, so dst is just a register
-            // ex: xor reg, reg/num
+            // ex: xor reg, (reg or num)
             if (srcInfo.hasReg1 && (srcInfo.bit!=dstInfo.bit)) { std::cout << "Operand size mis-match." << std::endl; return; }
             if ((srcInfo.hasReg1 && (srcInfo.bit==64)) || (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_XOR_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
             pushByte(receiver, (INTEL_ModRM_MOD_Reg|RegOp|dstInfo.reg1RM));
-            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
             std::cout << "xor " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         }
     } else {
         // src is indirect, which means that dst is just a register. Because both cant be indirect, and dst cant be just a number
-        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// will requre the SIB byte
-            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid xorress base" << std::endl; return; }
-            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid xorress index" << std::endl; return; }
+        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// Will requre the SIB byte
+            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
             // ex: xor reg, [reg+reg*scale+num]
-            if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, INTEL_INSTR_XOR_REGv_RMv);
-            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
             const uint8_t RegOp = dstInfo.reg1RegOp;
             const uint8_t ScaleIndex = (srcInfo.hasReg2?(srcInfo.reg2Index|srcInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
             const uint8_t Base = (srcInfo.hasReg1?srcInfo.reg1Base:INTEL_SIB_Base_None);
             pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
             pushByte(receiver, (ScaleIndex|Base));
-            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be xored if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
-                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
+            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement
             std::cout << "xor " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         } else {
-            if (srcInfo.hasNumber) { // dst is xorress with a register + a number
-                // ex: xor reg, [reg+num]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_XOR_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                pushWord(receiver, srcInfo.numValue, true);
-                std::cout << "xor " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            } else { // dst is xorress with just a register
-                // ex: xor reg, [reg]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_XOR_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_Address|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                std::cout << "xor " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            }
+            // ex: xor reg, ([reg+num] or [reg])
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg1 && (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+            pushByte(receiver, INTEL_INSTR_XOR_REGv_RMv);
+            const uint8_t Mod = srcInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+            pushByte(receiver, (Mod|dstInfo.reg1RegOp|srcInfo.reg1RM));
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);
+            std::cout << "xor " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         }
     }
 }
@@ -1238,11 +1119,11 @@ void CMP(T &receiver, const char* dst, const char* src) {
         // This is done up here because it is used in all 4 cases below and is the exact same value regardless
         const uint8_t RegOp = srcInfo.hasReg1?srcInfo.reg1RegOp:INTEL_ModRM_OP1_CMP_RM_I;
         if (dstInfo.isIndirect) {
-            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// will requre the SIB byte
-                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid cmpress base" << std::endl; return; }
-                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid cmpress index" << std::endl; return; }
-                // ex: cmp [reg+reg*scale+num], reg/num
-                if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// Will requre the SIB byte
+                if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+                if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
+                // ex: cmp [reg+reg*scale+num], (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
                 if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
                 pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_CMP_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);// Specify if src is a register or an immutable
                 const uint8_t Mod = ((dstInfo.hasNumber && dstInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
@@ -1250,29 +1131,20 @@ void CMP(T &receiver, const char* dst, const char* src) {
                 const uint8_t Base = (dstInfo.hasReg1?dstInfo.reg1Base:INTEL_SIB_Base_None);
                 pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
                 pushByte(receiver, (ScaleIndex|Base));
-                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be cmped if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                if (dstInfo.hasNumber || !dstInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
                     pushWord(receiver, dstInfo.hasNumber?dstInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
-                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
                 std::cout << "cmp " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             } else {
-                if (dstInfo.hasNumber) { // dst is cmpress with a register + a number, if it was just a number it would be caught by the if statement above
-                    // ex: cmp [reg+num], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_CMP_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|RegOp|dstInfo.reg1RM));
-                    pushWord(receiver, dstInfo.numValue, true);
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "cmp " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                } else { // dst is cmpress with just a register
-                    // ex: cmp [reg], reg/num
-                    if (dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                    if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                    pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_CMP_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
-                    pushByte(receiver, (INTEL_ModRM_MOD_Address|RegOp|dstInfo.reg1RM));
-                    if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
-                    std::cout << "cmp " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
-                }
+                // ex: cmp ([reg+num] or [reg]), (reg or num)
+                if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+                if (srcInfo.hasReg1 && (srcInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+                pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_CMP_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
+                const uint8_t Mod = dstInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+                pushByte(receiver, (Mod|RegOp|dstInfo.reg1RM));
+                if (dstInfo.hasNumber) pushWord(receiver, dstInfo.numValue, true);
+                if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
+                std::cout << "cmp " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             }
         } else if (dstInfo.reg1Offset==INTEL_REG_OFF_eAX && srcInfo.hasNumber) {
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -1280,99 +1152,123 @@ void CMP(T &receiver, const char* dst, const char* src) {
             pushWord(receiver, srcInfo.numValue, true);
             std::cout << "cmp " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         } else {// dst cannot be a number, so dst is just a register
-            // ex: cmp reg, reg/num
+            // ex: cmp reg, (reg or num)
             if (srcInfo.hasReg1 && (srcInfo.bit!=dstInfo.bit)) { std::cout << "Operand size mis-match." << std::endl; return; }
             if ((srcInfo.hasReg1 && (srcInfo.bit==64)) || (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, srcInfo.hasReg1?INTEL_INSTR_CMP_RMv_REGv:INTEL_INSTR_OP1_RMv_Iv);
             pushByte(receiver, (INTEL_ModRM_MOD_Reg|RegOp|dstInfo.reg1RM));
-            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// push the immutable as the src, if src Is an immutable.
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);// Push the immutable as the src, if src Is an immutable.
             std::cout << "cmp " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         }
     } else {
         // src is indirect, which means that dst is just a register. Because both cant be indirect, and dst cant be just a number
-        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// will requre the SIB byte
-            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid cmpress base" << std::endl; return; }
-            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid cmpress index" << std::endl; return; }
+        if (srcInfo.hasReg2 || (srcInfo.hasNumber && !srcInfo.hasReg1)) {// Will requre the SIB byte
+            if (srcInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << srcInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+            if (srcInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << srcInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
             // ex: cmp reg, [reg+reg*scale+num]
-            if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, INTEL_INSTR_CMP_REGv_RMv);
-            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// for some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+            const uint8_t Mod = ((srcInfo.hasNumber && srcInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
             const uint8_t RegOp = dstInfo.reg1RegOp;
             const uint8_t ScaleIndex = (srcInfo.hasReg2?(srcInfo.reg2Index|srcInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
             const uint8_t Base = (srcInfo.hasReg1?srcInfo.reg1Base:INTEL_SIB_Base_None);
             pushByte(receiver, (Mod|RegOp|INTEL_ModRM_RM_NoDisplace));
             pushByte(receiver, (ScaleIndex|Base));
-            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be cmped if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
-                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // push either the displacement or 0 if there is not displacement
+            if (srcInfo.hasNumber || !srcInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+                pushWord(receiver, srcInfo.hasNumber?srcInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement
             std::cout << "cmp " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         } else {
-            if (srcInfo.hasNumber) { // dst is cmpress with a register + a number
-                // ex: cmp reg, [reg+num]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_CMP_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_4byteDisp|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                pushWord(receiver, srcInfo.numValue, true);
-                std::cout << "cmp " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            } else { // dst is cmpress with just a register
-                // ex: cmp reg, [reg]
-                if (srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-                if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-                pushByte(receiver, INTEL_INSTR_CMP_REGv_RMv);
-                pushByte(receiver, (INTEL_ModRM_MOD_Address|dstInfo.reg1RegOp|srcInfo.reg1RM));
-                std::cout << "cmp " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
-            }
+            // ex: cmp reg, ([reg+num] or [reg])
+            if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+            if (dstInfo.hasReg1 && (dstInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+            pushByte(receiver, INTEL_INSTR_CMP_REGv_RMv);
+            const uint8_t Mod = srcInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address;
+            pushByte(receiver, (Mod|dstInfo.reg1RegOp|srcInfo.reg1RM));
+            if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);
+            std::cout << "cmp " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
         }
     }
 }
 
-/*#pragma region OR
-//2 bytes
+
 template <typename T>
-void ORb(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_OR_RMb_REGb);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg8(reg1)|RegToModrmRM8(reg2));
-}
-//2 bytes if reg is eAX, otherwise 3 bytes
-template <typename T>
-void ORb(T &receiver, const char *reg, const uint8_t &value) {
-    uint8_t rm = RegToModrmRM8(reg);
-    if (rm == 0) {// reg == eAX
-        pushByte(receiver, INTEL_INSTR_OR_AL_Ib);
-        pushByte(receiver, value);
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMb_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_OR_RM_I|rm);
-        pushByte(receiver, value);
+void INC(T &receiver, const char *arg) {
+    if (bitMode==0) return;
+    instructionArgInfo argInfo = processArg(arg);
+    if(!argInfo.isValid) { std::cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << std::endl; return; }
+    
+    if (argInfo.hasNumber && !argInfo.isIndirect) { std::cout << "arg cannot be just a number." << std::endl; return; }
+    if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
+
+    if (bitMode==32 && !argInfo.isIndirect) {// Also mplies that that it hasReg1
+        // arg is just a register, and you can use the 32 bit instruction INTEL_INSTR32_INCpRv
+        pushByte(receiver, INTEL_INSTR32_INCpRv+argInfo.reg1Offset);
+        std::cout << "inc " << std::to_string(argInfo) << std::endl;
+    } else if (!argInfo.hasReg2 && (argInfo.hasReg1 || !argInfo.hasNumber)) { // If it does not have an index, and if it has a number, also has a base
+        // arg is just a register
+        if (!argInfo.isIndirect && argInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+        if (argInfo.isIndirect && bitMode==64 && argInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+        pushByte(receiver, INTEL_INSTR_OP3v);
+        const uint8_t Mod = argInfo.isIndirect?(argInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address):INTEL_ModRM_MOD_Reg;
+        pushByte(receiver, ((Mod|INTEL_ModRM_OP3_INC_RM|argInfo.reg1RM)));
+        if (argInfo.hasNumber) pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true);
+        std::cout << "inc " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
+    } else { // Either argInfo.hasReg2, or argInfo.hasNumber, which means that it is indirect and requires a SIB byte
+        if (argInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << argInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+        if (argInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << argInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
+        // ex: inc [reg+reg*scale+num]
+        if (bitMode==64 && argInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+        pushByte(receiver, INTEL_INSTR_OP3v);
+        const uint8_t Mod = ((argInfo.hasNumber && argInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+        const uint8_t ScaleIndex = (argInfo.hasReg2?(argInfo.reg2Index|argInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
+        const uint8_t Base = (argInfo.hasReg1?argInfo.reg1Base:INTEL_SIB_Base_None);
+        pushByte(receiver, (Mod|INTEL_ModRM_OP3_INC_RM|INTEL_ModRM_RM_NoDisplace));
+        pushByte(receiver, (ScaleIndex|Base));
+        if (argInfo.hasNumber || !argInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+            pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
+        std::cout << "inc dword ptr " << std::to_string(argInfo) << std::endl;
     }
 }
-//2 bytes
 template <typename T>
-void ORv(T &receiver, const char *reg1, const char *reg2) {
-    pushByte(receiver, INTEL_INSTR_OR_RMv_REGv);
-    pushByte(receiver, INTEL_ModRM_MOD_Reg|RegToModrmReg32(reg1)|RegToModrmRM32(reg2));
-}
-// 3,4,5 or 5 bytes
-template <typename T>
-void ORv(T &receiver, const char *reg, const uint32_t &value) {
-    uint8_t rm = RegToModrmRM32(reg);
-    if (value>255) {
-        if (rm==0) {// reg == eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_OR_eAX_Iv);
-            pushWord(receiver, value, true);
-        } else {// reg != eAX and value is larger than a byte can hold
-            pushByte(receiver, INTEL_INSTR_OP1_RMv_Iv);
-            pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_OR_RM_I|RegToModrmRM32(reg));
-            pushWord(receiver, value, true);
-        }
-    } else {
-        pushByte(receiver, INTEL_INSTR_OP1_RMv_Ib);
-        pushByte(receiver, INTEL_ModRM_MOD_Reg|INTEL_ModRM_OP1_OR_RM_I|RegToModrmRM32(reg));
-        pushByte(receiver, value);
+void DEC(T &receiver, const char *arg) {
+    if (bitMode==0) return;
+    instructionArgInfo argInfo = processArg(arg);
+    if(!argInfo.isValid) { std::cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << std::endl; return; }
+    
+    if (argInfo.hasNumber && !argInfo.isIndirect) { std::cout << "arg cannot be just a number." << std::endl; return; }
+    if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
+
+    if (bitMode==32 && !argInfo.isIndirect) {// Also mplies that that it hasReg1
+        // arg is just a register, and you can use the 32 bit instruction INTEL_INSTR32_DECpRv
+        pushByte(receiver, INTEL_INSTR32_DECpRv+argInfo.reg1Offset);
+        std::cout << "dec " << std::to_string(argInfo) << std::endl;
+    } else if (!argInfo.hasReg2 && (argInfo.hasReg1 || !argInfo.hasNumber)) { // If it does not have an index, and if it has a number, also has a base
+        // arg is just a register
+        if (!argInfo.isIndirect && argInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
+        if (argInfo.isIndirect && bitMode==64 && argInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+        pushByte(receiver, INTEL_INSTR_OP3v);
+        const uint8_t Mod = argInfo.isIndirect?(argInfo.hasNumber?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address):INTEL_ModRM_MOD_Reg;
+        pushByte(receiver, ((Mod|INTEL_ModRM_OP3_DEC_RM|argInfo.reg1RM)));
+        if (argInfo.hasNumber) pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true);
+        std::cout << "dec " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
+    } else { // Either argInfo.hasReg2, or argInfo.hasNumber, which means that it is indirect and requires a SIB byte
+        if (argInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << argInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
+        if (argInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << argInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
+        // ex: inc [reg+reg*scale+num]
+        if (bitMode==64 && argInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
+        pushByte(receiver, INTEL_INSTR_OP3v);
+        const uint8_t Mod = ((argInfo.hasNumber && argInfo.hasReg1)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_Address);// For some reason, specifically if you have a base in the [base+index*scale], and you want a displacement, you have to specify, just not any other time
+        const uint8_t ScaleIndex = (argInfo.hasReg2?(argInfo.reg2Index|argInfo.reg2Scale):(INTEL_SIB_Scale_None|INTEL_SIB_Index_None));
+        const uint8_t Base = (argInfo.hasReg1?argInfo.reg1Base:INTEL_SIB_Base_None);
+        pushByte(receiver, (Mod|INTEL_ModRM_OP3_DEC_RM|INTEL_ModRM_RM_NoDisplace));
+        pushByte(receiver, (ScaleIndex|Base));
+        if (argInfo.hasNumber || !argInfo.hasReg1) // Displacement only needs to be added if it is desired. Except, for some reason... when there is not base of the formula [base+index*scale]
+            pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
+        std::cout << "dec dword ptr " << std::to_string(argInfo) << std::endl;
     }
 }
-#pragma endregion OR*/
+
 
 
 #pragma region template instatiations
@@ -1385,6 +1281,8 @@ template void AND(std::ofstream& receiver, const char *dst, const char *src);
 template void SUB(std::ofstream& receiver, const char *dst, const char *src);
 template void XOR(std::ofstream& receiver, const char *dst, const char *src);
 template void CMP(std::ofstream& receiver, const char *dst, const char *src);
+template void INC(std::ofstream& receiver, const char *arg);
+template void DEC(std::ofstream& receiver, const char *arg);
 
 /*template void ORb(std::ofstream &receiver, const char *reg1, const char *reg2);
 template void ORb(std::ofstream &receiver, const char *reg, const uint8_t &value);
@@ -1483,6 +1381,8 @@ template void AND(std::vector<uint8_t>& receiver, const char *dst, const char *s
 template void SUB(std::vector<uint8_t>& receiver, const char *dst, const char *src);
 template void XOR(std::vector<uint8_t>& receiver, const char *dst, const char *src);
 template void CMP(std::vector<uint8_t>& receiver, const char *dst, const char *src);
+template void INC(std::vector<uint8_t>& receiver, const char *arg);
+template void DEC(std::vector<uint8_t>& receiver, const char *arg);
 
 /*template void ADD(std::vector<uint8_t> &receiver, const char *acc, const char *src);
 template void ORb(std::vector<uint8_t> &receiver, const char *reg1, const char *reg2);
@@ -1582,6 +1482,8 @@ template void AND(ElfSegmentHandler*& receiver, const char *dst, const char *src
 template void SUB(ElfSegmentHandler*& receiver, const char *dst, const char *src);
 template void XOR(ElfSegmentHandler*& receiver, const char *dst, const char *src);
 template void CMP(ElfSegmentHandler*& receiver, const char *dst, const char *src);
+template void INC(ElfSegmentHandler*& receiver, const char *arg);
+template void DEC(ElfSegmentHandler*& receiver, const char *arg);
 
 /*template void ADD(ElfSegmentHandler *&receiver, const char *acc, const char *src);
 template void ORb(ElfSegmentHandler *&receiver, const char *reg1, const char *reg2);
@@ -1681,6 +1583,8 @@ template void AND(Pe32SectionHandler*& receiver, const char *dst, const char *sr
 template void SUB(Pe32SectionHandler*& receiver, const char *dst, const char *src);
 template void XOR(Pe32SectionHandler*& receiver, const char *dst, const char *src);
 template void CMP(Pe32SectionHandler*& receiver, const char *dst, const char *src);
+template void INC(Pe32SectionHandler*& receiver, const char *arg);
+template void DEC(Pe32SectionHandler*& receiver, const char *arg);
 
 /*template void ADD(Pe32SectionHandler *&receiver, const char *acc, const char *src);
 template void ORb(Pe32SectionHandler *&receiver, const char *reg1, const char *reg2);
@@ -1780,6 +1684,8 @@ template void AND(Pe64SectionHandler*& receiver, const char *dst, const char *sr
 template void SUB(Pe64SectionHandler*& receiver, const char *dst, const char *src);
 template void XOR(Pe64SectionHandler*& receiver, const char *dst, const char *src);
 template void CMP(Pe64SectionHandler*& receiver, const char *dst, const char *src);
+template void INC(Pe64SectionHandler*& receiver, const char *arg);
+template void DEC(Pe64SectionHandler*& receiver, const char *arg);
 
 /*template void ADD(Pe64SectionHandler *&receiver, const char *acc, const char *src);
 template void ORb(Pe64SectionHandler *&receiver, const char *reg1, const char *reg2);

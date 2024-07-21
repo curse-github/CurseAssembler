@@ -294,14 +294,62 @@ int main(int argc, char *argv[]) {
             "rcx","[rcx+rax*4+0x012c]"
         };
 
-        //for (unsigned int i = 0; i < args.size(); i++) { ADD(textSec,args[i],args[i+1]); i++; }
-        //for (unsigned int i = 0; i < args.size(); i++) { OR(textSec,args[i],args[i+1]); i++; }
-        //for (unsigned int i = 0; i < args.size(); i++) { ADC(textSec,args[i],args[i+1]); i++; }
-        //for (unsigned int i = 0; i < args.size(); i++) { SBB(textSec,args[i],args[i+1]); i++; }
-        //for (unsigned int i = 0; i < args.size(); i++) { AND(textSec,args[i],args[i+1]); i++; }
-        //for (unsigned int i = 0; i < args.size(); i++) { SUB(textSec,args[i],args[i+1]); i++; }
-        //for (unsigned int i = 0; i < args.size(); i++) { XOR(textSec,args[i],args[i+1]); i++; }
-        //for (unsigned int i = 0; i < args.size(); i++) { CMP(textSec,args[i],args[i+1]); i++; }
+        for (unsigned int i = 0; i < args.size(); i++) { ADD(textSec,args[i],args[i+1]); i++; }
+        for (unsigned int i = 0; i < args.size(); i++) { OR(textSec,args[i],args[i+1]); i++; }
+        for (unsigned int i = 0; i < args.size(); i++) { ADC(textSec,args[i],args[i+1]); i++; }
+        for (unsigned int i = 0; i < args.size(); i++) { SBB(textSec,args[i],args[i+1]); i++; }
+        for (unsigned int i = 0; i < args.size(); i++) { AND(textSec,args[i],args[i+1]); i++; }
+        for (unsigned int i = 0; i < args.size(); i++) { SUB(textSec,args[i],args[i+1]); i++; }
+        for (unsigned int i = 0; i < args.size(); i++) { XOR(textSec,args[i],args[i+1]); i++; }
+        for (unsigned int i = 0; i < args.size(); i++) { CMP(textSec,args[i],args[i+1]); i++; }
+
+        
+        INC(textSec, "eax");
+        INC(textSec, "ecx");
+        INC(textSec, "[eax]");
+        INC(textSec, "[ecx]");
+        INC(textSec, "[rax]");
+        INC(textSec, "[rcx]");
+        INC(textSec, "[0x012c]");
+        INC(textSec, "[eax+0x012c]");
+        INC(textSec, "[ecx+0x012c]");
+        INC(textSec, "[rax+0x012c]");
+        INC(textSec, "[rcx+0x012c]");
+        INC(textSec, "[eax*4+0x012c]");
+        INC(textSec, "[ecx*4+0x012c]");
+        INC(textSec, "[rax*4+0x012c]");
+        INC(textSec, "[rcx*4+0x012c]");
+        INC(textSec, "[eax+ecx*4]");
+        INC(textSec, "[ecx+eax*4]");
+        INC(textSec, "[rax+rcx*4]");
+        INC(textSec, "[rcx+rax*4]");
+        INC(textSec, "[eax+ecx*4+0x012c]");
+        INC(textSec, "[ecx+eax*4+0x012c]");
+        INC(textSec, "[rax+rcx*4+0x012c]");
+        INC(textSec, "[rcx+rax*4+0x012c]");
+        DEC(textSec, "eax");
+        DEC(textSec, "ecx");
+        DEC(textSec, "[eax]");
+        DEC(textSec, "[ecx]");
+        DEC(textSec, "[rax]");
+        DEC(textSec, "[rcx]");
+        DEC(textSec, "[0x012c]");
+        DEC(textSec, "[eax+0x012c]");
+        DEC(textSec, "[ecx+0x012c]");
+        DEC(textSec, "[rax+0x012c]");
+        DEC(textSec, "[rcx+0x012c]");
+        DEC(textSec, "[eax*4+0x012c]");
+        DEC(textSec, "[ecx*4+0x012c]");
+        DEC(textSec, "[rax*4+0x012c]");
+        DEC(textSec, "[rcx*4+0x012c]");
+        DEC(textSec, "[eax+ecx*4]");
+        DEC(textSec, "[ecx+eax*4]");
+        DEC(textSec, "[rax+rcx*4]");
+        DEC(textSec, "[rcx+rax*4]");
+        DEC(textSec, "[eax+ecx*4+0x012c]");
+        DEC(textSec, "[ecx+eax*4+0x012c]");
+        DEC(textSec, "[rax+rcx*4+0x012c]");
+        DEC(textSec, "[rcx+rax*4+0x012c]");
         
         std::cout << std::endl;
         
