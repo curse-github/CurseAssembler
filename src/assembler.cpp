@@ -302,7 +302,9 @@ int main(int argc, char *argv[]) {
         for (unsigned int i = 0; i < args.size(); i++) { SUB(textSec,args[i],args[i+1]); i++; }
         for (unsigned int i = 0; i < args.size(); i++) { XOR(textSec,args[i],args[i+1]); i++; }
         for (unsigned int i = 0; i < args.size(); i++) { CMP(textSec,args[i],args[i+1]); i++; }
-
+        for (unsigned int i = 0; i < args.size(); i++) { MOV(textSec,args[i],args[i+1]); i++; }
+        */
+        /*
         INC(textSec, "eax");
         INC(textSec, "ecx");
         INC(textSec, "rax");
@@ -635,6 +637,75 @@ int main(int argc, char *argv[]) {
         XCHG(textSec, "rcx", "[rax+rcx*4+0x012c]");
         XCHG(textSec, "rcx", "[rcx+rax*4+0x012c]");
         */
+        NOP(textSec);
+        RET(textSec);
+        RETF(textSec);
+        INT(textSec,"3");
+        INT(textSec,"0b11");
+        RET(textSec,"0xf");
+        RETF(textSec,"0xf");
+        INT(textSec,"0xf");
+        RET(textSec,"0xf00");
+        RETF(textSec,"0xf00");
+        INT(textSec,"0xf00");
+        RET(textSec,"0xffff");
+        RETF(textSec,"0xffff");
+        INT(textSec,"0xffff");
+        RET(textSec,"0xf0000");
+        RETF(textSec,"0xf0000");
+        INT(textSec,"0xf0000");
+        HLT(textSec);
+        std::cout << std::endl;
+        NOT(textSec, "eax");
+        NOT(textSec, "ecx");
+        NOT(textSec, "rax");
+        NOT(textSec, "rcx");
+        NOT(textSec, "[eax]");
+        NOT(textSec, "[ecx]");
+        NOT(textSec, "[rax]");
+        NOT(textSec, "[rcx]");
+        NOT(textSec, "[0x012c]");
+        NOT(textSec, "[eax+0x012c]");
+        NOT(textSec, "[ecx+0x012c]");
+        NOT(textSec, "[rax+0x012c]");
+        NOT(textSec, "[rcx+0x012c]");
+        NOT(textSec, "[eax*4+0x012c]");
+        NOT(textSec, "[ecx*4+0x012c]");
+        NOT(textSec, "[rax*4+0x012c]");
+        NOT(textSec, "[rcx*4+0x012c]");
+        NOT(textSec, "[eax+ecx*4]");
+        NOT(textSec, "[ecx+eax*4]");
+        NOT(textSec, "[rax+rcx*4]");
+        NOT(textSec, "[rcx+rax*4]");
+        NOT(textSec, "[eax+ecx*4+0x012c]");
+        NOT(textSec, "[ecx+eax*4+0x012c]");
+        NOT(textSec, "[rax+rcx*4+0x012c]");
+        NOT(textSec, "[rcx+rax*4+0x012c]");
+        NEG(textSec, "eax");
+        NEG(textSec, "ecx");
+        NEG(textSec, "rax");
+        NEG(textSec, "rcx");
+        NEG(textSec, "[eax]");
+        NEG(textSec, "[ecx]");
+        NEG(textSec, "[rax]");
+        NEG(textSec, "[rcx]");
+        NEG(textSec, "[0x012c]");
+        NEG(textSec, "[eax+0x012c]");
+        NEG(textSec, "[ecx+0x012c]");
+        NEG(textSec, "[rax+0x012c]");
+        NEG(textSec, "[rcx+0x012c]");
+        NEG(textSec, "[eax*4+0x012c]");
+        NEG(textSec, "[ecx*4+0x012c]");
+        NEG(textSec, "[rax*4+0x012c]");
+        NEG(textSec, "[rcx*4+0x012c]");
+        NEG(textSec, "[eax+ecx*4]");
+        NEG(textSec, "[ecx+eax*4]");
+        NEG(textSec, "[rax+rcx*4]");
+        NEG(textSec, "[rcx+rax*4]");
+        NEG(textSec, "[eax+ecx*4+0x012c]");
+        NEG(textSec, "[ecx+eax*4+0x012c]");
+        NEG(textSec, "[rax+rcx*4+0x012c]");
+        NEG(textSec, "[rcx+rax*4+0x012c]");
         
         std::cout << std::endl;
         

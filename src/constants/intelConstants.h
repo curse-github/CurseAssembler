@@ -57,7 +57,7 @@
 #define INTEL_ModRM_OP1_XOR_RM_I 0b00110000// 6
 #define INTEL_ModRM_OP1_CMP_RM_I 0b00111000// 7
 
-#define INTEL_ModRM_OP2_TEST_RM_I 0b00000000// 2
+#define INTEL_ModRM_OP2_TEST_RM_I 0b00000000// 0
 #define INTEL_ModRM_OP2_NOT_RM 0b00010000// 2 lockable
 #define INTEL_ModRM_OP2_NEG_RM 0b00011000// 3 lockable
 //#define INTEL_ModRM_OP2_UMUL 0b00100000// 4
@@ -334,8 +334,8 @@ unsigned int SIBScaleToInt(const uint8_t& scale);
 #define INTEL_INSTR_MOV_REGpRv_Iv 0xB8
 ///0xB1-0xB7 are offsets of MOV REG+r Iv
 //#define INTEL_INSTR_ 0xC1
-#define INTEL_INSTR_RETN_I16 0xC2
-#define INTEL_INSTR_RETN 0xC3
+#define INTEL_INSTR_RET_I16 0xC2
+#define INTEL_INSTR_RET 0xC3
 //#define INTEL_INSTR_ 0xC4
 //#define INTEL_INSTR_ 0xC5
 #define INTEL_INSTR_MOV_RMb_Ib 0xC6
@@ -344,7 +344,7 @@ unsigned int SIBScaleToInt(const uint8_t& scale);
 //#define INTEL_INSTR_ 0xC9// leave
 #define INTEL_INSTR_RETF_I16 0xCA
 #define INTEL_INSTR_RETF 0xCB
-#define INTEL_INSTR_INT 0xCC
+#define INTEL_INSTR_INT3 0xCC
 #define INTEL_INSTR_INT_Ib 0xCD
 //#define INTEL_INSTR_ 0xCE
 //#define INTEL_INSTR_ 0xCF

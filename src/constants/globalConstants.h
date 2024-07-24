@@ -115,44 +115,20 @@ template <typename T>
 void NOP(T &receiver);
 template <typename T>
 void XCHG(T &receiver, const char *reg1, const char *reg2);
-
-//uses codes 0x88 or 0x8A
 template <typename T>
-void MOVb(T &receiver, const char *reg1, const char *reg2);
-//uses codes 0x89 or 0x8B
+void MOV(T &receiver, const char *dst, const char *src);
 template <typename T>
-void MOVv(T &receiver, const char *reg1, const char *reg2);
-//uses codes 0xB0 - 0xB7 and possibly 0xC6
+void RET(T &receiver, const char *num);
 template <typename T>
-void MOVb(T &receiver, const char *reg, const uint8_t &value);
-//uses codes 0xB8 - 0xBF and possibly 0xC7
+void RET(T &receiver);
 template <typename T>
-void MOVv(T &receiver, const char *reg, const uint32_t &value);
-template <typename T>
-void MOVv(T &receiver, const char *reg, const uint64_t &value);
-
-//uses code 0xC2
-template <typename T>
-void RETN(T &receiver, const uint16_t &value);
-//uses code 0xC3
-template <typename T>
-void RETN(T &receiver);
-
-//uses code 0xCA
-template <typename T>
-void RETF(T &receiver, const uint16_t &value);
-//uses code 0xCB
+void RETF(T &receiver, const char *num);
 template <typename T>
 void RETF(T &receiver);
-
-//uses code 0xCC
 template <typename T>
-void INT(T &receiver);
-//uses code 0xCD
-template <typename T>
-void INT(T &receiver, const uint8_t &value);
+void INT(T &receiver, const char *num);
 
-//uses code 0xE0
+/*//uses code 0xE0
 template <typename T>
 void LOOPNE(T &receiver, const uint8_t &value);
 //uses code 0xE1
@@ -160,34 +136,19 @@ template <typename T>
 void LOOPET(T &receiver, const uint8_t &value);
 //uses code 0xE2
 template <typename T>
-void LOOP(T &receiver, const uint8_t &value);
+void LOOP(T &receiver, const uint8_t &value);*/
 
-//uses code 0xF4
 template <typename T>
 void HLT(T &receiver);
 
 //TEST,NOT,NEG,MUL,IMUL,DIV,and IDIV instructions
 
-//uses general instruction 0xF6 with modrm OP bits set to 0
+/*template <typename T>
+void TEST(T &receiver, const char *arg1, const uint8_t &arg2);*/
 template <typename T>
-void TESTb(T &receiver, const char *reg1, const uint8_t &value);
-// these uses general instruction 0xF7 with modrm OP bits set to 0
+void NOT(T &receiver, const char *arg);
 template <typename T>
-void TESTv(T &receiver, const char *reg1, const uint32_t &value);
-template <typename T>
-void TESTv(T &receiver, const char *reg1, const uint64_t &value);
-//uses general instruction 0xF6 with modrm OP bits set to 2
-template <typename T>
-void NOTb(T &receiver, const char *reg);
-//uses general instruction 0xF7 with modrm OP bits set to 2
-template <typename T>
-void NOTv(T &receiver, const char *reg);
-//uses general instruction 0xF6 with modrm OP bits set to 3
-template <typename T>
-void NEGb(T &receiver, const char *reg);
-//uses general instruction 0xF7 with modrm OP bits set to 3
-template <typename T>
-void NEGv(T &receiver, const char *reg);
+void NEG(T &receiver, const char *arg);
 
 //instructions take 4 or more arguments? im confused
 /*
@@ -217,23 +178,16 @@ template <typename T>
 void DIVv(T &receiver);
 */
 
-
-//uses code 0xF8
 template <typename T>
 void CLC(T &receiver);
-//uses code 0xF9
 template <typename T>
 void STC(T &receiver);
-//uses code 0xFA
 template <typename T>
 void CLI(T &receiver);
-//uses code 0xFB
 template <typename T>
 void STI(T &receiver);
-//uses code 0xFC
 template <typename T>
 void CLD(T &receiver);
-//uses code 0xFD
 template <typename T>
 void STD(T &receiver);
 
