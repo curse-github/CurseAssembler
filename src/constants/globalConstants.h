@@ -140,43 +140,21 @@ void LOOP(T &receiver, const uint8_t &value);*/
 
 template <typename T>
 void HLT(T &receiver);
-
-//TEST,NOT,NEG,MUL,IMUL,DIV,and IDIV instructions
-
-/*template <typename T>
-void TEST(T &receiver, const char *arg1, const uint8_t &arg2);*/
+template <typename T>
+void TEST(T &receiver, const char *arg1, const char *arg2);
 template <typename T>
 void NOT(T &receiver, const char *arg);
 template <typename T>
 void NEG(T &receiver, const char *arg);
 
-//instructions take 4 or more arguments? im confused
-/*
-//uses general instruction 0xF6 with modrm OP bits set to 4
 template <typename T>
-void UMULb(T &receiver);
-//uses general instruction 0xF7 with modrm OP bits set to 4
+void UMUL(T &receiver, const char *arg);
 template <typename T>
-void UMULv(T &receiver);
-//uses general instruction 0xF6 with modrm OP bits set to 5
+void MUL(T &receiver, const char *arg);
 template <typename T>
-void MULb(T &receiver);
-//uses general instruction 0xF7 with modrm OP bits set to 5
+void UDIV(T &receiver, const char *arg);
 template <typename T>
-void MULv(T &receiver);
-//uses general instruction 0xF6 with modrm OP bits set to 6
-template <typename T>
-void UDIVb(T &receiver);
-//uses general instruction 0xF7 with modrm OP bits set to 6
-template <typename T>
-void UDIVv(T &receiver);
-//uses general instruction 0xF6 with modrm OP bits set to 7
-template <typename T>
-void DIVb(T &receiver);
-//uses general instruction 0xF7 with modrm OP bits set to 7
-template <typename T>
-void DIVv(T &receiver);
-*/
+void DIV(T &receiver, const char *arg);
 
 template <typename T>
 void CLC(T &receiver);

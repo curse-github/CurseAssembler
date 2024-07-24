@@ -60,10 +60,10 @@
 #define INTEL_ModRM_OP2_TEST_RM_I 0b00000000// 0
 #define INTEL_ModRM_OP2_NOT_RM 0b00010000// 2 lockable
 #define INTEL_ModRM_OP2_NEG_RM 0b00011000// 3 lockable
-//#define INTEL_ModRM_OP2_UMUL 0b00100000// 4
-//#define INTEL_ModRM_OP2_MUL 0b00101000// 5
-//#define INTEL_ModRM_OP2_UDIV 0b00110000// 6
-//#define INTEL_ModRM_OP2_DIV 0b00111000// 7
+#define INTEL_ModRM_OP2_UMUL_eDX_eAX_RM 0b00100000// 4
+#define INTEL_ModRM_OP2_MUL_eDX_eAX_RM 0b00101000// 5
+#define INTEL_ModRM_OP2_UDIV_eDX_eAX_RM 0b00110000// 6
+#define INTEL_ModRM_OP2_DIV_eDX_eAX_RM 0b00111000// 7
 
 #define INTEL_ModRM_OP3_INC_RM 0b00000000// 0
 #define INTEL_ModRM_OP3_DEC_RM 0b00001000// 1
@@ -328,7 +328,10 @@ unsigned int SIBScaleToInt(const uint8_t& scale);
 //#define INTEL_INSTR_ 0x9B
 // 0x9C - 0x9F push and pop flag instructions
 //0xA0 - 0xA3 are moffs MOV instructions
-// 0xA4 - 0xAF are string instructions
+// 0xA4 - 0xA7 are string instructions
+#define INTEL_INSTR_TEST_AL_Ib 0xA8
+#define INTEL_INSTR_TEST_eAX_Iv 0xA9
+// 0xAA - 0xAF are string instructions
 #define INTEL_INSTR_MOV_REGpRb_Ib 0xB0
 ///0xB1-0xB7 are offsets of MOV REG+r Ib
 #define INTEL_INSTR_MOV_REGpRv_Iv 0xB8
