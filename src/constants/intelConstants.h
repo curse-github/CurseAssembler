@@ -216,7 +216,9 @@ unsigned int SIBScaleToInt(const uint8_t& scale);
 #define INTEL_INSTR_OR_AL_Ib 0x0C
 #define INTEL_INSTR_OR_eAX_Iv 0x0D
 //#define INTEL_INSTR_PUSH_Crg 0x0E
-//#define INTEL_INSTR_ 0x0F
+//#define INTEL_INSTR_ 0x0F00 - 0x0F1E are 2 byte instructions
+#define INTEL_INSTR_NOP_RMv 0x0F1F
+//#define INTEL_INSTR_ 0x0F20 - 0x0FFF are 2 byte instructions
 #define INTEL_INSTR_ADC_RMb_REGb 0x10// lockable
 #define INTEL_INSTR_ADC_RMv_REGv 0x11// lockable
 #define INTEL_INSTR_ADC_REGb_RMb 0x12

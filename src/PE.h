@@ -33,8 +33,8 @@ struct peHdr {  // 22 bytes
         p_timeDateStamp = time(0);
         p_pointerToSymbolTable = 0;  // currently unknown
         p_numberOfSymbols = 0;       // currently unknown
-        p_sizeOfOptionalHeader = 0;  // currently unknown v
-        p_characteristics = IMAGE_FILE_CHARACTERISTIC_RELOCS_STRIPPED | IMAGE_FILE_CHARACTERISTIC_EXECUTABLE_IMAGE | IMAGE_FILE_CHARACTERISTIC_32BIT_MACHINE | IMAGE_FILE_CHARACTERISTIC_DEBUG_STRIPPED;
+        p_sizeOfOptionalHeader = 0;
+        p_characteristics = IMAGE_FILE_CHARACTERISTIC_EXECUTABLE_IMAGE | IMAGE_FILE_CHARACTERISTIC_LINE_NUMS_STRIPPED | IMAGE_FILE_CHARACTERISTIC_LOCAL_SYMS_STRIPPED | IMAGE_FILE_CHARACTERISTIC_DEBUG_STRIPPED;
     }
     void push(std::ofstream &stream) {
         pushChars(stream,p_magic,4,PE_IS_LSB);
@@ -153,12 +153,12 @@ struct peOptHdrSpecFields32 {
         p_sizeOfImage = 0;        // currently unknown v
         p_sizeOfHeaders = 0;      // currently unknown v
         p_checkSum = 0;           // currently unknown
-        p_subSystem = IMAGE_SUBSYSTEM_WINDOWS_GUI;
+        p_subSystem = IMAGE_SUBSYSTEM_WINDOWS_CUI;
         p_dllCharacteristics = 0x400;
-        p_sizeOfStackReserve = 100000;   // currently unknown
-        p_sizeOfStackCommit = 1000;    // currently unknown
-        p_sizeOfHeapReserve = 100000;    // currently unknown
-        p_sizeOfHeapCommit = 1000;     // currently unknown
+        p_sizeOfStackReserve = 0x100000;   // currently unknown
+        p_sizeOfStackCommit = 0x1000;    // currently unknown
+        p_sizeOfHeapReserve = 0x100000;    // currently unknown
+        p_sizeOfHeapCommit = 0x1000;     // currently unknown
         p_loaderFlags = 0;          // must always be 0
         p_numberAndSizeOfDataDirs = 13;
     }
@@ -212,7 +212,7 @@ struct peOptHdrSpecFields64 {
     uint32_t p_loaderFlags; // must always be 0
     uint32_t p_numberAndSizeOfDataDirs;
     peOptHdrSpecFields64() {
-        p_imageBase = VirtAddr32;
+        p_imageBase = VirtAddr64;
         p_sectionAlignment = SECTION_ALIGN;
         p_fileAlignment = FILE_ALIGN;
         p_majorOperatingSystemVersion = 4;
@@ -225,14 +225,14 @@ struct peOptHdrSpecFields64 {
         p_sizeOfImage = 0;        // currently unknown v
         p_sizeOfHeaders = 0;      // currently unknown v
         p_checkSum = 0;           // currently unknown
-        p_subSystem = IMAGE_SUBSYSTEM_WINDOWS_GUI;
+        p_subSystem = IMAGE_SUBSYSTEM_WINDOWS_CUI;
         p_dllCharacteristics = 0x400;
-        p_sizeOfStackReserve = 100000;   // currently unknown
-        p_sizeOfStackCommit = 1000;    // currently unknown
-        p_sizeOfHeapReserve = 100000;    // currently unknown
-        p_sizeOfHeapCommit = 1000;     // currently unknown
+        p_sizeOfStackReserve = 0x100000;   // currently unknown
+        p_sizeOfStackCommit = 0x1000;    // currently unknown
+        p_sizeOfHeapReserve = 0x100000;    // currently unknown
+        p_sizeOfHeapCommit = 0x1000;     // currently unknown
         p_loaderFlags = 0;          // must always be 0
-        p_numberAndSizeOfDataDirs = 13;
+        p_numberAndSizeOfDataDirs = 0x10;
     }
     void push(std::ofstream &stream) {
         pushDword(stream,p_imageBase,PE_IS_LSB);

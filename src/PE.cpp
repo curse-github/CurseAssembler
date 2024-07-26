@@ -178,7 +178,6 @@ void Pe64SectionHandler::setOffset(const uint32_t &offset) {
 void Pe64SectionHandler::setRVA(const uint32_t &Rva) {
     sectionHeader.s_virtualAddress = Rva;// offset in memory, can be different if you have uninitialized data
 }
-
 void pushChars(Pe64SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB) {
     pushChars(section->data, chars, len, LSB);
 }
@@ -215,7 +214,7 @@ void Pe64Handler::push(std::ofstream &stream) {
 
     uint16_t numHeaders = sectionHeaders64.size();
     peHeader.p_numberOfSections = numHeaders;
-    peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields32) + sizeof(peOptHdrSpecFields32) + sizeof(peOptHdrDataDirs);
+    peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields64) + sizeof(peOptHdrSpecFields64) + sizeof(peOptHdrDataDirs);
     peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr));
     uint32_t baseOffset = roundToAlign(0x100 + peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
     peSpecFieldsHeader.p_sizeOfHeaders = roundToAlign(peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);

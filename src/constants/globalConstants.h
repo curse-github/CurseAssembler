@@ -7,7 +7,7 @@
 
 const uint32_t VirtAddr32 = 0x00400000;
 const uint32_t Align32 = 0x00000200;
-const uint64_t VirtAddr64 = 0x0000000000400000;
+const uint64_t VirtAddr64 = 0x0000000140000000;
 const uint64_t Align64 = 0x0000000000000200;
 
 #define SECTION_ALIGN 0x1000u
@@ -113,6 +113,8 @@ void JCXZ(T &receiver, const char *arg);
 
 template <typename T>
 void NOP(T &receiver);
+template <typename T>
+void NOP(T &receiver, const char *arg);
 template <typename T>
 void XCHG(T &receiver, const char *reg1, const char *reg2);
 template <typename T>
