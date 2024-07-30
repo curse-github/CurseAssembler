@@ -77,7 +77,12 @@ void padBytes(std::ofstream &stream, const uint32_t &numBytes) {
     uint8_t C8[5]{0x00,0x00,0x00,0x00,0x00};
     for (int i = 0; i < numBytes; i++) {
         stream << C8[i%5];
-        std::cout << C8[i%5];
+    }
+}
+void padBytes(std::vector<uint8_t> &vector, const uint32_t &numBytes) {
+    uint8_t C8[5]{0x00,0x00,0x00,0x00,0x00};
+    for (int i = 0; i < numBytes; i++) {
+        vector.push_back(C8[i%5]);
     }
 }
 

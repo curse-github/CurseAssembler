@@ -37,6 +37,7 @@ void pushDword(std::ofstream &stream, const uint64_t &dword, const bool &LSB);
 void pushDword(std::vector<uint8_t> &vector, const uint64_t &dword, const bool &LSB);
 
 void padBytes(std::ofstream &stream, const uint32_t &numBytes);
+void padBytes(std::vector<uint8_t> &vector, const uint32_t &numBytes);
 
 #include "ELF.h"
 #include "PE.h"

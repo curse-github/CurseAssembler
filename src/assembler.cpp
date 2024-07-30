@@ -56,7 +56,6 @@ int main(int argc, char *argv[]) {
         Pe64Handler peHandler;
         Pe64SectionHandler *textSec = peHandler.addSeg(".text   ",IMAGE_SCN_CNT_CODE|IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_MEM_READ,"entry");
         Pe64SectionHandler *rdataSec = peHandler.addSeg(".rdata  ",IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_MEM_READ,"");
-        Pe64SectionHandler *idataSec = peHandler.addSeg(".idata  ",IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_WRITE,"import");
             // exit(0x0F); or exit(15);
         // or
             // push rBP
@@ -81,9 +80,10 @@ int main(int argc, char *argv[]) {
         pushWord(textSec,0xFFFFFFFF,false);pushWord(textSec,0xFFFFFFFF,false);pushWord(textSec,0x00000000,false);pushWord(textSec,0x00000000,false);
         pushWord(textSec,0xFFFFFFFF,false);pushWord(textSec,0xFFFFFFFF,false);pushWord(textSec,0x00000000,false);pushWord(textSec,0x00000000,false);
 
-        const char* tmp = "GCC: (Rev3, Built by MSYS2 project) 13.2.0";
-        pushChars(rdataSec,(const uint8_t*)tmp,42,true);
+        const char* tmp = "GCC: (Rev3, Built by MSYS2 project) 13.2.0\0\0\0\0\0\0";
+        pushChars(rdataSec,(const uint8_t*)tmp,48,true);
 
+        peHandler.addImport("api-ms-win-crt-runtime-l1-1-0.dll",peHintNameTable(0x25,"_exit"));
         peHandler.push(outFile);
         outFile.close();
     }
