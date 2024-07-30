@@ -1,5 +1,5 @@
-Win32: ./assembler.exe
-	./assembler.exe Win32 small
+Win64: ./assembler.exe
+	./assembler.exe Win64 small
 Linux: ./assembler.out
 	./assembler.out Linux small
 	chmod 777 ./small.out

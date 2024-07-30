@@ -511,7 +511,7 @@ public:
     ~Pe32Handler();
     void push(std::ofstream &stream);
     Pe32SectionHandler *addSeg(const char name[8], uint32_t characteristics, const char *type);
-    void addImport(const std::string&, const peHintNameTable& hint);
+    void addImport(const uint16_t& hint, const std::string& hintName, const std::string& dllName);
 
     friend Pe32SectionHandler;
 };
@@ -552,7 +552,6 @@ void pushHalfWord(Pe32SectionHandler *section, const uint16_t &halfword, const b
 void pushWord(Pe32SectionHandler *section, const uint32_t &word, const bool &LSB);
 void pushDword(Pe32SectionHandler *section, const uint64_t &dword, const bool &LSB);
 
-
 class Pe64SectionHandler;
 
 class Pe64Handler {
@@ -571,7 +570,7 @@ public:
     ~Pe64Handler();
     void push(std::ofstream &stream);
     Pe64SectionHandler *addSeg(const char name[8], uint32_t characteristics, const char *type);
-    void addImport(const std::string&, const peHintNameTable& hint);
+    void addImport(const uint16_t& hint, const std::string& hintName, const std::string& dllName);
 
     friend Pe64SectionHandler;
 };

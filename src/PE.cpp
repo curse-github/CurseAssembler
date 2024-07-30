@@ -1,16 +1,15 @@
 #include "PE.h"
 
-//utility func
 #include <iostream>
 #include <iomanip>
+#include <string.h>
+
+//utility func
 uint32_t roundToAlign(const uint32_t &value, const uint32_t &align) {
     unsigned int mod = value%align;
     if (mod==0) return value;
     return value+align-mod;
 }
-
-
-#include <string.h>
 
 #pragma region Pe32SectionHandler
 Pe32SectionHandler::Pe32SectionHandler(Pe32Handler &_peHandler, const char name[8], uint32_t characteristics,  const char *_type) : peHandler(_peHandler), sectionHeader(name, characteristics), type(_type) {
@@ -78,23 +77,22 @@ void Pe32Handler::push(std::ofstream &stream) {
     for (int i = 0; i < 8; i++) { pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false); }
 
     uint16_t numHeaders = sectionHeaders32.size();
-    peHeader.p_numberOfSections = numHeaders;
+    peHeader.p_numberOfSections = numHeaders+static_cast<uint16_t>(importNames.size()!=0);
     peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields32) + sizeof(peOptHdrSpecFields32) + sizeof(peOptHdrDataDirs);
-    peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr));
+    peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr)) + ((importNames.size()!=0)?sizeof(peSectionHdr):0);
     uint32_t baseOffset = roundToAlign(0x100 + peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
     peSpecFieldsHeader.p_sizeOfHeaders = roundToAlign(peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
     //checksum?
 
     uint32_t sizeOfInitializedData=0;
     uint32_t sizeOfUninitializedData=0;
-    uint32_t entryPoint=0;
     uint32_t sizeOfCode=0;
 
-    std::cout << "baseOffset: 0x" << std::hex << baseOffset << std::endl;
+    //std::cout << "baseOffset: 0x" << std::hex << baseOffset << std::endl;
     uint32_t runningOffset = baseOffset;
-    std::cout << "runningOffset: 0x" << std::hex << runningOffset << std::endl;
+    //std::cout << "runningOffset: 0x" << std::hex << runningOffset << std::endl;
     uint32_t runningRVA = roundToAlign(baseOffset,SECTION_ALIGN);
-    std::cout << "runningRVA: 0x" << std::hex << runningRVA << std::endl;
+    //std::cout << "runningRVA: 0x" << std::hex << runningRVA << std::endl;
     for (uint32_t i = 0; i < numHeaders; i++) {
         sectionHeaders32[i]->setOffset(runningOffset);
         sectionHeaders32[i]->setRVA(runningRVA);
@@ -105,13 +103,10 @@ void Pe32Handler::push(std::ofstream &stream) {
         uint32_t fileSize = roundToAlign(sectionSize,FILE_ALIGN);
         if (strcmp(sectionHeaders32[i]->type,"") != 0) {
             if (strcmp(sectionHeaders32[i]->type,"entry") == 0) {
-                entryPoint = runningRVA;
+                peStdFieldsHeader.p_addressOfEntryPoint = runningRVA;
             } else if (strcmp(sectionHeaders32[i]->type,"exception") == 0) {
                 peDataDirHeader.p_exceptionTableRVA = runningRVA;
                 peDataDirHeader.p_exceptionTableSize = sectionSize;
-            } else if (strcmp(sectionHeaders32[i]->type,"import") == 0) {
-                peDataDirHeader.p_importTableRVA = runningRVA;
-                peDataDirHeader.p_importTableSize = sectionSize;
             }
         }
         runningRVA += virtSize;
@@ -119,31 +114,79 @@ void Pe32Handler::push(std::ofstream &stream) {
         if (sectionHeaders32[i]->isCode()) sizeOfCode+=fileSize;
         else {
             sizeOfInitializedData+=fileSize;
-            sizeOfUninitializedData+=0;
+            //sizeOfUninitializedData+=0;
         }
         runningOffset += fileSize;
-        std::cout << std::endl << "section->size(): 0x" << std::hex << sectionSize << std::endl;
-        std::cout << "runningOffset: 0x" << std::hex << runningOffset << std::endl;
-        std::cout << "runningRVA: 0x" << std::hex << runningRVA << std::endl;
+        //std::cout << std::endl << "section->size(): 0x" << std::hex << sectionSize << std::endl;
+        //std::cout << "runningOffset: 0x" << runningOffset << std::endl;
+        //std::cout << "runningRVA: 0x" << runningRVA << std::endl << std::resetiosflags;
+    }
+    unsigned int numImports=importNames.size();
+    if (numImports!=0) {
+        numHeaders++;
+        Pe32SectionHandler *hdr = new Pe32SectionHandler(*this, ".idata  ",IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_WRITE,"");
+        sectionHeaders32.push_back(hdr);
+        hdr->setOffset(runningOffset);
+        hdr->setRVA(runningRVA);
+        hdr->setSectionAlign(SECTION_ALIGN);
+        hdr->setFileAlign(FILE_ALIGN);
+        
+        uint32_t sizeofImportDirTable = (numImports+1)*sizeof(peImportDirTable);
+        uint32_t lookupTableRVA = runningRVA+sizeofImportDirTable;
+        uint32_t sizeofImportLookupTable = (numImports+1)*sizeof(pe32ImportLookupTable);
+        uint32_t lookupAddressRVA = lookupTableRVA+sizeofImportLookupTable;
+        uint32_t sizeofImportAddressTable = (numImports+1)*sizeof(pe32ImportAddressTable);
+        uint32_t hintsRVA = lookupAddressRVA+sizeofImportAddressTable;
+        uint32_t sizeofImportHintNameTable = 0;
+        importHints.push_back(peHintNameTable(0,"0"));
+        for (unsigned int i = 0; i <= numImports; i++) sizeofImportHintNameTable+=importHints[i].getSize();
+        uint32_t stringsRVA = roundToAlign(hintsRVA+sizeofImportHintNameTable,4);
+        
+        
+        uint32_t runningStringsRVA=stringsRVA;
+        for (unsigned int i = 0; i < numImports; i++) {
+            peImportDirTable(lookupTableRVA,runningStringsRVA,lookupAddressRVA).push(hdr->data);
+            runningStringsRVA+=importNames[i].size();
+        }
+        peImportDirTable().push(hdr->data);
+
+        for (unsigned int i = 0; i < numImports; i++) pe32ImportLookupTable(false,hintsRVA).push(hdr->data);
+        pe32ImportLookupTable().push(hdr->data);
+
+        for (unsigned int i = 0; i < numImports; i++) pe32ImportAddressTable(false,hintsRVA).push(hdr->data);
+        pe32ImportAddressTable().push(hdr->data);
+
+        for (unsigned int i = 0; i <= numImports; i++) importHints[i].push(hdr->data);
+        
+        padBytes(hdr->data,stringsRVA-(hintsRVA+sizeofImportHintNameTable));
+        for (unsigned int i = 0; i < numImports; i++) {
+            pushChars(hdr,(const uint8_t*)importNames[i].c_str(),importNames[i].size(),true);
+        }
+
+        uint32_t sectionSize = hdr->getSize();
+        uint32_t virtSize = roundToAlign(sectionSize,SECTION_ALIGN);
+        uint32_t fileSize = roundToAlign(sectionSize,FILE_ALIGN);
+        peDataDirHeader.p_importTableRVA = runningRVA;
+        peDataDirHeader.p_importTableSize = sectionSize;
+        runningRVA += virtSize;
+        sizeOfInitializedData+=fileSize;
+        runningOffset += fileSize;
     }
 
     peStdFieldsHeader.p_sizeOfCode = sizeOfCode;
     peStdFieldsHeader.p_sizeOfInitializedData = sizeOfInitializedData;
     peStdFieldsHeader.p_sizeOfUninitializedData = sizeOfUninitializedData;
 
-    peStdFieldsHeader.p_addressOfEntryPoint = entryPoint;
     peStdFieldsHeader.p_baseOfCode = 0x1000;
-    peStdFieldsHeader.p_baseOfData = 0;
     peSpecFieldsHeader.p_sizeOfImage = runningRVA;
     // push all the data
     peHeader.push(stream);
     peStdFieldsHeader.push(stream);
     peSpecFieldsHeader.push(stream);
     peDataDirHeader.push(stream);
-    for (uint32_t i = 0; i < numHeaders; i++) sectionHeaders32[i]->pushHeader(stream);// push all sections headers
+    for (unsigned int i = 0; i < numHeaders; i++) sectionHeaders32[i]->pushHeader(stream);// push all sections headers
     padBytes(stream,baseOffset-(0x100 + sizeof(peHdr) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr))));
-
-    for (uint32_t i = 0; i < numHeaders; i++) {// push all section content
+    for (unsigned int i = 0; i < numHeaders; i++) {// push all section content
         sectionHeaders32[i]->pushData(stream);
         padBytes(stream,0x200-(sectionHeaders32[i]->getSize()%(0x200)));
     }
@@ -153,9 +196,9 @@ Pe32SectionHandler *Pe32Handler::addSeg(const char name[8], uint32_t characteris
     sectionHeaders32.push_back(hdr);
     return hdr;
 }
-void Pe32Handler::addImport(const std::string& name, const peHintNameTable& hint) {
-    importNames.push_back(name);
-    importHints.push_back(hint);
+void Pe32Handler::addImport(const uint16_t& hint, const std::string& hintName, const std::string& dllName) {
+    importHints.push_back(peHintNameTable(hint,hintName.c_str()));
+    importNames.push_back(dllName);
 }
 #pragma endregion// Pe32Handler
 
@@ -235,11 +278,11 @@ void Pe64Handler::push(std::ofstream &stream) {
     uint32_t sizeOfUninitializedData=0;
     uint32_t sizeOfCode=0;
 
-    std::cout << "baseOffset: 0x" << std::hex << baseOffset << std::endl;
+    //std::cout << "baseOffset: 0x" << std::hex << baseOffset << std::endl;
     uint32_t runningOffset = baseOffset;
-    std::cout << "runningOffset: 0x" << std::hex << runningOffset << std::endl;
+    //std::cout << "runningOffset: 0x" << std::hex << runningOffset << std::endl;
     uint32_t runningRVA = roundToAlign(baseOffset,SECTION_ALIGN);
-    std::cout << "runningRVA: 0x" << std::hex << runningRVA << std::endl;
+    //std::cout << "runningRVA: 0x" << std::hex << runningRVA << std::endl;
     for (uint32_t i = 0; i < numHeaders; i++) {
         sectionHeaders64[i]->setOffset(runningOffset);
         sectionHeaders64[i]->setRVA(runningRVA);
@@ -264,9 +307,9 @@ void Pe64Handler::push(std::ofstream &stream) {
             //sizeOfUninitializedData+=0;
         }
         runningOffset += fileSize;
-        std::cout << std::endl << "section->size(): 0x" << std::hex << sectionSize << std::endl;
-        std::cout << "runningOffset: 0x" << runningOffset << std::endl;
-        std::cout << "runningRVA: 0x" << runningRVA << std::endl << std::resetiosflags;
+        //std::cout << std::endl << "section->size(): 0x" << std::hex << sectionSize << std::endl;
+        //std::cout << "runningOffset: 0x" << runningOffset << std::endl;
+        //std::cout << "runningRVA: 0x" << runningRVA << std::endl << std::resetiosflags;
     }
     unsigned int numImports=importNames.size();
     if (numImports!=0) {
@@ -288,8 +331,6 @@ void Pe64Handler::push(std::ofstream &stream) {
         importHints.push_back(peHintNameTable(0,"0"));
         for (unsigned int i = 0; i <= numImports; i++) sizeofImportHintNameTable+=importHints[i].getSize();
         uint32_t stringsRVA = roundToAlign(hintsRVA+sizeofImportHintNameTable,4);
-        std::cout << std::endl << "stringsRVA1: " << std::hex << (hintsRVA+sizeofImportHintNameTable) << std::endl;
-        std::cout << "stringsRVA2: " << stringsRVA << std::endl << std::resetiosflags;
         
         
         uint32_t runningStringsRVA=stringsRVA;
@@ -345,8 +386,8 @@ Pe64SectionHandler *Pe64Handler::addSeg(const char name[8], uint32_t characteris
     sectionHeaders64.push_back(hdr);
     return hdr;
 }
-void Pe64Handler::addImport(const std::string& name, const peHintNameTable& hint) {
-    importNames.push_back(name);
-    importHints.push_back(hint);
+void Pe64Handler::addImport(const uint16_t& hint, const std::string& hintName, const std::string& dllName) {
+    importHints.push_back(peHintNameTable(hint,hintName.c_str()));
+    importNames.push_back(dllName);
 }
 #pragma endregion// Pe64Handler

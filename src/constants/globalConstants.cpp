@@ -513,6 +513,7 @@ std::ostream& operator<<(std::ostream& o, const instructionArgInfo& info) {
 
 #pragma region instructions
 //instruction template used for Add, Or, Adc, Sbb, And, Sub, Xor, Cmp
+const bool debugInstructionOutput = false;
 template <typename T>
 void AddOrAdcSbbAndSubXorCmp(T &receiver, const char* dst, const char* src, const char* instructionName, const uint8_t& op1Code=INTEL_ModRM_OP1_ADD_RM_I, const uint8_t& RMv_REGv=INTEL_INSTR_ADD_RMv_REGv, const uint8_t& REGv_RMv=INTEL_INSTR_ADD_REGv_RMv, const uint8_t& eAX_Iv=INTEL_INSTR_ADD_eAX_Iv) {
     if (bitMode==0) return;
@@ -541,7 +542,7 @@ void AddOrAdcSbbAndSubXorCmp(T &receiver, const char* dst, const char* src, cons
                     if (srcInfo.numValue>=128) pushWord(receiver, srcInfo.numValue, true);
                     else pushByte(receiver, srcInfo.numValue);
                 }
-                std::cout << instructionName << " " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
+                if (debugInstructionOutput) std::cout << instructionName << " " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             } else if (dstInfo.hasReg2 || (dstInfo.hasNumber && !dstInfo.hasReg1)) {// Will requre the SIB byte
                 if (dstInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << dstInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
                 if (dstInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << dstInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -562,7 +563,7 @@ void AddOrAdcSbbAndSubXorCmp(T &receiver, const char* dst, const char* src, cons
                     if (srcInfo.numValue>=128) pushWord(receiver, srcInfo.numValue, true);
                     else pushByte(receiver, srcInfo.numValue);
                 }
-                std::cout << instructionName << " " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
+                if (debugInstructionOutput) std::cout << instructionName << " " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             } else {
                 // ex: instr ([reg+num] or [reg]), (reg or num)
                 if (bitMode==64 && dstInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
@@ -578,13 +579,13 @@ void AddOrAdcSbbAndSubXorCmp(T &receiver, const char* dst, const char* src, cons
                     if (srcInfo.numValue>=128) pushWord(receiver, srcInfo.numValue, true);
                     else pushByte(receiver, srcInfo.numValue);
                 }
-                std::cout << instructionName << " " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
+                if (debugInstructionOutput) std::cout << instructionName << " " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
             }
         } else if (dstInfo.reg1Offset==INTEL_REG_OFF_eAX && srcInfo.hasNumber && srcInfo.numValue>128) {
             if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
             pushByte(receiver, eAX_Iv);
             pushWord(receiver, srcInfo.numValue, true);
-            std::cout << instructionName << " " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
+            if (debugInstructionOutput) std::cout << instructionName << " " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         } else {// dst cannot be a number, so dst is just a register
             // ex: instr reg, (reg or num)
             if (srcInfo.hasReg1 && (srcInfo.bit!=dstInfo.bit)) { std::cout << "Operand size mis-match." << std::endl; return; }
@@ -595,7 +596,7 @@ void AddOrAdcSbbAndSubXorCmp(T &receiver, const char* dst, const char* src, cons
                 if (srcInfo.numValue>=128) pushWord(receiver, srcInfo.numValue, true);
                 else pushByte(receiver, srcInfo.numValue);
             }
-            std::cout << instructionName << " " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
+            if (debugInstructionOutput) std::cout << instructionName << " " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
         }
     } else {
         // src is indirect, which means that dst is just a register. Because both cant be indirect, and dst cant be just a number
@@ -693,12 +694,12 @@ void IncDec(T &receiver, const char *arg, const char* instructionName, const uin
         pushByte(receiver, INTEL_INSTR_OP3v);
         pushByte(receiver, (INTEL_ModRM_MOD_Address|op3Code|INTEL_ModRM_RM_DisplaceOnly));
         pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true);
-        std::cout << instructionName << " " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
     } else if (bitMode==32 && !argInfo.isIndirect) {// Also implies that that it hasReg1
         // arg is just a register, and you can use the 32 bit instruction based on
         // ex: inc/dec eax thru edi
         pushByte(receiver, offsetInstr+argInfo.reg1Offset);
-        std::cout << instructionName << " " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " " << std::to_string(argInfo) << std::endl;
     } else if (argInfo.hasReg2 || (argInfo.hasNumber && !argInfo.hasReg1)) {// requires an SIB byte
         if (argInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << argInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
         if (argInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << argInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -714,7 +715,7 @@ void IncDec(T &receiver, const char *arg, const char* instructionName, const uin
             if (argInfo.numValue>=128 || !argInfo.hasReg1) pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << instructionName << " dword ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " dword ptr " << std::to_string(argInfo) << std::endl;
     } else { // arg is just a register, or indirect but does not require an SIB byte
         // ex: inc/dec (reg or [reg] or [reg+num])
         if (!argInfo.isIndirect && argInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -726,7 +727,7 @@ void IncDec(T &receiver, const char *arg, const char* instructionName, const uin
             if (argInfo.numValue>=128) pushWord(receiver, argInfo.numValue, true);
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << instructionName << " " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
     }
 }
 template <typename T>
@@ -750,18 +751,18 @@ void CallJmp(T &receiver, const char *arg, const char *instructionName, const ui
 
     if (!argInfo.isIndirect) {// arg is just a number
         // ex: call/jmp num
-        std::cout << "Just a number as an argument is not currently supported for call." << std::endl;// return;
+        std::cout << "Just a number as an argument is not currently supported for " << instructionName << "." << std::endl;// return;
         if (argInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
         pushByte(receiver, INSTR_Jv);
         pushWord(receiver, argInfo.numValue, true);
-        std::cout << instructionName << " " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " " << std::to_string(argInfo) << std::endl;
     } else if (argInfo.isEip) {
         // ex: call/jmp ([rip+0] or [rip+num])
         if (bitMode==64 && argInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
         pushByte(receiver, INTEL_INSTR_OP3v);
         pushByte(receiver, (INTEL_ModRM_MOD_Address|op3Code|INTEL_ModRM_RM_DisplaceOnly));
         pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true);
-        std::cout << instructionName << " " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
     } else if (argInfo.hasReg2 || (argInfo.hasNumber && !argInfo.hasReg1)) {// requires SIB byte
         if (argInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << argInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
         if (argInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << argInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -777,7 +778,7 @@ void CallJmp(T &receiver, const char *arg, const char *instructionName, const ui
             if (argInfo.numValue>=128 || !argInfo.hasReg1) pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << instructionName << " " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
     } else { // arg is indirect but does not require an SIB byte
         // ex: call/jmp ([num] or [reg] or [reg+num])
         if (bitMode==64 && argInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
@@ -788,7 +789,7 @@ void CallJmp(T &receiver, const char *arg, const char *instructionName, const ui
             if (argInfo.numValue>=128) pushWord(receiver, argInfo.numValue, true);
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << instructionName << " " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
     }
 }
 template <typename T>
@@ -835,11 +836,11 @@ void PUSH(T &receiver, const char *arg) {
                 pushByte(receiver, INTEL_INSTR_PUSH_Ib);
                 pushByte(receiver, argInfo.numValue);
             }
-            std::cout << "PUSH " << std::to_string(argInfo) << std::endl;
+            if (debugInstructionOutput) std::cout << "PUSH " << std::to_string(argInfo) << std::endl;
         } else { // arg is just a register, and you can use the offset based instruction
             // ex: push reg
             pushByte(receiver, INTEL_INSTR_PUSHpRv+argInfo.reg1Offset);
-            std::cout << "PUSH " << std::to_string(argInfo) << std::endl;
+            if (debugInstructionOutput) std::cout << "PUSH " << std::to_string(argInfo) << std::endl;
         }
     } else if (argInfo.isEip) {
         // ex: push ([rip+0] or [rip+num])
@@ -847,7 +848,7 @@ void PUSH(T &receiver, const char *arg) {
         pushByte(receiver, INTEL_INSTR_OP3v);
         pushByte(receiver, (INTEL_ModRM_MOD_Address|INTEL_ModRM_OP3_PUSH_RM|INTEL_ModRM_RM_DisplaceOnly));
         pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true);
-        std::cout << "PUSH " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "PUSH " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
     } else if (argInfo.hasReg2 || (argInfo.hasNumber && !argInfo.hasReg1)) {
         if (argInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << argInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
         if (argInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << argInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -863,7 +864,7 @@ void PUSH(T &receiver, const char *arg) {
             if (argInfo.numValue>=128 || !argInfo.hasReg1) pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << "PUSH " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "PUSH " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
     } else { // arg is indirect but does not require an SIB byte
         // ex: push ([reg] or [reg+num])
         if (bitMode==64 && argInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
@@ -874,7 +875,7 @@ void PUSH(T &receiver, const char *arg) {
             if (argInfo.numValue>=128) pushWord(receiver, argInfo.numValue, true);
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << "PUSH " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "PUSH " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
     }
 }
 template <typename T>
@@ -890,14 +891,14 @@ void POP(T &receiver, const char *arg) {
     if (!argInfo.isIndirect) { // arg is just a register, and you can use the offset based instruction
         // ex: pop reg
         pushByte(receiver, INTEL_INSTR_PUSHpRv+argInfo.reg1Offset);
-        std::cout << "POP " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "POP " << std::to_string(argInfo) << std::endl;
     } else if (argInfo.isEip) {
         // ex: pop ([rip+0] or [rip+num])
         if (bitMode==64 && argInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
         pushByte(receiver, INTEL_INSTR_POP_RMv);
         pushByte(receiver, (INTEL_ModRM_MOD_Address|INTEL_ModRM_RM_DisplaceOnly));
         pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true);
-        std::cout << "POP " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "POP " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
     } else if (argInfo.hasReg2 || (argInfo.hasNumber && !argInfo.hasReg1)) {
         if (argInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << argInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
         if (argInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << argInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -913,7 +914,7 @@ void POP(T &receiver, const char *arg) {
             if (argInfo.numValue>=128 || !argInfo.hasReg1) pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << "POP " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "POP " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
     } else { // arg is indirect but does not require an SIB byte
         // ex: pop ([reg] or [reg+num])
         if (bitMode==64 && argInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
@@ -924,7 +925,7 @@ void POP(T &receiver, const char *arg) {
             if (argInfo.numValue>=128) pushWord(receiver, argInfo.numValue, true);
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << "POP " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "POP " << ((bitMode==64)?"qword":"dword") << " ptr " << std::to_string(argInfo) << std::endl;
     }
 }
 
@@ -1105,7 +1106,7 @@ template <typename T>
 void NOP(T &receiver) {
     if (bitMode==0) return;
     pushByte(receiver, INTEL_INSTR_NOP);
-    std::cout << "NOP" << std::endl;
+    if (debugInstructionOutput) std::cout << "NOP" << std::endl;
 }
 template <typename T>
 void NOP(T &receiver, const char *arg) {
@@ -1122,7 +1123,7 @@ void NOP(T &receiver, const char *arg) {
         pushHalfWord(receiver, INTEL_INSTR_NOP_RMv, false);
         pushByte(receiver, (INTEL_ModRM_MOD_Address|INTEL_ModRM_RM_DisplaceOnly));
         pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true);
-        std::cout << "NOP dword ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "NOP dword ptr " << std::to_string(argInfo) << std::endl;
     } else if (argInfo.hasReg2 || (argInfo.hasNumber && !argInfo.hasReg1)) {
         if (argInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << argInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
         if (argInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << argInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -1138,7 +1139,7 @@ void NOP(T &receiver, const char *arg) {
             if (argInfo.numValue>=128 || !argInfo.hasReg1) pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << "NOP dword ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "NOP dword ptr " << std::to_string(argInfo) << std::endl;
     } else { // arg is just a register, or is indirect but does not require an SIB byte
         // ex: nop ([reg] or [reg+num])
         if (!argInfo.isIndirect && argInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -1150,7 +1151,7 @@ void NOP(T &receiver, const char *arg) {
             if (argInfo.numValue>=128) pushWord(receiver, argInfo.numValue, true);
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << "NOP " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "NOP " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
     }
 }
 
@@ -1175,7 +1176,7 @@ void XCHG(T &receiver, const char *reg1, const char *reg2) {
             pushByte(receiver, INTEL_INSTR_XCHG_REGv_RMv);
             pushByte(receiver, INTEL_ModRM_MOD_Address|reg2Info.reg1RegOp|INTEL_ModRM_RM_DisplaceOnly);
             pushWord(receiver, reg1Info.hasNumber?reg1Info.numValue:0, true);
-            std::cout << "XCHG " << ((reg2Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
+            if (debugInstructionOutput) std::cout << "XCHG " << ((reg2Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
         } else if (reg1Info.hasReg2 || (reg1Info.hasNumber && !reg1Info.hasReg1)) {// will require a SIB byte
             if (reg1Info.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << reg1Info.reg1Str << "\" is an invalid address base" << std::endl; return; }
             if (reg1Info.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << reg1Info.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -1192,7 +1193,7 @@ void XCHG(T &receiver, const char *reg1, const char *reg2) {
                 if (reg1Info.numValue>=128 || !reg1Info.hasReg1) pushWord(receiver, reg1Info.hasNumber?reg1Info.numValue:0, true);
                 else pushByte(receiver, reg1Info.numValue);
             }
-            std::cout << "XCHG " << ((reg2Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
+            if (debugInstructionOutput) std::cout << "XCHG " << ((reg2Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
         } else {
             // ex: xchg ([reg] or [reg+num]), reg
             if (bitMode==64 && reg1Info.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
@@ -1204,7 +1205,7 @@ void XCHG(T &receiver, const char *reg1, const char *reg2) {
                 if (reg1Info.numValue>=128) pushWord(receiver, reg1Info.numValue, true);
                 else pushByte(receiver, reg1Info.numValue);
             }
-            std::cout << "XCHG " << ((reg2Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
+            if (debugInstructionOutput) std::cout << "XCHG " << ((reg2Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
         }
     } else if (reg2Info.isIndirect) {
         if (reg2Info.isEip) {
@@ -1214,7 +1215,7 @@ void XCHG(T &receiver, const char *reg1, const char *reg2) {
             pushByte(receiver, INTEL_INSTR_XCHG_REGv_RMv);
             pushByte(receiver, INTEL_ModRM_MOD_Address|reg1Info.reg1RegOp|INTEL_ModRM_RM_DisplaceOnly);
             pushWord(receiver, reg2Info.hasNumber?reg2Info.numValue:0, true);
-            std::cout << "XCHG " << std::to_string(reg1Info) << ", " << ((reg1Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg2Info) << std::endl;
+            if (debugInstructionOutput) std::cout << "XCHG " << std::to_string(reg1Info) << ", " << ((reg1Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg2Info) << std::endl;
         } else if (reg2Info.hasReg2 || (reg2Info.hasNumber && !reg2Info.hasReg1)) {// will require a SIB byte
             if (reg2Info.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << reg2Info.reg1Str << "\" is an invalid address base" << std::endl; return; }
             if (reg2Info.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << reg2Info.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -1231,7 +1232,7 @@ void XCHG(T &receiver, const char *reg1, const char *reg2) {
                 if (reg2Info.numValue>=128 || !reg2Info.hasReg1) pushWord(receiver, reg2Info.hasNumber?reg2Info.numValue:0, true);
                 else pushByte(receiver, reg2Info.numValue);
             }
-            std::cout << "XCHG " << std::to_string(reg1Info) << ", " << ((reg1Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg2Info) << std::endl;
+            if (debugInstructionOutput) std::cout << "XCHG " << std::to_string(reg1Info) << ", " << ((reg1Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg2Info) << std::endl;
         } else {
             // ex: xchg reg, ([reg] or [reg+num])
             if (bitMode==64 && reg2Info.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
@@ -1243,29 +1244,33 @@ void XCHG(T &receiver, const char *reg1, const char *reg2) {
                 if (reg2Info.numValue>=128) pushWord(receiver, reg2Info.numValue, true);
                 else pushByte(receiver, reg2Info.numValue);
             }
-            std::cout << "XCHG " << std::to_string(reg1Info) << ", " << ((reg1Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg2Info) << std::endl;
+            if (debugInstructionOutput) std::cout << "XCHG " << std::to_string(reg1Info) << ", " << ((reg1Info.bit==64)?"qword":"dword") << " ptr " << std::to_string(reg2Info) << std::endl;
         }
     } else if (reg1Info.reg1Offset==INTEL_REG_OFF_eAX) {
         // ex: xchg eAX, reg
         if (reg1Info.bit!=reg2Info.bit) { std::cout << "Operand size mis-match." << std::endl; return; }
         if (reg1Info.bit==64 && (reg2Info.reg1Offset!=INTEL_REG_OFF_eAX)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
         pushByte(receiver, INTEL_INSTR_XCHG_eAX_REGpRv+reg2Info.reg1Offset);
-        if (reg2Info.reg1Offset==INTEL_REG_OFF_eAX) std::cout << "NOP" << std::endl;
-        else std::cout << "XCHG " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
+        if (debugInstructionOutput) {
+            if (reg2Info.reg1Offset==INTEL_REG_OFF_eAX) std::cout << "NOP" << std::endl;
+            else std::cout << "XCHG " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
+        }
     } else if (reg2Info.reg1Offset==INTEL_REG_OFF_eAX) {
         // ex: xchg reg, eAX
         if (reg1Info.bit!=reg2Info.bit) { std::cout << "Operand size mis-match." << std::endl; return; }
         if (reg1Info.bit==64 && (reg1Info.reg1Offset!=INTEL_REG_OFF_eAX)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
         pushByte(receiver, INTEL_INSTR_XCHG_eAX_REGpRv+reg1Info.reg1Offset);
-        if (reg1Info.reg1Offset==INTEL_REG_OFF_eAX) std::cout << "NOP" << std::endl;
-        else std::cout << "XCHG " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
+        if (debugInstructionOutput) {
+            if (reg1Info.reg1Offset==INTEL_REG_OFF_eAX) std::cout << "NOP" << std::endl;
+            else std::cout << "XCHG " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
+        }
     } else {
         // ex: xchg reg, reg
         if (reg1Info.bit!=reg2Info.bit) { std::cout << "Operand size mis-match." << std::endl; return; }
         if (reg1Info.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
         pushByte(receiver, INTEL_INSTR_XCHG_REGv_RMv);
         pushByte(receiver, INTEL_ModRM_MOD_Reg|reg1Info.reg1RegOp|reg2Info.reg1RM);
-        std::cout << "XCHG " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
+        if (debugInstructionOutput) std::cout << "XCHG " << std::to_string(reg1Info) << ", " << std::to_string(reg2Info) << std::endl;
     }
 }
 
@@ -1321,7 +1326,7 @@ void MOV(T &receiver, const char *dst, const char *src) {
             }
         }
         if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);
-        std::cout << "MOV " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "MOV " << ((srcInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
     } else if (srcInfo.isIndirect) {
         if (srcInfo.isEip) {
             // ex: mov reg, ([eip+0] or [eip+num])
@@ -1358,13 +1363,13 @@ void MOV(T &receiver, const char *dst, const char *src) {
                 else pushByte(receiver, srcInfo.numValue);
             }
         }
-        std::cout << "MOV " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "MOV " << std::to_string(dstInfo) << ", " << ((dstInfo.bit==64)?"qword":"dword") << " ptr " << std::to_string(srcInfo) << std::endl;
     } else if (srcInfo.hasNumber && dstInfo.bit<64) {
         // ex: mov reg, num
         if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
         pushByte(receiver, INTEL_INSTR_MOV_REGpRv_Iv+dstInfo.reg1Offset);
         pushWord(receiver, srcInfo.numValue, true);
-        std::cout << "MOV " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "MOV " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
     } else {
         // ex: mov reg, (reg or num)
         if (srcInfo.bit!=0 && dstInfo.bit!=srcInfo.bit) { std::cout << "Operand size mis-match." << std::endl; return; }
@@ -1373,7 +1378,7 @@ void MOV(T &receiver, const char *dst, const char *src) {
         const uint8_t RegOp = srcInfo.hasReg1?srcInfo.reg1RegOp:0;
         pushByte(receiver, INTEL_ModRM_MOD_Reg|RegOp|dstInfo.reg1RM);
         if (srcInfo.hasNumber) pushWord(receiver, srcInfo.numValue, true);
-        std::cout << "MOV " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "MOV " << std::to_string(dstInfo) << ", " << std::to_string(srcInfo) << std::endl;
     }
 }
 
@@ -1387,12 +1392,12 @@ void RET(T &receiver,  const char *num) {
     if (numInfo.numValue >= 65536) { std::cout << "Number is too large to return." << std::endl; return; }
     pushByte(receiver, INTEL_INSTR_RET_I16);
     pushHalfWord(receiver, numInfo.numValue, true);
-    std::cout << "RET " << std::to_string(numInfo) << std::endl;
+    if (debugInstructionOutput) std::cout << "RET " << std::to_string(numInfo) << std::endl;
 }
 template <typename T>
 void RET(T &receiver) {
     pushByte(receiver, INTEL_INSTR_RET);
-    std::cout << "RET" << std::endl;
+    if (debugInstructionOutput) std::cout << "RET" << std::endl;
 }
 template <typename T>
 void RETF(T &receiver,  const char *num) {
@@ -1404,12 +1409,12 @@ void RETF(T &receiver,  const char *num) {
     if (numInfo.numValue >= 65536) { std::cout << "Number is too large to return." << std::endl; return; }
     pushByte(receiver, INTEL_INSTR_RETF_I16);
     pushHalfWord(receiver, numInfo.numValue, true);
-    std::cout << "RETF " << std::to_string(numInfo) << std::endl;
+    if (debugInstructionOutput) std::cout << "RETF " << std::to_string(numInfo) << std::endl;
 }
 template <typename T>
 void RETF(T &receiver) {
     pushByte(receiver, INTEL_INSTR_RETF);
-    std::cout << "RETF" << std::endl;
+    if (debugInstructionOutput) std::cout << "RETF" << std::endl;
 }
 template <typename T>
 void INT(T &receiver,  const char *num) {
@@ -1421,11 +1426,11 @@ void INT(T &receiver,  const char *num) {
     if (numInfo.numValue >= 256) { std::cout << "Number is too large for interrupt." << std::endl; return; }
     if (numInfo.numValue==3) {
         pushByte(receiver, INTEL_INSTR_INT3);
-        std::cout << "INT3" << std::endl;
+        if (debugInstructionOutput) std::cout << "INT3" << std::endl;
     } else {
         pushByte(receiver, INTEL_INSTR_INT_Ib);
         pushByte(receiver, numInfo.numValue);
-        std::cout << "INT " << std::to_string(numInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << "INT " << std::to_string(numInfo) << std::endl;
     }
 }
 
@@ -1433,7 +1438,7 @@ template <typename T>
 void HLT(T &receiver) {
     if (bitMode==0) return;
     pushByte(receiver, INTEL_INSTR_HLT);
-    std::cout << "HLT" << std::endl;
+    if (debugInstructionOutput) std::cout << "HLT" << std::endl;
 }
 
 template <typename T>
@@ -1455,7 +1460,7 @@ void TEST(T &receiver, const char *arg1, const char *arg2) {
         pushByte(receiver, (INTEL_ModRM_MOD_Address|INTEL_ModRM_OP2_TEST_RM_I|INTEL_ModRM_RM_DisplaceOnly));
         pushWord(receiver, arg1Info.hasNumber?arg1Info.numValue:0, true);
         pushWord(receiver, arg2Info.numValue, true);
-        std::cout << "TEST dword ptr " << std::to_string(arg1Info) << ", " << std::to_string(arg2Info) << std::endl;
+        if (debugInstructionOutput) std::cout << "TEST dword ptr " << std::to_string(arg1Info) << ", " << std::to_string(arg2Info) << std::endl;
     } else if (arg1Info.hasReg2 || (arg1Info.hasNumber && ! arg1Info.hasReg1)) {// requires a SIB byte
         if (arg1Info.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << arg1Info.reg1Str << "\" is an invalid address base" << std::endl; return; }
         if (arg1Info.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << arg1Info.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -1472,12 +1477,12 @@ void TEST(T &receiver, const char *arg1, const char *arg2) {
             else pushByte(receiver, arg1Info.numValue);
         }
         pushWord(receiver, arg2Info.numValue, true);
-        std::cout << "TEST dword ptr " << std::to_string(arg1Info) << ", " << std::to_string(arg2Info) << std::endl;
+        if (debugInstructionOutput) std::cout << "TEST dword ptr " << std::to_string(arg1Info) << ", " << std::to_string(arg2Info) << std::endl;
     } else if (!arg1Info.isIndirect && arg1Info.reg1Offset==INTEL_REG_OFF_eAX) {
         if (!arg1Info.isIndirect && arg1Info.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
         pushByte(receiver, INTEL_INSTR_TEST_eAX_Iv);
         pushWord(receiver, arg2Info.numValue, true);
-        std::cout << "TEST " << std::to_string(arg1Info) << ", " << std::to_string(arg2Info) << std::endl;
+        if (debugInstructionOutput) std::cout << "TEST " << std::to_string(arg1Info) << ", " << std::to_string(arg2Info) << std::endl;
     } else {
         // ex: not (reg or [reg] or [reg+num])
         if (!arg1Info.isIndirect && arg1Info.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -1490,7 +1495,7 @@ void TEST(T &receiver, const char *arg1, const char *arg2) {
             else pushByte(receiver, arg1Info.numValue);
         }
         pushWord(receiver, arg2Info.numValue, true);
-        std::cout << "TEST " << (arg1Info.isIndirect?"dword ptr ":"") << std::to_string(arg1Info) << ", " << std::to_string(arg2Info) << std::endl;
+        if (debugInstructionOutput) std::cout << "TEST " << (arg1Info.isIndirect?"dword ptr ":"") << std::to_string(arg1Info) << ", " << std::to_string(arg2Info) << std::endl;
     }
 }
 
@@ -1509,7 +1514,7 @@ void NotNeg(T &receiver, const char *arg, const char *instructionName, const uin
         pushByte(receiver, INTEL_INSTR_OP2v);
         pushByte(receiver, (INTEL_ModRM_MOD_Address|op2Code|INTEL_ModRM_RM_DisplaceOnly));
         pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true);
-        std::cout << instructionName << " dword ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " dword ptr " << std::to_string(argInfo) << std::endl;
     } else if (argInfo.hasReg2 || (argInfo.hasNumber && ! argInfo.hasReg1)) {// requires a SIB byte
         if (argInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << argInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
         if (argInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << argInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -1525,7 +1530,7 @@ void NotNeg(T &receiver, const char *arg, const char *instructionName, const uin
             if (argInfo.numValue>=128 || !argInfo.hasReg1) pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true); // Push either the displacement or 0 if there is no displacement.
             else pushByte(receiver, argInfo.hasNumber?argInfo.numValue:0);
         }
-        std::cout << instructionName << " dword ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " dword ptr " << std::to_string(argInfo) << std::endl;
     } else {
         // ex: not/neg (reg or [reg] or [reg+num])
         if (!argInfo.isIndirect && argInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -1537,7 +1542,7 @@ void NotNeg(T &receiver, const char *arg, const char *instructionName, const uin
             if (argInfo.numValue>=128) pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true);
             else pushByte(receiver, argInfo.hasNumber?argInfo.numValue:0);
         }
-        std::cout << instructionName << " " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
     }
 }
 template <typename T>
@@ -1564,7 +1569,7 @@ void MulImulDivIdiv(T &receiver, const char *arg, const char *instructionName, c
         pushByte(receiver, INTEL_INSTR_OP2v);
         pushByte(receiver, (INTEL_ModRM_MOD_Address|op2Code|INTEL_ModRM_RM_DisplaceOnly));
         pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true);
-        std::cout << instructionName << " dword ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " dword ptr " << std::to_string(argInfo) << std::endl;
     } else if (argInfo.hasReg2 || (argInfo.hasNumber && ! argInfo.hasReg1)) {// requires a SIB byte
         if (argInfo.reg1Base==INTEL_SIB_Base_None) { std::cout << "Register \"" << argInfo.reg1Str << "\" is an invalid address base" << std::endl; return; }
         if (argInfo.reg2Index==INTEL_SIB_Index_None) { std::cout << "Register \"" << argInfo.reg2Str << "\" is an invalid address index" << std::endl; return; }
@@ -1580,7 +1585,7 @@ void MulImulDivIdiv(T &receiver, const char *arg, const char *instructionName, c
             if (argInfo.numValue>=128 || !argInfo.hasReg1) pushWord(receiver, argInfo.hasNumber?argInfo.numValue:0, true); // Push either the displacement or 0 if there is not displacement.
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << instructionName << " dword ptr " << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " dword ptr " << std::to_string(argInfo) << std::endl;
     } else {
         // ex: instr (reg or [reg] or [reg+num])
         if (!argInfo.isIndirect && argInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
@@ -1592,7 +1597,7 @@ void MulImulDivIdiv(T &receiver, const char *arg, const char *instructionName, c
             if (argInfo.numValue>=128) pushWord(receiver, argInfo.numValue, true);
             else pushByte(receiver, argInfo.numValue);
         }
-        std::cout << instructionName << " " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
+        if (debugInstructionOutput) std::cout << instructionName << " " << (argInfo.isIndirect?"dword ptr ":"") << std::to_string(argInfo) << std::endl;
     }
 }
 template <typename T>
@@ -1616,37 +1621,37 @@ template <typename T>
 void CLC(T &receiver) {
     if (bitMode==0) return;
     pushByte(receiver, INTEL_INSTR_CLR_CF);
-    std::cout << "CLC" << std::endl;
+    if (debugInstructionOutput) std::cout << "CLC" << std::endl;
 }
 template <typename T>
 void STC(T &receiver) {
     if (bitMode==0) return;
     pushByte(receiver, INTEL_INSTR_SET_CF);
-    std::cout << "STC" << std::endl;
+    if (debugInstructionOutput) std::cout << "STC" << std::endl;
 }
 template <typename T>
 void CLI(T &receiver) {
     if (bitMode==0) return;
     pushByte(receiver, INTEL_INSTR_CLR_IF);
-    std::cout << "CLI" << std::endl;
+    if (debugInstructionOutput) std::cout << "CLI" << std::endl;
 }
 template <typename T>
 void STI(T &receiver) {
     if (bitMode==0) return;
     pushByte(receiver, INTEL_INSTR_SET_IF);
-    std::cout << "STI" << std::endl;
+    if (debugInstructionOutput) std::cout << "STI" << std::endl;
 }
 template <typename T>
 void CLD(T &receiver) {
     if (bitMode==0) return;
     pushByte(receiver, INTEL_INSTR_CLR_DF);
-    std::cout << "CLD" << std::endl;
+    if (debugInstructionOutput) std::cout << "CLD" << std::endl;
 }
 template <typename T>
 void STD(T &receiver) {
     if (bitMode==0) return;
     pushByte(receiver, INTEL_INSTR_SET_DF);
-    std::cout << "STD" << std::endl;
+    if (debugInstructionOutput) std::cout << "STD" << std::endl;
 }
 
 #pragma region template instatiations

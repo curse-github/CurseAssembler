@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 
         elfHandler.push(outFile);
         outFile.close();
-    } else if (strcmp(argv[1],"Win32")==0) {
+    } else if (strcmp(argv[1],"Win64")==0) {
         std::ofstream outFile(std::string("./", 2) + argv[2] + ".exe", std::ios::binary);
         // PE
         Pe64Handler peHandler;
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
         const char* tmp = "GCC: (Rev3, Built by MSYS2 project) 13.2.0\0\0\0\0\0\0";
         pushChars(rdataSec,(const uint8_t*)tmp,48,true);
 
-        peHandler.addImport("api-ms-win-crt-runtime-l1-1-0.dll",peHintNameTable(0x25,"_exit"));
+        peHandler.addImport(0x25,"_exit","api-ms-win-crt-runtime-l1-1-0.dll");
         peHandler.push(outFile);
         outFile.close();
     }
