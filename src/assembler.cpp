@@ -55,33 +55,21 @@ int main(int argc, char *argv[]) {
         // PE
         Pe64Handler peHandler;
         Pe64SectionHandler *textSec = peHandler.addSeg(".text   ",IMAGE_SCN_CNT_CODE|IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_MEM_READ,"entry");
-        Pe64SectionHandler *rdataSec = peHandler.addSeg(".rdata  ",IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_MEM_READ,"");
-            // exit(0x0F); or exit(15);
-        // or
-            // push rBP
-            // mov rBP, rSP
-            // sub rSP, 0x20
-            // mov eCX, 0x0f
-            // call 0x0e
-            // nop nop nop nop nop nop nop nop nop nop nop nop nop nop
-            // jmp dword ptr [rip+2012]
-            // nop nop
-            // nop dword ptr [rax+rax+0x0]
+        Pe64SectionHandler *dataSec = peHandler.addSeg(".data   ",IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_MEM_READ);
+        // exit(0x0F); or exit(15);
 
         PUSH(textSec,"rbp");
         MOV(textSec,"rBP","rSP");
         SUB(textSec,"rSP","0x20");
-        MOV(textSec,"eCX","0x0f");
-        CALL(textSec,"0x0e");
-        for (unsigned int i = 0; i < 14; i++) NOP(textSec);
-        JMP(textSec,"[rip+0x2012]");
-        NOP(textSec);NOP(textSec);NOP(textSec);NOP(textSec);NOP(textSec);
-        NOP(textSec,"[rax+rax+0x00000000]");
-        pushWord(textSec,0xFFFFFFFF,false);pushWord(textSec,0xFFFFFFFF,false);pushWord(textSec,0x00000000,false);pushWord(textSec,0x00000000,false);
-        pushWord(textSec,0xFFFFFFFF,false);pushWord(textSec,0xFFFFFFFF,false);pushWord(textSec,0x00000000,false);pushWord(textSec,0x00000000,false);
-
-        const char* tmp = "GCC: (Rev3, Built by MSYS2 project) 13.2.0\0\0\0\0\0\0";
-        pushChars(rdataSec,(const uint8_t*)tmp,48,true);
+        MOV(textSec,"eAX","[rIP+0xFF2]");
+        MOV(textSec,"eCX","eAX");
+        CALL(textSec,"0x0B");
+        for (unsigned int i = 0; i < 11; i++) NOP(textSec);
+        JMP(textSec,"[rip+0x2012]");// goes to _exit?
+        NOP(textSec);NOP(textSec);
+        
+        dataSec->defineLabel("code");
+        pushWord(dataSec,0x0f,true);
 
         peHandler.addImport(0x25,"_exit","api-ms-win-crt-runtime-l1-1-0.dll");
         peHandler.push(outFile);

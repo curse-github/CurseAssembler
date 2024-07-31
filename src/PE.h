@@ -554,6 +554,12 @@ void pushDword(Pe32SectionHandler *section, const uint64_t &dword, const bool &L
 
 class Pe64SectionHandler;
 
+struct PeLabel {
+    std::string name;
+    Pe64SectionHandler* base;
+    uint32_t offset;
+    PeLabel(const std::string& _name, Pe64SectionHandler* _base, const uint32_t& _offset) : name(_name),base(_base),offset(_offset) {};
+};
 class Pe64Handler {
 private:
     std::vector<Pe64SectionHandler *> sectionHeaders64;
@@ -565,12 +571,15 @@ private:
     std::vector<std::string> importNames;
     std::vector<peHintNameTable> importHints;
 
+    std::vector<PeLabel> labels;
+
 public:
     Pe64Handler();
     ~Pe64Handler();
     void push(std::ofstream &stream);
-    Pe64SectionHandler *addSeg(const char name[8], uint32_t characteristics, const char *type);
+    Pe64SectionHandler *addSeg(const char name[8], uint32_t characteristics, const char *type="");
     void addImport(const uint16_t& hint, const std::string& hintName, const std::string& dllName);
+    void defineLabel(const std::string& name, Pe64SectionHandler* base, const uint32_t& offset);
 
     friend Pe64SectionHandler;
 };
@@ -604,6 +613,7 @@ public:
     friend void pushHalfWord(Pe64SectionHandler *section, const uint16_t &halfword, const bool &LSB);
     friend void pushWord(Pe64SectionHandler *section, const uint32_t &word, const bool &LSB);
     friend void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &LSB);
+    void defineLabel(const std::string& name);
 };
 void pushChars(Pe64SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB);
 void pushByte(Pe64SectionHandler *section, const uint8_t &byte);

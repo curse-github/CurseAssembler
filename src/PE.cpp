@@ -138,7 +138,7 @@ void Pe32Handler::push(std::ofstream &stream) {
         uint32_t sizeofImportAddressTable = (numImports+1)*sizeof(pe32ImportAddressTable);
         uint32_t hintsRVA = lookupAddressRVA+sizeofImportAddressTable;
         uint32_t sizeofImportHintNameTable = 0;
-        importHints.push_back(peHintNameTable(0,"0"));
+        importHints.push_back(peHintNameTable(0,""));
         for (unsigned int i = 0; i <= numImports; i++) sizeofImportHintNameTable+=importHints[i].getSize();
         uint32_t stringsRVA = roundToAlign(hintsRVA+sizeofImportHintNameTable,4);
         
@@ -201,51 +201,6 @@ void Pe32Handler::addImport(const uint16_t& hint, const std::string& hintName, c
     importNames.push_back(dllName);
 }
 #pragma endregion// Pe32Handler
-
-#pragma region Pe64SectionHandler
-Pe64SectionHandler::Pe64SectionHandler(Pe64Handler &_peHandler, const char name[8], uint32_t characteristics,  const char *_type) : peHandler(_peHandler), sectionHeader(name, characteristics), type(_type) {
-}
-void Pe64SectionHandler::pushHeader(std::ofstream &stream) {
-    // set some stuff first
-    size_t size = data.size();
-    sectionHeader.s_virtualSize = size;
-    sectionHeader.s_rawDataSize = size+fileAlignment-(size%fileAlignment);
-    sectionHeader.push(stream);
-}
-void Pe64SectionHandler::pushData(std::ofstream &stream) {
-    pushChars(stream, data);
-}
-uint32_t Pe64SectionHandler::getSize() {
-    return data.size();
-}
-void Pe64SectionHandler::setSectionAlign(const uint32_t& align) {
-    sectionAlignment=align;
-}
-void Pe64SectionHandler::setFileAlign(const uint32_t& align) {
-    fileAlignment=align;
-}
-void Pe64SectionHandler::setOffset(const uint32_t &offset) {
-    sectionHeader.s_rawDataPointer = offset;// offset in file
-}
-void Pe64SectionHandler::setRVA(const uint32_t &Rva) {
-    sectionHeader.s_virtualAddress = Rva;// offset in memory, can be different if you have uninitialized data
-}
-void pushChars(Pe64SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB) {
-    pushChars(section->data, chars, len, LSB);
-}
-void pushByte(Pe64SectionHandler *section, const uint8_t &byte) {
-    pushByte(section->data, byte);
-}
-void pushHalfWord(Pe64SectionHandler *section, const uint16_t &halfword, const bool &LSB) {
-    pushHalfWord(section->data, halfword, LSB);
-}
-void pushWord(Pe64SectionHandler *section, const uint32_t &word, const bool &LSB) {
-    pushWord(section->data, word, LSB);
-}
-void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &LSB) {
-    pushDword(section->data, dword, LSB);
-}
-#pragma endregion// Pe64SectionHandler
 
 #pragma region Pe64Handler
 Pe64Handler::Pe64Handler() : peHeader(), peStdFieldsHeader(), peSpecFieldsHeader(), peDataDirHeader() {
@@ -328,7 +283,7 @@ void Pe64Handler::push(std::ofstream &stream) {
         uint32_t sizeofImportAddressTable = (numImports+1)*sizeof(pe64ImportAddressTable);
         uint32_t hintsRVA = lookupAddressRVA+sizeofImportAddressTable;
         uint32_t sizeofImportHintNameTable = 0;
-        importHints.push_back(peHintNameTable(0,"0"));
+        importHints.push_back(peHintNameTable(0,""));
         for (unsigned int i = 0; i <= numImports; i++) sizeofImportHintNameTable+=importHints[i].getSize();
         uint32_t stringsRVA = roundToAlign(hintsRVA+sizeofImportHintNameTable,4);
         
@@ -352,6 +307,7 @@ void Pe64Handler::push(std::ofstream &stream) {
         for (unsigned int i = 0; i < numImports; i++) {
             pushChars(hdr,(const uint8_t*)importNames[i].c_str(),importNames[i].size(),true);
         }
+        padBytes(hdr->data,roundToAlign(runningStringsRVA,4)-runningStringsRVA);
 
         uint32_t sectionSize = hdr->getSize();
         uint32_t virtSize = roundToAlign(sectionSize,SECTION_ALIGN);
@@ -390,4 +346,55 @@ void Pe64Handler::addImport(const uint16_t& hint, const std::string& hintName, c
     importHints.push_back(peHintNameTable(hint,hintName.c_str()));
     importNames.push_back(dllName);
 }
+void Pe64Handler::defineLabel(const std::string& name, Pe64SectionHandler* base, const uint32_t& offset) {
+    labels.push_back(PeLabel(name,base,offset));
+}
 #pragma endregion// Pe64Handler
+
+#pragma region Pe64SectionHandler
+Pe64SectionHandler::Pe64SectionHandler(Pe64Handler &_peHandler, const char name[8], uint32_t characteristics,  const char *_type) : peHandler(_peHandler), sectionHeader(name, characteristics), type(_type) {
+}
+void Pe64SectionHandler::pushHeader(std::ofstream &stream) {
+    // set some stuff first
+    size_t size = data.size();
+    sectionHeader.s_virtualSize = size;
+    sectionHeader.s_rawDataSize = size+fileAlignment-(size%fileAlignment);
+    sectionHeader.push(stream);
+}
+void Pe64SectionHandler::pushData(std::ofstream &stream) {
+    pushChars(stream, data);
+}
+uint32_t Pe64SectionHandler::getSize() {
+    return data.size();
+}
+void Pe64SectionHandler::setSectionAlign(const uint32_t& align) {
+    sectionAlignment=align;
+}
+void Pe64SectionHandler::setFileAlign(const uint32_t& align) {
+    fileAlignment=align;
+}
+void Pe64SectionHandler::setOffset(const uint32_t &offset) {
+    sectionHeader.s_rawDataPointer = offset;// offset in file
+}
+void Pe64SectionHandler::setRVA(const uint32_t &Rva) {
+    sectionHeader.s_virtualAddress = Rva;// offset in memory, can be different if you have uninitialized data
+}
+void pushChars(Pe64SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB) {
+    pushChars(section->data, chars, len, LSB);
+}
+void pushByte(Pe64SectionHandler *section, const uint8_t &byte) {
+    pushByte(section->data, byte);
+}
+void pushHalfWord(Pe64SectionHandler *section, const uint16_t &halfword, const bool &LSB) {
+    pushHalfWord(section->data, halfword, LSB);
+}
+void pushWord(Pe64SectionHandler *section, const uint32_t &word, const bool &LSB) {
+    pushWord(section->data, word, LSB);
+}
+void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &LSB) {
+    pushDword(section->data, dword, LSB);
+}
+void Pe64SectionHandler::defineLabel(const std::string& name) {
+    peHandler.defineLabel(name,this,data.size());
+}
+#pragma endregion// Pe64SectionHandler

@@ -1,4 +1,5 @@
 #include <unistd.h>
+int code=15;
 void _start (void) {
-  _exit(15);
+  _exit(code);
 }
