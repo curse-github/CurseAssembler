@@ -3,7 +3,7 @@
 
 // https://upload.wikimedia.org/wikipedia/commons/1/1b/Portable_Executable_32_bit_Structure_in_SVG_fixed.svg
 // https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
-// https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#other-contents-of-the-file
+// https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#special-sections
 
 #include <time.h>
 #include <vector>
@@ -406,7 +406,7 @@ struct peSectionHdr {
 };
 
 // import table stuff
-struct peImportDirTable {// at 0x3000
+struct peImportDirTable {
     uint32_t i_lookupTableRVA;
     uint32_t i_timeStamp;
     uint32_t i_forwarderIndex;
@@ -428,7 +428,7 @@ struct peImportDirTable {// at 0x3000
     }
 };
 
-struct pe32ImportLookupTable {// at 0x3028
+struct pe32ImportLookupTable {
     uint32_t value;
     pe32ImportLookupTable(const bool& isOrdinal=false, const uint32_t& ordinalNumOrHintNameTableRVA=0) {
         value=0;
@@ -439,7 +439,7 @@ struct pe32ImportLookupTable {// at 0x3028
         pushWord(stream,value,PE_IS_LSB);
     }
 };
-struct pe64ImportLookupTable {// at 0x3028
+struct pe64ImportLookupTable {
     uint64_t value;
     pe64ImportLookupTable(const bool& isOrdinal=false, const uint32_t& ordinalNumOrHintNameTableRVA=0) {
         value=0;
@@ -452,7 +452,7 @@ struct pe64ImportLookupTable {// at 0x3028
 };
 
 //must have the same value as the import lookup table
-struct pe32ImportAddressTable {// at 0x3038
+struct pe32ImportAddressTable {
     uint32_t value;
     pe32ImportAddressTable(const bool& isOrdinal=false, const uint32_t& ordinalNumOrHintNameTableRVA=0) {
         value=0;
@@ -463,7 +463,7 @@ struct pe32ImportAddressTable {// at 0x3038
         pushWord(stream,value,PE_IS_LSB);
     }
 };
-struct pe64ImportAddressTable {// at 0x3038
+struct pe64ImportAddressTable {
     uint64_t value;
     pe64ImportAddressTable(const bool& isOrdinal=false, const uint32_t& ordinalNumOrHintNameTableRVA=0) {
         value=0;
@@ -493,72 +493,20 @@ struct peHintNameTable {
 #pragma endregion// structs
 
 #pragma region handlers
-class Pe32SectionHandler;
-
-class Pe32Handler {
-private:
-    std::vector<Pe32SectionHandler *> sectionHeaders32;
-    peHdr peHeader;
-    peOptHdrStdFields32 peStdFieldsHeader;
-    peOptHdrSpecFields32 peSpecFieldsHeader;
-    peOptHdrDataDirs peDataDirHeader;
-
-    std::vector<std::string> importNames;
-    std::vector<peHintNameTable> importHints;
-
-public:
-    Pe32Handler();
-    ~Pe32Handler();
-    void push(std::ofstream &stream);
-    Pe32SectionHandler *addSeg(const char name[8], uint32_t characteristics, const char *type);
-    void addImport(const uint16_t& hint, const std::string& hintName, const std::string& dllName);
-
-    friend Pe32SectionHandler;
-};
-
-class Pe32SectionHandler {
-    Pe32Handler &peHandler;
-    peSectionHdr sectionHeader;
-    std::vector<uint8_t> data;
-
-    uint32_t sectionAlignment=1;
-    uint32_t fileAlignment=1;
-public:
-    const char *type;
-    Pe32SectionHandler(Pe32Handler &_peHandler, const char name[8], uint32_t characteristics, const char *_type);
-    bool isCode() {
-        return ((sectionHeader.s_characteristics&IMAGE_SCN_MEM_EXECUTE)!=0);
-    }
-    void pushHeader(std::ofstream &stream);
-    void pushData(std::ofstream &stream);
-
-    uint32_t getSize();
-    void setSectionAlign(const uint32_t& align);
-    void setFileAlign(const uint32_t& align);
-    void setOffset(const uint32_t &offset);
-    void setRVA(const uint32_t &Rva);
-
-    friend Pe32Handler;
-
-    friend void pushChars(Pe32SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB);
-    friend void pushByte(Pe32SectionHandler *section, const uint8_t &byte);
-    friend void pushHalfWord(Pe32SectionHandler *section, const uint16_t &halfword, const bool &LSB);
-    friend void pushWord(Pe32SectionHandler *section, const uint32_t &word, const bool &LSB);
-    friend void pushDword(Pe32SectionHandler *section, const uint64_t &dword, const bool &LSB);
-};
-void pushChars(Pe32SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB);
-void pushByte(Pe32SectionHandler *section, const uint8_t &byte);
-void pushHalfWord(Pe32SectionHandler *section, const uint16_t &halfword, const bool &LSB);
-void pushWord(Pe32SectionHandler *section, const uint32_t &word, const bool &LSB);
-void pushDword(Pe32SectionHandler *section, const uint64_t &dword, const bool &LSB);
-
 class Pe64SectionHandler;
 
-struct PeLabel {
+struct Pe64Label {
     std::string name;
     Pe64SectionHandler* base;
     uint32_t offset;
-    PeLabel(const std::string& _name, Pe64SectionHandler* _base, const uint32_t& _offset) : name(_name),base(_base),offset(_offset) {};
+    Pe64Label(const std::string& _name, Pe64SectionHandler* _base, const uint32_t& _offset) : name(_name),base(_base),offset(_offset) {};
+};
+struct Pe64LabelResolution {
+    std::string name;
+    Pe64SectionHandler* base;
+    uint32_t setAt;
+    int32_t relativeToOffset;
+    Pe64LabelResolution(const std::string& _name, Pe64SectionHandler* _base, const uint32_t& _setAt, const int32_t& _relativeToOffset) : name(_name),base(_base),setAt(_setAt),relativeToOffset(_relativeToOffset) {};
 };
 class Pe64Handler {
 private:
@@ -571,15 +519,17 @@ private:
     std::vector<std::string> importNames;
     std::vector<peHintNameTable> importHints;
 
-    std::vector<PeLabel> labels;
+    std::vector<Pe64Label> labels;
+    std::vector<Pe64LabelResolution> labelResolutions;
 
 public:
     Pe64Handler();
     ~Pe64Handler();
     void push(std::ofstream &stream);
-    Pe64SectionHandler *addSeg(const char name[8], uint32_t characteristics, const char *type="");
+    Pe64SectionHandler *addSeg(const char name[8], uint32_t characteristics);
     void addImport(const uint16_t& hint, const std::string& hintName, const std::string& dllName);
     void defineLabel(const std::string& name, Pe64SectionHandler* base, const uint32_t& offset);
+    void resolveLabel(const std::string& name, Pe64SectionHandler* base, const uint32_t& setAt, const int32_t& relativeToOffset);
 
     friend Pe64SectionHandler;
 };
@@ -592,19 +542,20 @@ class Pe64SectionHandler {
     uint32_t sectionAlignment=1;
     uint32_t fileAlignment=1;
 public:
-    const char *type;
-    Pe64SectionHandler(Pe64Handler &_peHandler, const char name[8], uint32_t characteristics, const char *_type);
+    Pe64SectionHandler(Pe64Handler &_peHandler, const char name[8], uint32_t characteristics);
     bool isCode() {
-        return ((sectionHeader.s_characteristics&IMAGE_SCN_MEM_EXECUTE)!=0);
+        return ((sectionHeader.s_characteristics&IMAGE_SCN_CNT_CODE)!=0);
     }
     void pushHeader(std::ofstream &stream);
     void pushData(std::ofstream &stream);
 
+    std::string getName();
     uint32_t getSize();
     void setSectionAlign(const uint32_t& align);
     void setFileAlign(const uint32_t& align);
     void setOffset(const uint32_t &offset);
     void setRVA(const uint32_t &Rva);
+    uint32_t getRVA();
 
     friend Pe64Handler;
 
@@ -613,13 +564,18 @@ public:
     friend void pushHalfWord(Pe64SectionHandler *section, const uint16_t &halfword, const bool &LSB);
     friend void pushWord(Pe64SectionHandler *section, const uint32_t &word, const bool &LSB);
     friend void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &LSB);
+    friend void pushQword(Pe64SectionHandler *section, const uint64_t &qword, const bool &LSB);
+    // calls the Pe64Handler with "base" set to this, "offset" set to the current position
     void defineLabel(const std::string& name);
+    // calls the Pe64Handler with "base" set to this, "setAt" set to the current position
+    void resolveLabel(const std::string& name, const int32_t& relativeToOffset);
 };
 void pushChars(Pe64SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB);
 void pushByte(Pe64SectionHandler *section, const uint8_t &byte);
 void pushHalfWord(Pe64SectionHandler *section, const uint16_t &halfword, const bool &LSB);
 void pushWord(Pe64SectionHandler *section, const uint32_t &word, const bool &LSB);
 void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &LSB);
+void pushQword(Pe64SectionHandler *section, const uint64_t &qword, const bool &LSB);
 #pragma endregion// handlers
 
 #endif  // _PE_H

@@ -15,32 +15,46 @@ const uint64_t Align64 = 0x0000000000000200;
 
 extern uint8_t bitMode;
 
-void pushChars(std::ostream &stream, const uint8_t *chars, uint32_t len, const bool &LSB);
-void pushChars(std::ofstream &stream, const uint8_t *chars, uint32_t len, const bool &LSB);
-void pushChars(std::vector<uint8_t> &vector, const uint8_t *chars, uint32_t len, const bool &LSB);
+void pushChars(std::ostream &stream, const uint8_t *chars, const uint32_t& len, const bool &LSB);
+void pushChars(std::ofstream &stream, const uint8_t *chars, const uint32_t& len, const bool &LSB);
+void pushChars(std::vector<uint8_t> &vector, const uint8_t *chars, const uint32_t& len, const bool &LSB);
 void pushChars(std::ofstream &stream, std::vector<uint8_t> &vector);
+void setCharsAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint8_t *chars, const uint32_t& len, const bool &LSB);
 
 void pushByte(std::ostream &stream, const uint8_t &byte);
 void pushByte(std::ofstream &stream, const uint8_t &byte);
 void pushByte(std::vector<uint8_t> &vector, const uint8_t &byte);
+void setByteAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint8_t &byte);
 
 void pushHalfWord(std::ostream &stream, const uint16_t &halfword, const bool &LSB);
 void pushHalfWord(std::ofstream &stream, const uint16_t &halfword, const bool &LSB);
 void pushHalfWord(std::vector<uint8_t> &vector, const uint16_t &halfword, const bool &LSB);
+void setHalfWordAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint16_t &halfword, const bool &LSB);
 
 void pushWord(std::ostream &stream, const uint32_t &word, const bool &LSB);
 void pushWord(std::ofstream &stream, const uint32_t &word, const bool &LSB);
 void pushWord(std::vector<uint8_t> &vector, const uint32_t &word, const bool &LSB);
+void setWordAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint32_t &word, const bool &LSB);
 
 void pushDword(std::ostream &stream, const uint64_t &dword, const bool &LSB);
 void pushDword(std::ofstream &stream, const uint64_t &dword, const bool &LSB);
 void pushDword(std::vector<uint8_t> &vector, const uint64_t &dword, const bool &LSB);
+void setDwordAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint64_t &dword, const bool &LSB);
+
+void pushQword(std::ostream &stream, const uint64_t &qword, const bool &LSB);
+void pushQword(std::ofstream &stream, const uint64_t &qword, const bool &LSB);
+void pushQword(std::vector<uint8_t> &vector, const uint64_t &qword, const bool &LSB);
+void setQwordAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint64_t &qword, const bool &LSB);
 
 void padBytes(std::ofstream &stream, const uint32_t &numBytes);
 void padBytes(std::vector<uint8_t> &vector, const uint32_t &numBytes);
 
 #include "ELF.h"
 #include "PE.h"
+
+extern bool debugInstructionOutput;
+template <typename T>
+void resolveVar(T& receiver, const std::string& varName);
 
 template<typename T>
 void ADD(T &receiver, const char* dst, const char* src);
@@ -117,7 +131,7 @@ void NOP(T &receiver);
 template <typename T>
 void NOP(T &receiver, const char *arg);
 template <typename T>
-void XCHG(T &receiver, const char *reg1, const char *reg2);
+void XCHG(T &receiver, const char *arg1, const char *arg2);
 template <typename T>
 void MOV(T &receiver, const char *dst, const char *src);
 template <typename T>
@@ -128,6 +142,8 @@ template <typename T>
 void RETF(T &receiver, const char *num);
 template <typename T>
 void RETF(T &receiver);
+template <typename T>
+void INT3(T &receiver);
 template <typename T>
 void INT(T &receiver, const char *num);
 
