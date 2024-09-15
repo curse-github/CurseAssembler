@@ -510,26 +510,27 @@ struct Pe64LabelResolution {
 };
 class Pe64Handler {
 private:
-    std::vector<Pe64SectionHandler *> sectionHeaders64;
+    std::vector<Pe64SectionHandler *> sectionHeaders;
     peHdr peHeader;
     peOptHdrStdFields64 peStdFieldsHeader;
     peOptHdrSpecFields64 peSpecFieldsHeader;
     peOptHdrDataDirs peDataDirHeader;
 
+    std::vector<Pe64Label> labels;
+    std::vector<Pe64LabelResolution> labelResolutions;
+
     std::vector<std::string> importNames;
     std::vector<peHintNameTable> importHints;
 
-    std::vector<Pe64Label> labels;
-    std::vector<Pe64LabelResolution> labelResolutions;
 
 public:
     Pe64Handler();
     ~Pe64Handler();
     void push(std::ofstream& stream);
-    Pe64SectionHandler *addSeg(const char name[8], uint32_t characteristics);
-    void addImport(const uint16_t& hint, const std::string& hintName, const std::string& dllName);
+    Pe64SectionHandler *addSec(const char name[9], uint32_t characteristics);
     void defineLabel(const std::string& name, Pe64SectionHandler* base, const uint32_t& offset);
     void resolveLabel(const std::string& name, Pe64SectionHandler* base, const uint32_t& setAt, const int32_t& relativeToOffset);
+    void addImport(const uint16_t& hint, const std::string& hintName, const std::string& dllName);
 
     friend Pe64SectionHandler;
 };
@@ -549,17 +550,17 @@ public:
     void pushHeader(std::ofstream& stream);
     void pushData(std::ofstream& stream);
 
-    std::string getName();
     uint32_t getSize();
     void setSectionAlign(const uint32_t& align);
     void setFileAlign(const uint32_t& align);
     void setOffset(const uint32_t& offset);
+    uint32_t getOffset();
     void setRVA(const uint32_t& Rva);
     uint32_t getRVA();
 
     // calls the Pe64Handler with "base" set to this, "offset" set to the current position
     void defineLabel(const std::string& name);
-    // calls the Pe64Handler with "base" set to this, "setAt" set to the current position
+    // calls the Pe64Handler with "base" set to this, "setAt" set to the current position - relativeToOffset
     void resolveLabel(const std::string& name, const int32_t& relativeToOffset);
 
     friend Pe64Handler;

@@ -485,6 +485,28 @@ int main(int argc, char *argv[]) {
         MUL(outFile,"[rCX+rDI*2]");
         MUL(outFile,"[rCX+rDI*2-300]");
     }
+
+    UDIV(outFile,"eCX");
+    UDIV(outFile,"[eCX]");
+    UDIV(outFile,"[eCX-300]");
+    UDIV(outFile,"[eIP+0]");
+    UDIV(outFile,"[eIP+300]");
+    UDIV(outFile,"[300]");
+    UDIV(outFile,"[eDI*2]");
+    UDIV(outFile,"[eDI*2-300]");
+    UDIV(outFile,"[eCX+eDI*2]");
+    UDIV(outFile,"[eCX+eDI*2+300]");
+    if (bitMode==64) {
+        UDIV(outFile,"rCX");
+        UDIV(outFile,"[rCX]");
+        UDIV(outFile,"[rCX+300]");
+        UDIV(outFile,"[rIP+0]");
+        UDIV(outFile,"[rIP+300]");
+        UDIV(outFile,"[rDI*2]");
+        UDIV(outFile,"[rDI*2+300]");
+        UDIV(outFile,"[rCX+rDI*2]");
+        UDIV(outFile,"[rCX+rDI*2-300]");
+    }
     
     CLC(outFile);
     STC(outFile);

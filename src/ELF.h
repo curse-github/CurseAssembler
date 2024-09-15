@@ -116,11 +116,11 @@ struct elfHdr32 {
     uint8_t e_padding[7];       // 7 bytes
     uint16_t e_fileType;        // half word
     uint16_t e_machineType;     // half word
-    uint32_t e_version;           // word
-    uint32_t e_entryAddress;      // Address
-    uint32_t e_segmentHdrOffset;  // Offset
-    uint32_t e_sectionHdrOffset;  // Offset
-    uint32_t e_flags;             // word
+    uint32_t e_version;         // word
+    uint32_t e_entryAddress;    // Address
+    uint32_t e_segmentHdrOffset;// Offset
+    uint32_t e_sectionHdrOffset;// Offset
+    uint32_t e_flags;           // word
     uint16_t e_elfHdrSize;      // half word
     uint16_t e_segmentHdrSize;  // half word
     uint16_t e_numSegmentHdrs;  // half word
@@ -150,10 +150,10 @@ struct elfHdr32 {
         // ABI version
         e_abiVersion = 0x00;
         // padding
-        e_padding[0] = 0xBA;  // BASEBALL
-        e_padding[1] = 0x5E;
-        e_padding[2] = 0xBA;
-        e_padding[3] = 0x11;
+        e_padding[0] = 0x00;
+        e_padding[1] = 0x00;
+        e_padding[2] = 0x00;
+        e_padding[3] = 0x00;
         e_padding[4] = 0x00;
         e_padding[5] = 0x00;
         e_padding[6] = 0x00;
@@ -226,11 +226,11 @@ struct elfHdr64 {
     uint8_t e_padding[7];        // 7 bytes
     uint16_t e_fileType;         // half word
     uint16_t e_machineType;      // half word
-    uint32_t e_version;            // word
-    uint64_t e_entryAddress;      // Address
-    uint64_t e_segmentHdrOffset;  // Offset
-    uint64_t e_sectionHdrOffset;  // Offset
-    uint32_t e_flags;              // word
+    uint32_t e_version;          // word
+    uint64_t e_entryAddress;     // Address
+    uint64_t e_segmentHdrOffset; // Offset
+    uint64_t e_sectionHdrOffset; // Offset
+    uint32_t e_flags;            // word
     uint16_t e_elfHdrSize;       // half word
     uint16_t e_segmentHdrSize;   // half word
     uint16_t e_numSegmentHdrs;   // half word
@@ -257,10 +257,10 @@ struct elfHdr64 {
         // ABI version
         e_abiVersion = 0x00;
         // padding
-        e_padding[0] = 0xBA;  // BASEBALL: BA 5E BA 11
-        e_padding[1] = 0x5E;
-        e_padding[2] = 0xBA;
-        e_padding[3] = 0x11;
+        e_padding[0] = 0x00;
+        e_padding[1] = 0x00;
+        e_padding[2] = 0x00;
+        e_padding[3] = 0x00;
         e_padding[4] = 0x00;
         e_padding[5] = 0x00;
         e_padding[6] = 0x00;
@@ -327,10 +327,26 @@ struct elfHdr64 {
 #pragma region handlers
 class Elf64SegmentHandler;
 
+struct Elf64Label {
+    std::string name;
+    Elf64SegmentHandler* base;
+    uint32_t offset;
+    Elf64Label(const std::string& _name, Elf64SegmentHandler* _base, const uint32_t& _offset) : name(_name),base(_base),offset(_offset) {};
+};
+struct Elf64LabelResolution {
+    std::string name;
+    Elf64SegmentHandler* base;
+    uint32_t setAt;
+    int32_t relativeToOffset;
+    Elf64LabelResolution(const std::string& _name, Elf64SegmentHandler* _base, const uint32_t& _setAt, const int32_t& _relativeToOffset) : name(_name),base(_base),setAt(_setAt),relativeToOffset(_relativeToOffset) {};
+};
 class Elf64Handler {
 private:
     std::vector<Elf64SegmentHandler *> segmentHeaders;
     elfHdr64 elfHeader;
+
+    std::vector<Elf64Label> labels;
+    std::vector<Elf64LabelResolution> labelResolutions;
 
 public:
     Elf64Handler();
@@ -338,17 +354,18 @@ public:
         return elfHeader.e_encoding == ELF_ENCODING_LSB;
     };
     void push(std::ofstream& stream);
-    Elf64SegmentHandler *addSeg(const uint32_t& type, const uint32_t& flags, const bool& _isEntry = false);
+    Elf64SegmentHandler *addSeg(const uint32_t& type, const uint32_t& flags);
+    void defineLabel(const std::string& name, Elf64SegmentHandler* base, const uint32_t& offset);
+    void resolveLabel(const std::string& name, Elf64SegmentHandler* base, const uint32_t& setAt, const int32_t& relativeToOffset);
 };
 
 class Elf64SegmentHandler {
     Elf64Handler& elfHandler;
-    elfSegmentHdr32 segmentHeader;
+    elfSegmentHdr64 segmentHeader;
     std::vector<uint8_t> data;
 
 public:
-    bool isEntry;
-    Elf64SegmentHandler(Elf64Handler& _elfHandler, const uint32_t& type, const uint32_t& flags, const bool& _isEntry);
+    Elf64SegmentHandler(Elf64Handler& _elfHandler, const uint32_t& type, const uint32_t& flags);
     constexpr bool isLSB() const {
         return elfHandler.isLSB();
     };
@@ -357,7 +374,14 @@ public:
 
     uint32_t getSize();
     void setOffset(const uint32_t& offset);
+    uint32_t getOffset();
 
+    // calls the Pe64Handler with "base" set to this, "offset" set to the current position
+    void defineLabel(const std::string& name);
+    // calls the Pe64Handler with "base" set to this, "setAt" set to the current position - relativeToOffset
+    void resolveLabel(const std::string& name, const int32_t& relativeToOffset);
+
+    friend Elf64Handler;
     template <typename T>
     friend void pushChars(T& segment, const uint8_t* chars, const size_t& len, const bool& LSB);
 };
