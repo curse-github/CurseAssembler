@@ -6,6 +6,10 @@ uint8_t elf_osAbi;
 uint16_t elf_machine;
 
 #pragma region Elf64SegmentHandler
+template <>
+void pushChars(Elf64SegmentHandler*& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
+    pushChars(reciever->data, chars, len, LSB);
+}
 Elf64SegmentHandler::Elf64SegmentHandler(Elf64Handler &_elfHandler, const uint32_t &type, const uint32_t &flags, const bool &_isEntry) : elfHandler(_elfHandler), segmentHeader(type, flags), isEntry(_isEntry) {
 }
 void Elf64SegmentHandler::pushHeader(std::ofstream &stream) {
@@ -23,21 +27,6 @@ void Elf64SegmentHandler::setOffset(const uint32_t &offset) {
     segmentHeader.s_virtualAddress = offset;
 }
 
-void pushChars(Elf64SegmentHandler *segment, const uint8_t *chars, uint32_t len, const bool &LSB) {
-    pushChars(segment->data, chars, len, LSB);
-}
-void pushByte(Elf64SegmentHandler *segment, const uint8_t &byte) {
-    pushByte(segment->data, byte);
-}
-void pushHalfWord(Elf64SegmentHandler *segment, const uint16_t &halfword, const bool &LSB) {
-    pushHalfWord(segment->data, halfword, LSB);
-}
-void pushWord(Elf64SegmentHandler *segment, const uint32_t &word, const bool &LSB) {
-    pushWord(segment->data, word, LSB);
-}
-void pushDword(Elf64SegmentHandler *segment, const uint64_t &dword, const bool &LSB) {
-    pushDword(segment->data, dword, LSB);
-}
 #pragma endregion  // Elf64SegmentHandler
 
 #pragma region elfHandler

@@ -38,6 +38,7 @@ clean:
 	-rm -rf ./bin
 	-rm ./assembler.out
 	-rm ./instructionTest.out
+	-del bin /s /q
 	-rmdir bin
 	-del assembler.exe
 	-del instructionTest.exe

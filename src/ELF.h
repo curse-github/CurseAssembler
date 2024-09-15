@@ -22,7 +22,7 @@ struct elfSegmentHdr32 {
     uint32_t s_flags;           // word
     uint32_t s_align;           // word
 
-    elfSegmentHdr32(const uint32_t &type, const uint32_t &flags) {
+    elfSegmentHdr32(const uint32_t& type, const uint32_t& flags) {
         // segment type
         if (type == ELF_SEGMENT_TYPE_LOAD || type == ELF_SEGMENT_TYPE_DYN || type == ELF_SEGMENT_TYPE_INTP || type == ELF_SEGMENT_TYPE_NT || type == ELF_SEGMENT_TYPE_PHDR || type == ELF_SEGMENT_TYPE_TLS)
             s_type = type;
@@ -43,16 +43,16 @@ struct elfSegmentHdr32 {
         // bit aligment
         s_align = Align32;
     }
-    void push(std::ofstream &stream) {
+    void push(std::ofstream& stream) {
         bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
-        pushWord(stream, s_type, LSB);
-        pushWord(stream, s_fileOffset, LSB);
-        pushWord(stream, s_virtualAddress, LSB);
-        pushWord(stream, s_physAddress, LSB);
-        pushWord(stream, s_sizeFile, LSB);
-        pushWord(stream, s_sizeMemory, LSB);
-        pushWord(stream, s_flags, LSB);
-        pushWord(stream, s_align, LSB);
+        pushDword(stream, s_type, LSB);
+        pushDword(stream, s_fileOffset, LSB);
+        pushDword(stream, s_virtualAddress, LSB);
+        pushDword(stream, s_physAddress, LSB);
+        pushDword(stream, s_sizeFile, LSB);
+        pushDword(stream, s_sizeMemory, LSB);
+        pushDword(stream, s_flags, LSB);
+        pushDword(stream, s_align, LSB);
     }
 };
 struct elfSegmentHdr64 {
@@ -65,7 +65,7 @@ struct elfSegmentHdr64 {
     uint64_t s_sizeMemory;      // dword
     uint64_t s_align;           // dword
 
-    elfSegmentHdr64(const uint32_t &type, const uint32_t &flags) {
+    elfSegmentHdr64(const uint32_t& type, const uint32_t& flags) {
         // segment type
         if (type == ELF_SEGMENT_TYPE_LOAD || type == ELF_SEGMENT_TYPE_DYN || type == ELF_SEGMENT_TYPE_INTP || type == ELF_SEGMENT_TYPE_NT || type == ELF_SEGMENT_TYPE_PHDR || type == ELF_SEGMENT_TYPE_TLS)
             s_type = type;
@@ -86,16 +86,16 @@ struct elfSegmentHdr64 {
         // bit aligment
         s_align = Align64;
     }
-    void push(std::ofstream &stream) {
+    void push(std::ofstream& stream) {
         bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
-        pushWord(stream, s_type, LSB);
-        pushWord(stream, s_fileOffset, LSB);
-        pushDword(stream, s_virtualAddress, LSB);
-        pushDword(stream, s_physAddress, LSB);
-        pushDword(stream, s_sizeFile, LSB);
-        pushDword(stream, s_sizeMemory, LSB);
-        pushDword(stream, s_flags, LSB);
-        pushDword(stream, s_align, LSB);
+        pushDword(stream, s_type, LSB);
+        pushDword(stream, s_fileOffset, LSB);
+        pushQword(stream, s_virtualAddress, LSB);
+        pushQword(stream, s_physAddress, LSB);
+        pushQword(stream, s_sizeFile, LSB);
+        pushQword(stream, s_sizeMemory, LSB);
+        pushQword(stream, s_flags, LSB);
+        pushQword(stream, s_align, LSB);
     }
 };
 
@@ -191,7 +191,7 @@ struct elfHdr32 {
         e_stringTableNdx = 0x0000;
     }
 
-    void push(std::ofstream &stream) const {
+    void push(std::ofstream& stream) const {
         bool LSB = e_encoding == ELF_ENCODING_LSB;  // is little endian
         for (uint8_t i = 0; i < 4; i++) pushByte(stream, e_magic[i]);
         pushByte(stream, e_architecture);
@@ -200,19 +200,19 @@ struct elfHdr32 {
         pushByte(stream, e_abi);
         pushByte(stream, e_abiVersion);
         for (uint8_t i = 0; i < 7; i++) pushByte(stream, e_padding[i]);
-        pushHalfWord(stream, e_fileType, LSB);
-        pushHalfWord(stream, e_machineType, LSB);
-        pushWord(stream, e_version, LSB);
-        pushWord(stream, e_entryAddress, LSB);
-        pushWord(stream, e_segmentHdrOffset, LSB);
-        pushWord(stream, e_sectionHdrOffset, LSB);
-        pushWord(stream, e_flags, LSB);
-        pushHalfWord(stream, e_elfHdrSize, LSB);
-        pushHalfWord(stream, e_segmentHdrSize, LSB);
-        pushHalfWord(stream, e_numSegmentHdrs, LSB);
-        pushHalfWord(stream, e_sectionHdrSize, LSB);
-        pushHalfWord(stream, e_numSectionHdrs, LSB);
-        pushHalfWord(stream, e_stringTableNdx, LSB);
+        pushWord(stream, e_fileType, LSB);
+        pushWord(stream, e_machineType, LSB);
+        pushDword(stream, e_version, LSB);
+        pushDword(stream, e_entryAddress, LSB);
+        pushDword(stream, e_segmentHdrOffset, LSB);
+        pushDword(stream, e_sectionHdrOffset, LSB);
+        pushDword(stream, e_flags, LSB);
+        pushWord(stream, e_elfHdrSize, LSB);
+        pushWord(stream, e_segmentHdrSize, LSB);
+        pushWord(stream, e_numSegmentHdrs, LSB);
+        pushWord(stream, e_sectionHdrSize, LSB);
+        pushWord(stream, e_numSectionHdrs, LSB);
+        pushWord(stream, e_stringTableNdx, LSB);
     }
 };
 
@@ -298,7 +298,7 @@ struct elfHdr64 {
         e_stringTableNdx = 0x0000;
     }
 
-    void push(std::ofstream &stream) const {
+    void push(std::ofstream& stream) const {
         bool LSB = e_encoding == ELF_ENCODING_LSB;  // is little endian
         for (uint8_t i = 0; i < 4; i++) pushByte(stream, e_magic[i]);
         pushByte(stream, e_architecture);
@@ -307,19 +307,19 @@ struct elfHdr64 {
         pushByte(stream, e_abi);
         pushByte(stream, e_abiVersion);
         for (uint8_t i = 0; i < 7; i++) pushByte(stream, e_padding[i]);
-        pushHalfWord(stream, e_fileType, LSB);
-        pushHalfWord(stream, e_machineType, LSB);
-        pushWord(stream, e_version, LSB);
-        pushDword(stream, e_entryAddress, LSB);
-        pushDword(stream, e_segmentHdrOffset, LSB);
-        pushDword(stream, e_sectionHdrOffset, LSB);
-        pushWord(stream, e_flags, LSB);
-        pushHalfWord(stream, e_elfHdrSize, LSB);
-        pushHalfWord(stream, e_segmentHdrSize, LSB);
-        pushHalfWord(stream, e_numSegmentHdrs, LSB);
-        pushHalfWord(stream, e_sectionHdrSize, LSB);
-        pushHalfWord(stream, e_numSectionHdrs, LSB);
-        pushHalfWord(stream, e_stringTableNdx, LSB);
+        pushWord(stream, e_fileType, LSB);
+        pushWord(stream, e_machineType, LSB);
+        pushDword(stream, e_version, LSB);
+        pushQword(stream, e_entryAddress, LSB);
+        pushQword(stream, e_segmentHdrOffset, LSB);
+        pushQword(stream, e_sectionHdrOffset, LSB);
+        pushDword(stream, e_flags, LSB);
+        pushWord(stream, e_elfHdrSize, LSB);
+        pushWord(stream, e_segmentHdrSize, LSB);
+        pushWord(stream, e_numSegmentHdrs, LSB);
+        pushWord(stream, e_sectionHdrSize, LSB);
+        pushWord(stream, e_numSectionHdrs, LSB);
+        pushWord(stream, e_stringTableNdx, LSB);
     }
 };
 #pragma endregion structs
@@ -337,38 +337,32 @@ public:
     constexpr bool isLSB() const {
         return elfHeader.e_encoding == ELF_ENCODING_LSB;
     };
-    void push(std::ofstream &stream);
-    Elf64SegmentHandler *addSeg(const uint32_t &type, const uint32_t &flags, const bool &_isEntry = false);
+    void push(std::ofstream& stream);
+    Elf64SegmentHandler *addSeg(const uint32_t& type, const uint32_t& flags, const bool& _isEntry = false);
 };
 
 class Elf64SegmentHandler {
-    Elf64Handler &elfHandler;
+    Elf64Handler& elfHandler;
     elfSegmentHdr32 segmentHeader;
     std::vector<uint8_t> data;
 
 public:
     bool isEntry;
-    Elf64SegmentHandler(Elf64Handler &_elfHandler, const uint32_t &type, const uint32_t &flags, const bool &_isEntry);
+    Elf64SegmentHandler(Elf64Handler& _elfHandler, const uint32_t& type, const uint32_t& flags, const bool& _isEntry);
     constexpr bool isLSB() const {
         return elfHandler.isLSB();
     };
-    void pushHeader(std::ofstream &stream);
-    void pushData(std::ofstream &stream);
+    void pushHeader(std::ofstream& stream);
+    void pushData(std::ofstream& stream);
 
     uint32_t getSize();
-    void setOffset(const uint32_t &offset);
+    void setOffset(const uint32_t& offset);
 
-    friend void pushChars(Elf64SegmentHandler *segment, const uint8_t *chars, uint32_t len, const bool &LSB);
-    friend void pushByte(Elf64SegmentHandler *segment, const uint8_t &byte);
-    friend void pushHalfWord(Elf64SegmentHandler *segment, const uint16_t &halfword, const bool &LSB);
-    friend void pushWord(Elf64SegmentHandler *segment, const uint32_t &word, const bool &LSB);
-    friend void pushDword(Elf64SegmentHandler *segment, const uint64_t &dword, const bool &LSB);
+    template <typename T>
+    friend void pushChars(T& segment, const uint8_t* chars, const size_t& len, const bool& LSB);
 };
-void pushChars(Elf64SegmentHandler *segment, const uint8_t *chars, uint32_t len, const bool &LSB);
-void pushByte(Elf64SegmentHandler *segment, const uint8_t &byte);
-void pushHalfWord(Elf64SegmentHandler *segment, const uint16_t &halfword, const bool &LSB);
-void pushWord(Elf64SegmentHandler *segment, const uint32_t &word, const bool &LSB);
-void pushDword(Elf64SegmentHandler *segment, const uint64_t &dword, const bool &LSB);
+template <>
+void pushChars(Elf64SegmentHandler*& reciever, const uint8_t* chars, const size_t& len, const bool& LSB);
 #pragma endregion  // handlers
 
 #endif  // _ELF_H

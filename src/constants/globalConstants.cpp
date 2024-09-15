@@ -2,7 +2,6 @@
 #include <iostream>
 #include <string>
 #include <algorithm>// for std::min and std::max
-#include <iomanip>
 using std::string,std::cout,std::endl;
 
 #include "globalConstants.h"
@@ -11,108 +10,103 @@ using std::string,std::cout,std::endl;
 uint8_t bitMode = 0;
 
 #pragma region helper functions
-void pushChars(std::ostream &stream, const uint8_t *chars, const uint32_t& len, const bool &LSB) {
-    stream << std::hex << std::setfill('0') << std::setw(2);
+template <>
+void pushChars(std::ostream& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
+    reciever << std::hex << std::setfill('0') << std::setw(2);
     if (LSB)
-        for (short i = 0; i < len; i++) stream << (int)chars[i] << " ";
+        for (short i = 0; i < len; i++) reciever << (int)chars[i] << " ";
     else
-        for (short i = len - 1; i >= 0; i--) stream << (int)chars[i] << " ";
-    stream << std::dec << std::setfill(' ');
+        for (short i = len - 1; i >= 0; i--) reciever << (int)chars[i] << " ";
+    reciever << std::dec << std::setfill(' ');
 }
-void pushChars(std::ofstream &stream, const uint8_t *chars, const uint32_t& len, const bool &LSB) {
+template <>
+void pushChars(std::ofstream& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
     if (LSB)
-        for (short i = 0; i < len; i++) stream << chars[i];
+        for (short i = 0; i < len; i++) reciever << chars[i];
     else
-        for (short i = len - 1; i >= 0; i--) stream << chars[i];
+        for (short i = len - 1; i >= 0; i--) reciever << chars[i];
 }
-void pushChars(std::ofstream &stream, std::vector<uint8_t> &vector) {
-    for (size_t i = 0u; i < vector.size(); i++) stream << vector[i];
-}
-void pushChars(std::vector<uint8_t> &vector, const uint8_t *chars, const uint32_t& len, const bool &LSB) {
+template <>
+void pushChars(std::vector<uint8_t>& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
     if (LSB)
-        for (char i = 0; i < len; i++) vector.push_back(chars[i]);
+        for (short i = 0; i < len; i++) reciever.push_back(chars[i]);
     else
-        for (char i = len - 1; i >= 0; i--) vector.push_back(chars[i]);
+        for (short i = len - 1; i >= 0; i--) reciever.push_back(chars[i]);
 }
-void setCharsAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint8_t *chars, const uint32_t& len, const bool &LSB) {
+
+template <typename T>
+void pushChars(T& reciever, const std::vector<uint8_t>& vector) {
+    for (size_t i = 0; i < vector.size(); i++) pushChars(reciever,&vector[i],1,false);
+}
+template void pushChars(std::ostream& stream, const std::vector<uint8_t>& vector);
+template void pushChars(std::ofstream& file, const std::vector<uint8_t>& vector);
+template void pushChars(std::vector<uint8_t>& vector1, const std::vector<uint8_t>& vector2);
+template void pushChars(Elf64SegmentHandler*& segment, const std::vector<uint8_t>& vector);
+template void pushChars(Pe64SectionHandler*& section, const std::vector<uint8_t>& vector);
+
+void setCharsAt(std::vector<uint8_t>& vector, const size_t& index, const uint8_t* chars, const size_t& len, const bool& LSB) {
     if (LSB)
-        for (char i = 0; i < len; i++) vector[index+i]=chars[i];
+        for (short i = 0; i < len; i++) vector[index+i]=chars[i];
     else
-        for (char i = len - 1; i >= 0; i--) vector[index+i]=chars[i];
+        for (short i = len - 1; i >= 0; i--) vector[index+i]=chars[i];
 }
 
-void pushByte(std::ostream &stream, const uint8_t &byte) {
-    pushChars(stream, &byte, 1, false);
+template <typename T>
+void pushByte(T& reciever, const uint8_t& byte) {
+    pushChars(reciever,&byte, 1, false);
 }
-void pushByte(std::ofstream &stream, const uint8_t &byte) {
-    pushChars(stream, &byte, 1, false);
+template <typename T>
+void pushWord(T& reciever, const uint16_t& word, const bool& LSB) {
+    pushChars(reciever, static_cast<const uint8_t* >(static_cast<const void *>(&word)), 2, LSB);
 }
-void pushByte(std::vector<uint8_t> &vector, const uint8_t &byte) {
-    pushChars(vector, &byte, 1, false);
+template <typename T>
+void pushDword(T& reciever, const uint32_t& dword, const bool& LSB) {
+    pushChars(reciever, static_cast<const uint8_t* >(static_cast<const void *>(&dword)), 4, LSB);
 }
-void setByteAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint8_t &byte) {
-    setCharsAt(vector, index, &byte, 1, false);
+template <typename T>
+void pushQword(T& reciever, const uint64_t& qword, const bool& LSB) {
+    pushChars(reciever, static_cast<const uint8_t* >(static_cast<const void *>(&qword)), 8, LSB);
 }
-
-void pushHalfWord(std::ostream &stream, const uint16_t &halfword, const bool &LSB) {
-    pushChars(stream, static_cast<const uint8_t *>(static_cast<const void *>(&halfword)), 2, LSB);
+template void pushByte (std::ostream& stream, const uint8_t& byte);
+template void pushByte (std::ofstream& file, const uint8_t& byte);
+template void pushByte (std::vector<uint8_t>& vector, const uint8_t& byte);
+template void pushByte (Elf64SegmentHandler*& vector, const uint8_t& byte);
+template void pushByte (Pe64SectionHandler*& section, const uint8_t& byte);
+template void pushWord (std::ostream& stream, const uint16_t& word, const bool& LSB);
+template void pushWord (std::ofstream& file, const uint16_t& word, const bool& LSB);
+template void pushWord (std::vector<uint8_t>& vector, const uint16_t& word, const bool& LSB);
+template void pushWord (Elf64SegmentHandler*& vector, const uint16_t& word, const bool& LSB);
+template void pushWord (Pe64SectionHandler*& section, const uint16_t& word, const bool& LSB);
+template void pushDword(std::ostream& stream, const uint32_t& dword, const bool& LSB);
+template void pushDword(std::ofstream& file, const uint32_t& dword, const bool& LSB);
+template void pushDword(std::vector<uint8_t>& vector, const uint32_t& dword, const bool& LSB);
+template void pushDword(Elf64SegmentHandler*& vector, const uint32_t& dword, const bool& LSB);
+template void pushDword(Pe64SectionHandler*& section, const uint32_t& dword, const bool& LSB);
+template void pushQword(std::ostream& stream, const uint64_t& qword, const bool& LSB);
+template void pushQword(std::ofstream& file, const uint64_t& qword, const bool& LSB);
+template void pushQword(std::vector<uint8_t>& vector, const uint64_t& qword, const bool& LSB);
+template void pushQword(Elf64SegmentHandler*& vector, const uint64_t& qword, const bool& LSB);
+template void pushQword(Pe64SectionHandler*& section, const uint64_t& qword, const bool& LSB);
+void setByteAt(std::vector<uint8_t>& vector, const size_t& index, const uint8_t& byte) {
+    setCharsAt(vector, index,& byte, 1, false);
 }
-void pushHalfWord(std::ofstream &stream, const uint16_t &halfword, const bool &LSB) {
-    pushChars(stream, static_cast<const uint8_t *>(static_cast<const void *>(&halfword)), 2, LSB);
+void setWordAt(std::vector<uint8_t>& vector, const size_t& index, const uint16_t& word, const bool& LSB) {
+    setCharsAt(vector, index, static_cast<const uint8_t* >(static_cast<const void *>(&word)), 2, LSB);
 }
-void pushHalfWord(std::vector<uint8_t> &vector, const uint16_t &halfword, const bool &LSB) {
-    pushChars(vector, static_cast<const uint8_t *>(static_cast<const void *>(&halfword)), 2, LSB);
+void setDwordAt(std::vector<uint8_t>& vector, const size_t& index, const uint32_t& dword, const bool& LSB) {
+    setCharsAt(vector, index, static_cast<const uint8_t* >(static_cast<const void *>(&dword)), 4, LSB);
 }
-void setHalfWordAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint16_t &halfword, const bool &LSB) {
-    setCharsAt(vector, index, static_cast<const uint8_t *>(static_cast<const void *>(&halfword)), 2, LSB);
-}
-
-void pushWord(std::ostream &stream, const uint32_t &word, const bool &LSB) {
-    pushChars(stream, static_cast<const uint8_t *>(static_cast<const void *>(&word)), 4, LSB);
-}
-void pushWord(std::ofstream &stream, const uint32_t &word, const bool &LSB) {
-    pushChars(stream, static_cast<const uint8_t *>(static_cast<const void *>(&word)), 4, LSB);
-}
-void pushWord(std::vector<uint8_t> &vector, const uint32_t &word, const bool &LSB) {
-    pushChars(vector, static_cast<const uint8_t *>(static_cast<const void *>(&word)), 4, LSB);
-}
-void setWordAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint32_t &word, const bool &LSB) {
-    setCharsAt(vector, index, static_cast<const uint8_t *>(static_cast<const void *>(&word)), 4, LSB);
-}
-
-void pushDword(std::ostream &stream, const uint64_t &dword, const bool &LSB) {
-    pushChars(stream, static_cast<const uint8_t *>(static_cast<const void *>(&dword)), 8, LSB);
-}
-void pushDword(std::ofstream &stream, const uint64_t &dword, const bool &LSB) {
-    pushChars(stream, static_cast<const uint8_t *>(static_cast<const void *>(&dword)), 8, LSB);
-}
-void pushDword(std::vector<uint8_t> &vector, const uint64_t &dword, const bool &LSB) {
-    pushChars(vector, static_cast<const uint8_t *>(static_cast<const void *>(&dword)), 8, LSB);
-}
-void setDwordAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint64_t &dword, const bool &LSB) {
-    setCharsAt(vector, index, static_cast<const uint8_t *>(static_cast<const void *>(&dword)), 8, LSB);
+void setQwordAt(std::vector<uint8_t>& vector, const size_t& index, const uint64_t& qword, const bool& LSB) {
+    setCharsAt(vector, index, static_cast<const uint8_t* >(static_cast<const void *>(&qword)), 8, LSB);
 }
 
-void pushQword(std::ostream &stream, const uint64_t &qword, const bool &LSB) {
-    pushChars(stream, static_cast<const uint8_t *>(static_cast<const void *>(&qword)), 8, LSB);
-}
-void pushQword(std::ofstream &stream, const uint64_t &qword, const bool &LSB) {
-    pushChars(stream, static_cast<const uint8_t *>(static_cast<const void *>(&qword)), 8, LSB);
-}
-void pushQword(std::vector<uint8_t> &vector, const uint64_t &qword, const bool &LSB) {
-    pushChars(vector, static_cast<const uint8_t *>(static_cast<const void *>(&qword)), 8, LSB);
-}
-void setQwordAt(std::vector<uint8_t> &vector, const uint32_t& index, const uint64_t &qword, const bool &LSB) {
-    setCharsAt(vector, index, static_cast<const uint8_t *>(static_cast<const void *>(&qword)), 8, LSB);
-}
-
-void padBytes(std::ofstream &stream, const uint32_t &numBytes) {
+void padBytes(std::ofstream& stream, const size_t& numBytes) {
     uint8_t C8[5]{0x00,0x00,0x00,0x00,0x00};
     for (int i = 0; i < numBytes; i++) {
         stream << C8[i%5];
     }
 }
-void padBytes(std::vector<uint8_t> &vector, const uint32_t &numBytes) {
+void padBytes(std::vector<uint8_t>& vector, const size_t& numBytes) {
     uint8_t C8[5]{0x00,0x00,0x00,0x00,0x00};
     for (int i = 0; i < numBytes; i++) {
         vector.push_back(C8[i%5]);
@@ -455,20 +449,20 @@ bool debugInstructionOutput = false;
 
 #pragma region resolveVar
 template <>
-void resolveVar<std::ofstream>(std::ofstream& receiver, const std::string& varName){}
+void resolveVar<std::ofstream>(std::ofstream& reciever, const std::string& varName){}
 template <>
-void resolveVar<std::vector<uint8_t>>(std::vector<uint8_t>& receiver, const std::string& varName){}
+void resolveVar<std::vector<uint8_t>>(std::vector<uint8_t>& reciever, const std::string& varName){}
 template <>
-void resolveVar<Elf64SegmentHandler*>(Elf64SegmentHandler*& receiver, const std::string& varName){ return; }
+void resolveVar<Elf64SegmentHandler*>(Elf64SegmentHandler*& reciever, const std::string& varName){ return; }
 template <>
-void resolveVar<Pe64SectionHandler*>(Pe64SectionHandler*& receiver, const std::string& varName){
-    receiver->resolveLabel(varName,4);
+void resolveVar<Pe64SectionHandler*>(Pe64SectionHandler*& reciever, const std::string& varName){
+    reciever->resolveLabel(varName,4);
 }
 #pragma endregion resolveVar
 
 #pragma region AddOrAdcSbbAndSubXorCmp
 template <typename T>
-void AddOrAdcSbbAndSubXorCmp(T& receiver, const char* dst, const char* src, const char* instructionName, const uint8_t& op1Code=INTEL_ModRM_OP1_ADD_RM_I, const uint8_t& RMv_REGv=INTEL_INSTR_ADD_RMv_REGv, const uint8_t& REGv_RMv=INTEL_INSTR_ADD_REGv_RMv, const uint8_t& eAX_Iv=INTEL_INSTR_ADD_eAX_Iv) {
+void AddOrAdcSbbAndSubXorCmp(T& reciever, const char* dst, const char* src, const char* instructionName, const uint8_t& op1Code=INTEL_ModRM_OP1_ADD_RM_I, const uint8_t& RMv_REGv=INTEL_INSTR_ADD_RMv_REGv, const uint8_t& REGv_RMv=INTEL_INSTR_ADD_REGv_RMv, const uint8_t& eAX_Iv=INTEL_INSTR_ADD_eAX_Iv) {
     if (bitMode==0) return;
     argumentType dstInfo = parseArgument(dst);
     if(dstInfo.isError) { cout << "dst: \"" << dst << "\": error" << endl; return; }
@@ -484,25 +478,25 @@ void AddOrAdcSbbAndSubXorCmp(T& receiver, const char* dst, const char* src, cons
         // This is done up here because it is used in all 4 out of 5 of the cases below and is the exact same value for each
         if (dstInfo.isJustRegister && (dstInfo.registerOffset==INTEL_REG_OFF_eAX) && srcInfo.isJustNumber && srcInfo.NumValNumBytes==4) {
             // ex: instr eax, num
-            if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-            pushByte(receiver, eAX_Iv);
-            pushWord(receiver, srcInfo.numValFourBytes, true);
+            if (dstInfo.bit==64) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+            pushByte(reciever, eAX_Iv);
+            pushDword(reciever, srcInfo.numValFourBytes, true);
             if (debugInstructionOutput) cout << instructionName << " " << dstInfo.properString << ", " << srcInfo.properString << endl;
         } else {
             // ex: instr (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num]), (reg or num)
             if (!dstInfo.isIndirect&&!srcInfo.isJustNumber&&(dstInfo.bit!=srcInfo.bit)) { cout << "Operand size mis-match." << endl; return; }
-            if (dstInfo.isIndirect&&(bitMode==64)&&(dstInfo.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-            if ((srcInfo.isJustRegister&&(srcInfo.bit==64))||(dstInfo.isJustRegister&&(dstInfo.bit==64))) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-            pushByte(receiver, srcInfo.isJustRegister?RMv_REGv:((srcInfo.isJustNumber&&(srcInfo.NumValNumBytes==4))?INTEL_INSTR_OP1_RMv_Iv:INTEL_INSTR_OP1_RMv_Ib));// Specify if src is a register or an immutable
+            if (dstInfo.isIndirect&&(bitMode==64)&&(dstInfo.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+            if ((srcInfo.isJustRegister&&(srcInfo.bit==64))||(dstInfo.isJustRegister&&(dstInfo.bit==64))) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+            pushByte(reciever, srcInfo.isJustRegister?RMv_REGv:((srcInfo.isJustNumber&&(srcInfo.NumValNumBytes==4))?INTEL_INSTR_OP1_RMv_Iv:INTEL_INSTR_OP1_RMv_Ib));// Specify if src is a register or an immutable
             const uint8_t RegOp = srcInfo.isJustRegister?srcInfo.registerRegOp:op1Code;
-            pushByte(receiver, dstInfo.ModRMByte|RegOp);
-            if (dstInfo.requiresSIB) pushByte(receiver, dstInfo.SibByte);
-            if (dstInfo.NumValNumBytes==4) pushWord(receiver, dstInfo.numValFourBytes, true);
-            else if (dstInfo.NumValNumBytes==1) pushByte(receiver, dstInfo.numValOneByte);
-            if (dstInfo.isVar) resolveVar(receiver,dstInfo.varName);
+            pushByte(reciever, dstInfo.ModRMByte|RegOp);
+            if (dstInfo.requiresSIB) pushByte(reciever, dstInfo.SibByte);
+            if (dstInfo.NumValNumBytes==4) pushDword(reciever, dstInfo.numValFourBytes, true);
+            else if (dstInfo.NumValNumBytes==1) pushByte(reciever, dstInfo.numValOneByte);
+            if (dstInfo.isVar) resolveVar(reciever,dstInfo.varName);
             if (srcInfo.isJustNumber) {
-                if (srcInfo.NumValNumBytes==4) pushWord(receiver, srcInfo.numValFourBytes, true);
-                else if (srcInfo.NumValNumBytes==1) pushByte(receiver, srcInfo.numValOneByte);
+                if (srcInfo.NumValNumBytes==4) pushDword(reciever, srcInfo.numValFourBytes, true);
+                else if (srcInfo.NumValNumBytes==1) pushByte(reciever, srcInfo.numValOneByte);
             }
             if (debugInstructionOutput) {
                 if (dstInfo.isIndirect) cout << instructionName << " " << ((srcInfo.bit==64)?"QWORD":"DWORD") << " PTR " << dstInfo.properString << ", " << srcInfo.properString << endl;
@@ -511,88 +505,88 @@ void AddOrAdcSbbAndSubXorCmp(T& receiver, const char* dst, const char* src, cons
         }
     } else {
         // ex: instr reg, ([eip/rip+num] or [reg+num] or [base+index*scale+num])
-        if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-        if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, REGv_RMv);
-        pushByte(receiver, srcInfo.ModRMByte|dstInfo.registerRegOp);
-        if (srcInfo.requiresSIB) pushByte(receiver, srcInfo.SibByte);
-        if (srcInfo.NumValNumBytes==4) pushWord(receiver, srcInfo.numValFourBytes, true);
-        else if (srcInfo.NumValNumBytes==1) pushByte(receiver, srcInfo.numValOneByte);
-        if (srcInfo.isVar) resolveVar(receiver,srcInfo.varName);
+        if (bitMode==64 && srcInfo.bit==32) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+        if (dstInfo.bit==64) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, REGv_RMv);
+        pushByte(reciever, srcInfo.ModRMByte|dstInfo.registerRegOp);
+        if (srcInfo.requiresSIB) pushByte(reciever, srcInfo.SibByte);
+        if (srcInfo.NumValNumBytes==4) pushDword(reciever, srcInfo.numValFourBytes, true);
+        else if (srcInfo.NumValNumBytes==1) pushByte(reciever, srcInfo.numValOneByte);
+        if (srcInfo.isVar) resolveVar(reciever,srcInfo.varName);
         if (debugInstructionOutput) cout << instructionName << " " << dstInfo.properString << ", " << ((dstInfo.bit==64)?"QWORD":"DWORD") << " PTR " << srcInfo.properString << endl;
     }
 }
 template <typename T>
-void ADD(T& receiver, const char* dst, const char* src) {
-    AddOrAdcSbbAndSubXorCmp(receiver,dst,src,"ADD",INTEL_ModRM_OP1_ADD_RM_I,INTEL_INSTR_ADD_RMv_REGv,INTEL_INSTR_ADD_REGv_RMv,INTEL_INSTR_ADD_eAX_Iv);
+void ADD(T& reciever, const char* dst, const char* src) {
+    AddOrAdcSbbAndSubXorCmp(reciever,dst,src,"ADD",INTEL_ModRM_OP1_ADD_RM_I,INTEL_INSTR_ADD_RMv_REGv,INTEL_INSTR_ADD_REGv_RMv,INTEL_INSTR_ADD_eAX_Iv);
 }
 template <typename T>
-void OR(T& receiver, const char* dst, const char* src) {
-    AddOrAdcSbbAndSubXorCmp(receiver,dst,src,"OR" ,INTEL_ModRM_OP1_OR_RM_I ,INTEL_INSTR_OR_RMv_REGv ,INTEL_INSTR_OR_REGv_RMv ,INTEL_INSTR_OR_eAX_Iv );
+void OR(T& reciever, const char* dst, const char* src) {
+    AddOrAdcSbbAndSubXorCmp(reciever,dst,src,"OR" ,INTEL_ModRM_OP1_OR_RM_I ,INTEL_INSTR_OR_RMv_REGv ,INTEL_INSTR_OR_REGv_RMv ,INTEL_INSTR_OR_eAX_Iv );
 }
 template <typename T>
-void ADC(T& receiver, const char* dst, const char* src) {
-    AddOrAdcSbbAndSubXorCmp(receiver,dst,src,"ADC",INTEL_ModRM_OP1_ADC_RM_I,INTEL_INSTR_ADC_RMv_REGv,INTEL_INSTR_ADC_REGv_RMv,INTEL_INSTR_ADC_eAX_Iv);
+void ADC(T& reciever, const char* dst, const char* src) {
+    AddOrAdcSbbAndSubXorCmp(reciever,dst,src,"ADC",INTEL_ModRM_OP1_ADC_RM_I,INTEL_INSTR_ADC_RMv_REGv,INTEL_INSTR_ADC_REGv_RMv,INTEL_INSTR_ADC_eAX_Iv);
 }
 template <typename T>
-void SBB(T& receiver, const char* dst, const char* src) {
-    AddOrAdcSbbAndSubXorCmp(receiver,dst,src,"SBB",INTEL_ModRM_OP1_SBB_RM_I,INTEL_INSTR_SBB_RMv_REGv,INTEL_INSTR_SBB_REGv_RMv,INTEL_INSTR_SBB_eAX_Iv);
+void SBB(T& reciever, const char* dst, const char* src) {
+    AddOrAdcSbbAndSubXorCmp(reciever,dst,src,"SBB",INTEL_ModRM_OP1_SBB_RM_I,INTEL_INSTR_SBB_RMv_REGv,INTEL_INSTR_SBB_REGv_RMv,INTEL_INSTR_SBB_eAX_Iv);
 }
 template <typename T>
-void AND(T& receiver, const char* dst, const char* src) {
-    AddOrAdcSbbAndSubXorCmp(receiver,dst,src,"AND",INTEL_ModRM_OP1_AND_RM_I,INTEL_INSTR_AND_RMv_REGv,INTEL_INSTR_AND_REGv_RMv,INTEL_INSTR_AND_eAX_Iv);
+void AND(T& reciever, const char* dst, const char* src) {
+    AddOrAdcSbbAndSubXorCmp(reciever,dst,src,"AND",INTEL_ModRM_OP1_AND_RM_I,INTEL_INSTR_AND_RMv_REGv,INTEL_INSTR_AND_REGv_RMv,INTEL_INSTR_AND_eAX_Iv);
 }
 template <typename T>
-void SUB(T& receiver, const char* dst, const char* src) {
-    AddOrAdcSbbAndSubXorCmp(receiver,dst,src,"SUB",INTEL_ModRM_OP1_SUB_RM_I,INTEL_INSTR_SUB_RMv_REGv,INTEL_INSTR_SUB_REGv_RMv,INTEL_INSTR_SUB_eAX_Iv);
+void SUB(T& reciever, const char* dst, const char* src) {
+    AddOrAdcSbbAndSubXorCmp(reciever,dst,src,"SUB",INTEL_ModRM_OP1_SUB_RM_I,INTEL_INSTR_SUB_RMv_REGv,INTEL_INSTR_SUB_REGv_RMv,INTEL_INSTR_SUB_eAX_Iv);
 }
 template <typename T>
-void XOR(T& receiver, const char* dst, const char* src) {
-    AddOrAdcSbbAndSubXorCmp(receiver,dst,src,"XOR",INTEL_ModRM_OP1_XOR_RM_I,INTEL_INSTR_XOR_RMv_REGv,INTEL_INSTR_XOR_REGv_RMv,INTEL_INSTR_XOR_eAX_Iv);
+void XOR(T& reciever, const char* dst, const char* src) {
+    AddOrAdcSbbAndSubXorCmp(reciever,dst,src,"XOR",INTEL_ModRM_OP1_XOR_RM_I,INTEL_INSTR_XOR_RMv_REGv,INTEL_INSTR_XOR_REGv_RMv,INTEL_INSTR_XOR_eAX_Iv);
 }
 template <typename T>
-void CMP(T& receiver, const char* dst, const char* src) {
-    AddOrAdcSbbAndSubXorCmp(receiver,dst,src,"CMP",INTEL_ModRM_OP1_CMP_RM_I,INTEL_INSTR_CMP_RMv_REGv,INTEL_INSTR_CMP_REGv_RMv,INTEL_INSTR_CMP_eAX_Iv);
+void CMP(T& reciever, const char* dst, const char* src) {
+    AddOrAdcSbbAndSubXorCmp(reciever,dst,src,"CMP",INTEL_ModRM_OP1_CMP_RM_I,INTEL_INSTR_CMP_RMv_REGv,INTEL_INSTR_CMP_REGv_RMv,INTEL_INSTR_CMP_eAX_Iv);
 }
 #pragma region AddOrAdcSbbAndSubXorCmp instatiations
-template void ADD(std::ofstream& receiver, const char *dst, const char *src);
-template void OR (std::ofstream& receiver, const char *dst, const char *src);
-template void ADC(std::ofstream& receiver, const char *dst, const char *src);
-template void SBB(std::ofstream& receiver, const char *dst, const char *src);
-template void AND(std::ofstream& receiver, const char *dst, const char *src);
-template void SUB(std::ofstream& receiver, const char *dst, const char *src);
-template void XOR(std::ofstream& receiver, const char *dst, const char *src);
-template void CMP(std::ofstream& receiver, const char *dst, const char *src);
-template void ADD(std::vector<uint8_t>& receiver, const char *dst, const char *src);
-template void OR (std::vector<uint8_t>& receiver, const char *dst, const char *src);
-template void ADC(std::vector<uint8_t>& receiver, const char *dst, const char *src);
-template void SBB(std::vector<uint8_t>& receiver, const char *dst, const char *src);
-template void AND(std::vector<uint8_t>& receiver, const char *dst, const char *src);
-template void SUB(std::vector<uint8_t>& receiver, const char *dst, const char *src);
-template void XOR(std::vector<uint8_t>& receiver, const char *dst, const char *src);
-template void CMP(std::vector<uint8_t>& receiver, const char *dst, const char *src);
-template void ADD(Elf64SegmentHandler*& receiver, const char *dst, const char *src);
-template void OR (Elf64SegmentHandler*& receiver, const char *dst, const char *src);
-template void ADC(Elf64SegmentHandler*& receiver, const char *dst, const char *src);
-template void SBB(Elf64SegmentHandler*& receiver, const char *dst, const char *src);
-template void AND(Elf64SegmentHandler*& receiver, const char *dst, const char *src);
-template void SUB(Elf64SegmentHandler*& receiver, const char *dst, const char *src);
-template void XOR(Elf64SegmentHandler*& receiver, const char *dst, const char *src);
-template void CMP(Elf64SegmentHandler*& receiver, const char *dst, const char *src);
-template void ADD(Pe64SectionHandler*& receiver, const char *dst, const char *src);
-template void OR (Pe64SectionHandler*& receiver, const char *dst, const char *src);
-template void ADC(Pe64SectionHandler*& receiver, const char *dst, const char *src);
-template void SBB(Pe64SectionHandler*& receiver, const char *dst, const char *src);
-template void AND(Pe64SectionHandler*& receiver, const char *dst, const char *src);
-template void SUB(Pe64SectionHandler*& receiver, const char *dst, const char *src);
-template void XOR(Pe64SectionHandler*& receiver, const char *dst, const char *src);
-template void CMP(Pe64SectionHandler*& receiver, const char *dst, const char *src);
+template void ADD(std::ofstream& reciever, const char* dst, const char* src);
+template void OR (std::ofstream& reciever, const char* dst, const char* src);
+template void ADC(std::ofstream& reciever, const char* dst, const char* src);
+template void SBB(std::ofstream& reciever, const char* dst, const char* src);
+template void AND(std::ofstream& reciever, const char* dst, const char* src);
+template void SUB(std::ofstream& reciever, const char* dst, const char* src);
+template void XOR(std::ofstream& reciever, const char* dst, const char* src);
+template void CMP(std::ofstream& reciever, const char* dst, const char* src);
+template void ADD(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void OR (std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void ADC(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void SBB(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void AND(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void SUB(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void XOR(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void CMP(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void ADD(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void OR (Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void ADC(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void SBB(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void AND(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void SUB(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void XOR(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void CMP(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void ADD(Pe64SectionHandler*& reciever, const char* dst, const char* src);
+template void OR (Pe64SectionHandler*& reciever, const char* dst, const char* src);
+template void ADC(Pe64SectionHandler*& reciever, const char* dst, const char* src);
+template void SBB(Pe64SectionHandler*& reciever, const char* dst, const char* src);
+template void AND(Pe64SectionHandler*& reciever, const char* dst, const char* src);
+template void SUB(Pe64SectionHandler*& reciever, const char* dst, const char* src);
+template void XOR(Pe64SectionHandler*& reciever, const char* dst, const char* src);
+template void CMP(Pe64SectionHandler*& reciever, const char* dst, const char* src);
 #pragma endregion AddOrAdcSbbAndSubXorCmp instatiations
 #pragma endregion AddOrAdcSbbAndSubXorCmp
 
 #pragma region IncDec
 template <typename T>
-void IncDec(T &receiver, const char *arg, const char* instructionName, const uint8_t& op3Code=INTEL_ModRM_OP3_INC_RM, const uint8_t& offsetInstr=INTEL_INSTR32_INCpRv) {
+void IncDec(T& reciever, const char* arg, const char* instructionName, const uint8_t& op3Code=INTEL_ModRM_OP3_INC_RM, const uint8_t& offsetInstr=INTEL_INSTR32_INCpRv) {
     if (bitMode==0) return;
     argumentType argInfo = parseArgument(arg);
     if(argInfo.isError) { cout << "arg: \"" << arg << "\": error" << endl; return; }
@@ -602,18 +596,18 @@ void IncDec(T &receiver, const char *arg, const char* instructionName, const uin
 
     if ((bitMode==32)&&argInfo.isJustRegister) {
         // ex: instr (eax thru edi)
-        pushByte(receiver, offsetInstr+argInfo.registerOffset);
+        pushByte(reciever, offsetInstr+argInfo.registerOffset);
         if (debugInstructionOutput) cout << instructionName << " " << argInfo.properString << endl;
     } else {
         // ex: instr (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num])
-        if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-        if ((argInfo.isJustRegister&&(argInfo.bit==64))||(argInfo.isIndirect&&(bitMode==64))) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_OP3v);
-        pushByte(receiver, argInfo.ModRMByte|op3Code);
-        if (argInfo.requiresSIB) pushByte(receiver, argInfo.SibByte);
-        if (argInfo.NumValNumBytes==4) pushWord(receiver, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
-        else if (argInfo.NumValNumBytes==1) pushByte(receiver, argInfo.numValOneByte);
-        if (argInfo.isVar) resolveVar(receiver,argInfo.varName);
+        if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+        if ((argInfo.isJustRegister&&(argInfo.bit==64))||(argInfo.isIndirect&&(bitMode==64))) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_OP3v);
+        pushByte(reciever, argInfo.ModRMByte|op3Code);
+        if (argInfo.requiresSIB) pushByte(reciever, argInfo.SibByte);
+        if (argInfo.NumValNumBytes==4) pushDword(reciever, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
+        else if (argInfo.NumValNumBytes==1) pushByte(reciever, argInfo.numValOneByte);
+        if (argInfo.isVar) resolveVar(reciever,argInfo.varName);
         if (debugInstructionOutput) {
             if (argInfo.isIndirect) cout << instructionName << " " << ((bitMode==64)?"QWORD":"DWORD") << " PTR " << argInfo.properString << endl;
             else cout << instructionName << " " << argInfo.properString << endl;
@@ -621,26 +615,26 @@ void IncDec(T &receiver, const char *arg, const char* instructionName, const uin
     }
 }
 template <typename T>
-void INC(T &receiver, const char *arg) {
-    IncDec(receiver,arg,"INC",INTEL_ModRM_OP3_INC_RM,INTEL_INSTR32_INCpRv);
+void INC(T& reciever, const char* arg) {
+    IncDec(reciever,arg,"INC",INTEL_ModRM_OP3_INC_RM,INTEL_INSTR32_INCpRv);
 }
 template <typename T>
-void DEC(T &receiver, const char *arg) {
-    IncDec(receiver,arg,"DEC",INTEL_ModRM_OP3_DEC_RM,INTEL_INSTR32_DECpRv);
+void DEC(T& reciever, const char* arg) {
+    IncDec(reciever,arg,"DEC",INTEL_ModRM_OP3_DEC_RM,INTEL_INSTR32_DECpRv);
 }
-template void INC(std::ofstream& receiver, const char *arg);
-template void DEC(std::ofstream& receiver, const char *arg);
-template void INC(std::vector<uint8_t>& receiver, const char *arg);
-template void DEC(std::vector<uint8_t>& receiver, const char *arg);
-template void INC(Elf64SegmentHandler*& receiver, const char *arg);
-template void DEC(Elf64SegmentHandler*& receiver, const char *arg);
-template void INC(Pe64SectionHandler*& receiver, const char *arg);
-template void DEC(Pe64SectionHandler*& receiver, const char *arg);
+template void INC(std::ofstream& reciever, const char* arg);
+template void DEC(std::ofstream& reciever, const char* arg);
+template void INC(std::vector<uint8_t>& reciever, const char* arg);
+template void DEC(std::vector<uint8_t>& reciever, const char* arg);
+template void INC(Elf64SegmentHandler*& reciever, const char* arg);
+template void DEC(Elf64SegmentHandler*& reciever, const char* arg);
+template void INC(Pe64SectionHandler*& reciever, const char* arg);
+template void DEC(Pe64SectionHandler*& reciever, const char* arg);
 #pragma endregion IncDec
 
 #pragma region CallJmp
 template <typename T>
-void CallJmp(T &receiver, const char *arg, const char *instructionName, const uint8_t& op3Code=INTEL_ModRM_OP3_CALL_RM, const uint8_t& op3CodeFar=INTEL_ModRM_OP3_CALL_RM, const uint8_t& INSTR_Jv=INTEL_INSTR_CALL_Jv) {
+void CallJmp(T& reciever, const char* arg, const char* instructionName, const uint8_t& op3Code=INTEL_ModRM_OP3_CALL_RM, const uint8_t& op3CodeFar=INTEL_ModRM_OP3_CALL_RM, const uint8_t& INSTR_Jv=INTEL_INSTR_CALL_Jv) {
     if (bitMode==0) return;
     argumentType argInfo = parseArgument(arg);
     if(argInfo.isError) { cout << "arg: \"" << arg << "\": error" << endl; return; }
@@ -651,20 +645,20 @@ void CallJmp(T &receiver, const char *arg, const char *instructionName, const ui
     if (argInfo.isJustNumber) {
         // ex: call/jmp num
         cout << "Just a number as an argument is not currently supported for " << instructionName << "." << endl;// return;
-        if (argInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INSTR_Jv);
-        pushWord(receiver, argInfo.numValFourBytes, true);
+        if (argInfo.bit==64) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INSTR_Jv);
+        pushDword(reciever, argInfo.numValFourBytes, true);
         if (debugInstructionOutput) cout << instructionName << " " << argInfo.properString << endl;
     } else {
         // ex: instr (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num])
-        if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-        if (argInfo.isJustRegister&&(argInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_OP3v);
-        pushByte(receiver, argInfo.ModRMByte|op3Code);
-        if (argInfo.requiresSIB) pushByte(receiver, argInfo.SibByte);
-        if (argInfo.NumValNumBytes==4) pushWord(receiver, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
-        else if (argInfo.NumValNumBytes==1) pushByte(receiver, argInfo.numValOneByte);
-        if (argInfo.isVar) resolveVar(receiver,argInfo.varName);
+        if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+        if (argInfo.isJustRegister&&(argInfo.bit==64)) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_OP3v);
+        pushByte(reciever, argInfo.ModRMByte|op3Code);
+        if (argInfo.requiresSIB) pushByte(reciever, argInfo.SibByte);
+        if (argInfo.NumValNumBytes==4) pushDword(reciever, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
+        else if (argInfo.NumValNumBytes==1) pushByte(reciever, argInfo.numValOneByte);
+        if (argInfo.isVar) resolveVar(reciever,argInfo.varName);
         if (debugInstructionOutput) {
             if (argInfo.isIndirect) cout << instructionName << " " << ((bitMode==64)?"QWORD":"DWORD") << " PTR " << argInfo.properString << endl;
             else cout << instructionName << " " << argInfo.properString << endl;
@@ -672,42 +666,42 @@ void CallJmp(T &receiver, const char *arg, const char *instructionName, const ui
     }
 }
 template <typename T>
-void CALL(T &receiver, const char *arg) {
-    CallJmp(receiver,arg,"CALL",INTEL_ModRM_OP3_CALL_RM,INTEL_ModRM_OP3_CALLF_m,INTEL_INSTR_CALL_Jv);
+void CALL(T& reciever, const char* arg) {
+    CallJmp(reciever,arg,"CALL",INTEL_ModRM_OP3_CALL_RM,INTEL_ModRM_OP3_CALLF_m,INTEL_INSTR_CALL_Jv);
 }
 template <typename T>
-void JMP(T &receiver, const char *arg) {
-    CallJmp(receiver,arg,"JMP",INTEL_ModRM_OP3_JMP_RM,INTEL_ModRM_OP3_JMPF_m,INTEL_INSTR_JMP_Jv);
+void JMP(T& reciever, const char* arg) {
+    CallJmp(reciever,arg,"JMP",INTEL_ModRM_OP3_JMP_RM,INTEL_ModRM_OP3_JMPF_m,INTEL_INSTR_JMP_Jv);
 }
 /*template <typename T>
-void CALLF(T &receiver, const char *arg) {
+void CALLF(T& reciever, const char* arg) {
     
 }*/
 /*template <typename T>
-void JMPF(T &receiver, const char *arg) {
+void JMPF(T& reciever, const char* arg) {
     
 }*/
-template void CALL(std::ofstream& receiver, const char *arg);
-template void JMP(std::ofstream& receiver, const char *arg);
-//template void CALLF(std::ofstream& receiver, const char *arg);
-//template void JMPF(std::ofstream& receiver, const char *arg);
-template void CALL(std::vector<uint8_t>& receiver, const char *arg);
-template void JMP(std::vector<uint8_t>& receiver, const char *arg);
-//template void CALLF(std::vector<uint8_t>& receiver, const char *arg);
-//template void JMPF(std::vector<uint8_t>& receiver, const char *arg);
-template void CALL(Elf64SegmentHandler*& receiver, const char *arg);
-template void JMP(Elf64SegmentHandler*& receiver, const char *arg);
-//template void CALLF(Elf64SegmentHandler& receiver, const char *arg);
-//template void JMPF(Elf64SegmentHandler& receiver, const char *arg);
-template void CALL(Pe64SectionHandler*& receiver, const char *arg);
-template void JMP(Pe64SectionHandler*& receiver, const char *arg);
-//template void CALLF(Pe64SectionHandler& receiver, const char *arg);
-//template void JMPF(Pe64SectionHandler& receiver, const char *arg);
+template void CALL(std::ofstream& reciever, const char* arg);
+template void JMP(std::ofstream& reciever, const char* arg);
+//template void CALLF(std::ofstream& reciever, const char* arg);
+//template void JMPF(std::ofstream& reciever, const char* arg);
+template void CALL(std::vector<uint8_t>& reciever, const char* arg);
+template void JMP(std::vector<uint8_t>& reciever, const char* arg);
+//template void CALLF(std::vector<uint8_t>& reciever, const char* arg);
+//template void JMPF(std::vector<uint8_t>& reciever, const char* arg);
+template void CALL(Elf64SegmentHandler*& reciever, const char* arg);
+template void JMP(Elf64SegmentHandler*& reciever, const char* arg);
+//template void CALLF(Elf64SegmentHandler& reciever, const char* arg);
+//template void JMPF(Elf64SegmentHandler& reciever, const char* arg);
+template void CALL(Pe64SectionHandler*& reciever, const char* arg);
+template void JMP(Pe64SectionHandler*& reciever, const char* arg);
+//template void CALLF(Pe64SectionHandler& reciever, const char* arg);
+//template void JMPF(Pe64SectionHandler& reciever, const char* arg);
 #pragma endregion CallJmp
 
 #pragma region PushPop
 template <typename T>
-void PUSH(T &receiver, const char *arg) {
+void PUSH(T& reciever, const char* arg) {
     if (bitMode==0) return;
     argumentType argInfo = parseArgument(arg);
     if(argInfo.isError) { cout << "arg: \"" << arg << "\": error" << endl; return; }
@@ -718,27 +712,27 @@ void PUSH(T &receiver, const char *arg) {
     if (argInfo.isJustNumber) {
         // ex: PUSH num
         if (argInfo.NumValNumBytes==4) {
-            pushByte(receiver, INTEL_INSTR_PUSH_Iv);
-            pushWord(receiver, argInfo.numValFourBytes, true);
+            pushByte(reciever, INTEL_INSTR_PUSH_Iv);
+            pushDword(reciever, argInfo.numValFourBytes, true);
         } else if (argInfo.NumValNumBytes==1) {
-            pushByte(receiver, INTEL_INSTR_PUSH_Ib);
-            pushByte(receiver, argInfo.numValOneByte);
+            pushByte(reciever, INTEL_INSTR_PUSH_Ib);
+            pushByte(reciever, argInfo.numValOneByte);
         }
         if (debugInstructionOutput) cout << "PUSH " << argInfo.properString << endl;
     } else if (argInfo.isJustRegister) {
         // ex: PUSH reg
-        pushByte(receiver, INTEL_INSTR_PUSHpRv+argInfo.registerOffset);
+        pushByte(reciever, INTEL_INSTR_PUSHpRv+argInfo.registerOffset);
         if (debugInstructionOutput) cout << "PUSH " << argInfo.properString << endl;
     } else {// argInfo.isIndirect
         // ex: PUSH (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num])
-        if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-        if (argInfo.isJustRegister&&(argInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_OP3v);
-        pushByte(receiver, argInfo.ModRMByte|INTEL_ModRM_OP3_PUSH_RM);
-        if (argInfo.requiresSIB) pushByte(receiver, argInfo.SibByte);
-        if (argInfo.NumValNumBytes==4) pushWord(receiver, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
-        else if (argInfo.NumValNumBytes==1) pushByte(receiver, argInfo.numValOneByte);
-        if (argInfo.isVar) resolveVar(receiver,argInfo.varName);
+        if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+        if (argInfo.isJustRegister&&(argInfo.bit==64)) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_OP3v);
+        pushByte(reciever, argInfo.ModRMByte|INTEL_ModRM_OP3_PUSH_RM);
+        if (argInfo.requiresSIB) pushByte(reciever, argInfo.SibByte);
+        if (argInfo.NumValNumBytes==4) pushDword(reciever, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
+        else if (argInfo.NumValNumBytes==1) pushByte(reciever, argInfo.numValOneByte);
+        if (argInfo.isVar) resolveVar(reciever,argInfo.varName);
         if (debugInstructionOutput) {
             if (argInfo.isIndirect) cout << "PUSH " << ((bitMode==64)?"QWORD":"DWORD") << " PTR " << argInfo.properString << endl;
             else cout << "PUSH " << argInfo.properString << endl;
@@ -746,7 +740,7 @@ void PUSH(T &receiver, const char *arg) {
     }
 }
 template <typename T>
-void POP(T &receiver, const char *arg) {
+void POP(T& reciever, const char* arg) {
     if (bitMode==0) return;
     argumentType argInfo = parseArgument(arg);
     if(argInfo.isError) { cout << "arg: \"" << arg << "\": error" << endl; return; }
@@ -757,38 +751,38 @@ void POP(T &receiver, const char *arg) {
 
     if (argInfo.isJustRegister) {
         // ex: POP reg
-        pushByte(receiver, INTEL_INSTR_POPpRv+argInfo.registerOffset);
+        pushByte(reciever, INTEL_INSTR_POPpRv+argInfo.registerOffset);
         if (debugInstructionOutput) cout << "POP " << argInfo.properString << endl;
     } else {// argInfo.isIndirect
         // ex: POP (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num])
-        if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-        if (argInfo.isJustRegister&&(argInfo.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_POP_RMv);
-        pushByte(receiver, argInfo.ModRMByte);
-        if (argInfo.requiresSIB) pushByte(receiver, argInfo.SibByte);
-        if (argInfo.NumValNumBytes==4) pushWord(receiver, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
-        else if (argInfo.NumValNumBytes==1) pushByte(receiver, argInfo.numValOneByte);
-        if (argInfo.isVar) resolveVar(receiver,argInfo.varName);
+        if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+        if (argInfo.isJustRegister&&(argInfo.bit==64)) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_POP_RMv);
+        pushByte(reciever, argInfo.ModRMByte);
+        if (argInfo.requiresSIB) pushByte(reciever, argInfo.SibByte);
+        if (argInfo.NumValNumBytes==4) pushDword(reciever, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
+        else if (argInfo.NumValNumBytes==1) pushByte(reciever, argInfo.numValOneByte);
+        if (argInfo.isVar) resolveVar(reciever,argInfo.varName);
         if (debugInstructionOutput) {
             if (argInfo.isIndirect) cout << "POP " << ((bitMode==64)?"QWORD":"DWORD") << " PTR " << argInfo.properString << endl;
             else cout << "POP " << argInfo.properString << endl;
         }
     }
 }
-template void PUSH(std::ofstream& receiver, const char *arg);
-template void POP(std::ofstream& receiver, const char *arg);
-template void PUSH(std::vector<uint8_t>& receiver, const char *arg);
-template void POP(std::vector<uint8_t>& receiver, const char *arg);
-template void PUSH(Elf64SegmentHandler*& receiver, const char *arg);
-template void POP(Elf64SegmentHandler*& receiver, const char *arg);
-template void PUSH(Pe64SectionHandler*& receiver, const char *arg);
-template void POP(Pe64SectionHandler*& receiver, const char *arg);
+template void PUSH(std::ofstream& reciever, const char* arg);
+template void POP(std::ofstream& reciever, const char* arg);
+template void PUSH(std::vector<uint8_t>& reciever, const char* arg);
+template void POP(std::vector<uint8_t>& reciever, const char* arg);
+template void PUSH(Elf64SegmentHandler*& reciever, const char* arg);
+template void POP(Elf64SegmentHandler*& reciever, const char* arg);
+template void PUSH(Pe64SectionHandler*& reciever, const char* arg);
+template void POP(Pe64SectionHandler*& reciever, const char* arg);
 #pragma endregion PushPop
 
 #pragma region jump if instructions
 /*
 template <typename T>
-void JOV(T &receiver, const char *arg) {
+void JOV(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -798,7 +792,7 @@ void JOV(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JNOV(T &receiver, const char *arg) {
+void JNOV(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -808,7 +802,7 @@ void JNOV(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JULT(T &receiver, const char *arg) {
+void JULT(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -818,7 +812,7 @@ void JULT(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JUGE(T &receiver, const char *arg) {
+void JUGE(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -828,7 +822,7 @@ void JUGE(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JET(T &receiver, const char *arg) {
+void JET(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -838,7 +832,7 @@ void JET(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JNE(T &receiver, const char *arg) {
+void JNE(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -848,7 +842,7 @@ void JNE(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JULE(T &receiver, const char *arg) {
+void JULE(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -858,7 +852,7 @@ void JULE(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JUGT(T &receiver, const char *arg) {
+void JUGT(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -868,7 +862,7 @@ void JUGT(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JS(T &receiver, const char *arg) {
+void JS(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -878,7 +872,7 @@ void JS(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JNS(T &receiver, const char *arg) {
+void JNS(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -888,7 +882,7 @@ void JNS(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JP(T &receiver, const char *arg) {
+void JP(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -898,7 +892,7 @@ void JP(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 };
 template <typename T>
-void JNP(T &receiver, const char *arg) {
+void JNP(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -908,7 +902,7 @@ void JNP(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JLT(T &receiver, const char *arg) {
+void JLT(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -918,7 +912,7 @@ void JLT(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JGE(T &receiver, const char *arg) {
+void JGE(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -928,7 +922,7 @@ void JGE(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JLE(T &receiver, const char *arg) {
+void JLE(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -938,7 +932,7 @@ void JLE(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JGT(T &receiver, const char *arg) {
+void JGT(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -948,7 +942,7 @@ void JGT(T &receiver, const char *arg) {
     if (argInfo.bit!=0 && argInfo.bit<32) return;// Dont have handling for these yet
 }
 template <typename T>
-void JCXZ(T &receiver, const char *arg) {
+void JCXZ(T& reciever, const char* arg) {
     if (bitMode==0) return;
     instructionArgInfo argInfo = processArg(arg);
     if(!argInfo.isValid) { cout << "arg: \"" << arg << "\": \"" << argInfo.reason << "\"" << endl; return; }
@@ -962,13 +956,13 @@ void JCXZ(T &receiver, const char *arg) {
 
 #pragma region NOP
 template <typename T>
-void NOP(T &receiver) {
+void NOP(T& reciever) {
     if (bitMode==0) return;
-    pushByte(receiver, INTEL_INSTR_NOP);
+    pushByte(reciever, INTEL_INSTR_NOP);
     if (debugInstructionOutput) cout << "NOP" << endl;
 }
 template <typename T>
-void NOP(T &receiver, const char *arg) {
+void NOP(T& reciever, const char* arg) {
     if (bitMode==0) return;
     argumentType argInfo = parseArgument(arg);
     if(argInfo.isError) { cout << "arg: \"" << arg << "\": error" << endl; return; }
@@ -977,32 +971,32 @@ void NOP(T &receiver, const char *arg) {
     if ((argInfo.bit!=0)&&(argInfo.bit<32)) { cout << "invalid bit" << endl; return; }// dont have handling for these yet
 
     // ex: POP (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num])
-    if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-    if ((argInfo.isJustRegister&&(argInfo.bit==64))||(argInfo.isIndirect&&(bitMode==64))) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-    pushHalfWord(receiver, INTEL_INSTR_NOP_RMv,false);
-    pushByte(receiver, argInfo.ModRMByte);
-    if (argInfo.requiresSIB) pushByte(receiver, argInfo.SibByte);
-    if (argInfo.NumValNumBytes==4) pushWord(receiver, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
-    else if (argInfo.NumValNumBytes==1) pushByte(receiver, argInfo.numValOneByte);
-    if (argInfo.isVar) resolveVar(receiver,argInfo.varName);
+    if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+    if ((argInfo.isJustRegister&&(argInfo.bit==64))||(argInfo.isIndirect&&(bitMode==64))) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+    pushWord(reciever, INTEL_INSTR_NOP_RMv,false);
+    pushByte(reciever, argInfo.ModRMByte);
+    if (argInfo.requiresSIB) pushByte(reciever, argInfo.SibByte);
+    if (argInfo.NumValNumBytes==4) pushDword(reciever, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
+    else if (argInfo.NumValNumBytes==1) pushByte(reciever, argInfo.numValOneByte);
+    if (argInfo.isVar) resolveVar(reciever,argInfo.varName);
     if (debugInstructionOutput) {
         if (argInfo.isIndirect) cout << "NOP " << ((bitMode==64)?"QWORD":"DWORD") << " PTR " << argInfo.properString << endl;
         else cout << "NOP " << argInfo.properString << endl;
     }
 }
-template void NOP(std::ofstream& receiver);
-template void NOP(std::ofstream& receiver, const char *arg);
-template void NOP(std::vector<uint8_t>& receiver);
-template void NOP(std::vector<uint8_t>& receiver, const char *arg);
-template void NOP(Elf64SegmentHandler*& receiver);
-template void NOP(Elf64SegmentHandler*& receiver, const char *arg);
-template void NOP(Pe64SectionHandler*& receiver);
-template void NOP(Pe64SectionHandler*& receiver, const char *arg);
+template void NOP(std::ofstream& reciever);
+template void NOP(std::ofstream& reciever, const char* arg);
+template void NOP(std::vector<uint8_t>& reciever);
+template void NOP(std::vector<uint8_t>& reciever, const char* arg);
+template void NOP(Elf64SegmentHandler*& reciever);
+template void NOP(Elf64SegmentHandler*& reciever, const char* arg);
+template void NOP(Pe64SectionHandler*& reciever);
+template void NOP(Pe64SectionHandler*& reciever, const char* arg);
 #pragma endregion NOP
 
 #pragma region XCHG
 template <typename T>
-void XCHG(T &receiver, const char *arg1, const char *arg2) {
+void XCHG(T& reciever, const char* arg1, const char* arg2) {
     if (bitMode==0) return;
     argumentType arg1Info = parseArgument(arg1);
     if(arg1Info.isError) { cout << "arg1: \"" << arg1 << "\": error" << endl; return; }
@@ -1017,8 +1011,8 @@ void XCHG(T &receiver, const char *arg1, const char *arg2) {
     if (arg1Info.isJustRegister&&arg2Info.isJustRegister&&(arg1Info.registerOffset==INTEL_REG_OFF_eAX)) {
         // ex: xchg eAX, reg
         if (arg1Info.bit!=arg2Info.bit) { cout << "Operand size mis-match." << endl; return; }
-        if (arg1Info.bit==64 && (arg2Info.registerOffset!=INTEL_REG_OFF_eAX)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_XCHG_eAX_REGpRv+arg2Info.registerOffset);
+        if (arg1Info.bit==64 && (arg2Info.registerOffset!=INTEL_REG_OFF_eAX)) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_XCHG_eAX_REGpRv+arg2Info.registerOffset);
         if (debugInstructionOutput) {
             if (arg2Info.registerOffset==INTEL_REG_OFF_eAX) cout << "NOP" << endl;
             else cout << "XCHG " << arg1Info.properString << ", " << arg2Info.properString << endl;
@@ -1026,51 +1020,51 @@ void XCHG(T &receiver, const char *arg1, const char *arg2) {
     } else if (arg1Info.isJustRegister&&arg2Info.isJustRegister&&(arg2Info.registerOffset==INTEL_REG_OFF_eAX)) {
         // ex: xchg reg, eAX
         if (arg1Info.bit!=arg2Info.bit) { cout << "Operand size mis-match." << endl; return; }
-        if (arg1Info.bit==64 && (arg1Info.registerOffset!=INTEL_REG_OFF_eAX)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_XCHG_eAX_REGpRv+arg1Info.registerOffset);
+        if (arg1Info.bit==64 && (arg1Info.registerOffset!=INTEL_REG_OFF_eAX)) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_XCHG_eAX_REGpRv+arg1Info.registerOffset);
         if (debugInstructionOutput) {
             if (arg1Info.registerOffset==INTEL_REG_OFF_eAX) cout << "NOP" << endl;
             else cout << "XCHG " << arg1Info.properString << ", " << arg2Info.properString << endl;
         }
     } else if (!arg2Info.isIndirect) {
         // ex: xchg (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num]), reg
-        if (arg1Info.isIndirect&&(bitMode==64)&&(arg1Info.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-        if (arg2Info.isJustRegister&&(arg2Info.bit==64)) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_XCHG_REGv_RMv);
+        if (arg1Info.isIndirect&&(bitMode==64)&&(arg1Info.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+        if (arg2Info.isJustRegister&&(arg2Info.bit==64)) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_XCHG_REGv_RMv);
         const uint8_t RegOp = arg2Info.isJustRegister?arg2Info.registerRegOp:0;
-        pushByte(receiver, arg1Info.ModRMByte|RegOp);
-        if (arg1Info.requiresSIB) pushByte(receiver, arg1Info.SibByte);
-        if (arg1Info.NumValNumBytes==4) pushWord(receiver, arg1Info.numValFourBytes, true);
-        if (arg1Info.isVar) resolveVar(receiver,arg1Info.varName);
-        else if (arg1Info.NumValNumBytes==1) pushByte(receiver, arg1Info.numValOneByte);
+        pushByte(reciever, arg1Info.ModRMByte|RegOp);
+        if (arg1Info.requiresSIB) pushByte(reciever, arg1Info.SibByte);
+        if (arg1Info.NumValNumBytes==4) pushDword(reciever, arg1Info.numValFourBytes, true);
+        if (arg1Info.isVar) resolveVar(reciever,arg1Info.varName);
+        else if (arg1Info.NumValNumBytes==1) pushByte(reciever, arg1Info.numValOneByte);
         cout << "XCHG " << ((arg2Info.bit==64)?"QWORD":"DWORD") << " PTR " << arg1Info.properString << ", " << arg2Info.properString << endl;
     } else {
         // ex: xchg reg, (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num])
         if (arg1Info.isJustRegister&&arg2Info.isJustRegister&&(arg1Info.bit!=arg2Info.bit)) { cout << "Operand size mis-match." << endl; return; }
-        if (arg2Info.isIndirect&&(bitMode==64)&&(arg2Info.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-        if ((arg2Info.isJustRegister&&(arg2Info.bit==64))||(arg1Info.isJustRegister&&(arg1Info.bit==64))) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_XCHG_REGv_RMv);
+        if (arg2Info.isIndirect&&(bitMode==64)&&(arg2Info.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+        if ((arg2Info.isJustRegister&&(arg2Info.bit==64))||(arg1Info.isJustRegister&&(arg1Info.bit==64))) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_XCHG_REGv_RMv);
         const uint8_t RegOp = arg1Info.isJustRegister?arg1Info.registerRegOp:0;
-        pushByte(receiver, arg2Info.ModRMByte|RegOp);
-        if (arg2Info.requiresSIB) pushByte(receiver, arg2Info.SibByte);
-        if (arg2Info.NumValNumBytes==4) pushWord(receiver, arg2Info.numValFourBytes, true);
-        else if (arg2Info.NumValNumBytes==1) pushByte(receiver, arg2Info.numValOneByte);
-        if (arg2Info.isVar) resolveVar(receiver,arg2Info.varName);
+        pushByte(reciever, arg2Info.ModRMByte|RegOp);
+        if (arg2Info.requiresSIB) pushByte(reciever, arg2Info.SibByte);
+        if (arg2Info.NumValNumBytes==4) pushDword(reciever, arg2Info.numValFourBytes, true);
+        else if (arg2Info.NumValNumBytes==1) pushByte(reciever, arg2Info.numValOneByte);
+        if (arg2Info.isVar) resolveVar(reciever,arg2Info.varName);
         if (debugInstructionOutput) {
             if (arg2Info.isIndirect) cout << "XCHG " << arg1Info.properString << ", " << ((arg1Info.bit==64)?"QWORD":"DWORD") << " PTR " << arg2Info.properString << endl;
             else if (debugInstructionOutput) cout << "XCHG " << arg1Info.properString << ", " << arg2Info.properString << endl;
         }
     }
 }
-template void XCHG(std::ofstream& receiver, const char *arg1, const char *arg2);
-template void XCHG(std::vector<uint8_t>& receiver, const char *arg1, const char *arg2);
-template void XCHG(Elf64SegmentHandler*& receiver, const char *arg1, const char *arg2);
-template void XCHG(Pe64SectionHandler*& receiver, const char *arg1, const char *arg2);
+template void XCHG(std::ofstream& reciever, const char* arg1, const char* arg2);
+template void XCHG(std::vector<uint8_t>& reciever, const char* arg1, const char* arg2);
+template void XCHG(Elf64SegmentHandler*& reciever, const char* arg1, const char* arg2);
+template void XCHG(Pe64SectionHandler*& reciever, const char* arg1, const char* arg2);
 #pragma endregion XCHG
 
 #pragma region MOV
 template <typename T>
-void MOV(T &receiver, const char *dst, const char *src) {
+void MOV(T& reciever, const char* dst, const char* src) {
     if (bitMode==0) return;
     argumentType dstInfo = parseArgument(dst);
     if(dstInfo.isError) { cout << "dst: \"" << dst << "\": error" << endl; return; }
@@ -1083,57 +1077,57 @@ void MOV(T &receiver, const char *dst, const char *src) {
 
     if (srcInfo.isJustNumber&&dstInfo.isJustRegister&&(dstInfo.bit<64)) {
         // ex: mov reg, num
-        if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_MOV_REGpRv_Iv+dstInfo.registerOffset);
-        pushWord(receiver, srcInfo.numValFourBytes, true);
+        if (dstInfo.bit==64) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_MOV_REGpRv_Iv+dstInfo.registerOffset);
+        pushDword(reciever, srcInfo.numValFourBytes, true);
         if (debugInstructionOutput) cout << "MOV " << dstInfo.properString << ", " << srcInfo.properString << endl;
     } else if (!srcInfo.isIndirect) {
         // ex: mov (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num]), (reg or num)
         if (!dstInfo.isIndirect&&!srcInfo.isJustNumber&&(dstInfo.bit!=srcInfo.bit)) { cout << "Operand size mis-match." << endl; return; }
-        if (dstInfo.isIndirect&&(bitMode==64)&&(dstInfo.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-        if ((srcInfo.isJustRegister&&(srcInfo.bit==64))||(dstInfo.isJustRegister&&(dstInfo.bit==64))) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, srcInfo.isJustRegister?INTEL_INSTR_MOV_RMv_REGv:INTEL_INSTR_MOV_RMv_Iv);// Specify if src is a register or an immutable
+        if (dstInfo.isIndirect&&(bitMode==64)&&(dstInfo.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+        if ((srcInfo.isJustRegister&&(srcInfo.bit==64))||(dstInfo.isJustRegister&&(dstInfo.bit==64))) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, srcInfo.isJustRegister?INTEL_INSTR_MOV_RMv_REGv:INTEL_INSTR_MOV_RMv_Iv);// Specify if src is a register or an immutable
         const uint8_t RegOp = srcInfo.isJustRegister?srcInfo.registerRegOp:0;
-        pushByte(receiver, dstInfo.ModRMByte|RegOp);
-        if (dstInfo.requiresSIB) pushByte(receiver, dstInfo.SibByte);
-        if (dstInfo.NumValNumBytes==4) pushWord(receiver, dstInfo.numValFourBytes, true);
-        else if (dstInfo.NumValNumBytes==1) pushByte(receiver, dstInfo.numValOneByte);
-        if (dstInfo.isVar) resolveVar(receiver,dstInfo.varName);
-        if (srcInfo.isJustNumber) pushWord(receiver, srcInfo.numValFourBytes, true);
+        pushByte(reciever, dstInfo.ModRMByte|RegOp);
+        if (dstInfo.requiresSIB) pushByte(reciever, dstInfo.SibByte);
+        if (dstInfo.NumValNumBytes==4) pushDword(reciever, dstInfo.numValFourBytes, true);
+        else if (dstInfo.NumValNumBytes==1) pushByte(reciever, dstInfo.numValOneByte);
+        if (dstInfo.isVar) resolveVar(reciever,dstInfo.varName);
+        if (srcInfo.isJustNumber) pushDword(reciever, srcInfo.numValFourBytes, true);
         if (debugInstructionOutput) {
             if (dstInfo.isIndirect&&!dstInfo.isVar) cout << "MOV " << ((srcInfo.bit==64)?"QWORD":"DWORD") << " PTR " << dstInfo.properString << ", " << srcInfo.properString << endl;
             else cout << "MOV " << dstInfo.properString << ", " << srcInfo.properString << endl;
         }
     } else {
         // ex: mov reg, ([eip/rip+num] or [reg+num] or [base+index*scale+num])
-        if (bitMode==64 && srcInfo.bit==32) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-        if (dstInfo.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_MOV_REGv_RMv);
-        pushByte(receiver, srcInfo.ModRMByte|dstInfo.registerRegOp);
-        if (srcInfo.requiresSIB) pushByte(receiver, srcInfo.SibByte);
-        if (srcInfo.NumValNumBytes==4) pushWord(receiver, srcInfo.numValFourBytes, true);
-        else if (srcInfo.NumValNumBytes==1) pushByte(receiver, srcInfo.numValOneByte);
-        if (srcInfo.isVar) resolveVar(receiver,srcInfo.varName);
+        if (bitMode==64 && srcInfo.bit==32) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+        if (dstInfo.bit==64) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_MOV_REGv_RMv);
+        pushByte(reciever, srcInfo.ModRMByte|dstInfo.registerRegOp);
+        if (srcInfo.requiresSIB) pushByte(reciever, srcInfo.SibByte);
+        if (srcInfo.NumValNumBytes==4) pushDword(reciever, srcInfo.numValFourBytes, true);
+        else if (srcInfo.NumValNumBytes==1) pushByte(reciever, srcInfo.numValOneByte);
+        if (srcInfo.isVar) resolveVar(reciever,srcInfo.varName);
         if (debugInstructionOutput) {
             if (!srcInfo.isVar) cout << "MOV " << dstInfo.properString << ", " << ((dstInfo.bit==64)?"QWORD":"DWORD") << " PTR " << srcInfo.properString << endl;
             else cout << "MOV " << dstInfo.properString << ", " << srcInfo.properString << endl;
         }
     }
 }
-template void MOV(std::ofstream& receiver, const char *dst, const char *src);
-template void MOV(std::vector<uint8_t>& receiver, const char *dst, const char *src);
-template void MOV(Elf64SegmentHandler*& receiver, const char *dst, const char *src);
-template void MOV(Pe64SectionHandler*& receiver, const char *dst, const char *src);
+template void MOV(std::ofstream& reciever, const char* dst, const char* src);
+template void MOV(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void MOV(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void MOV(Pe64SectionHandler*& reciever, const char* dst, const char* src);
 #pragma endregion MOV
 
 #pragma region RetRetf
 template <typename T>
-void RET(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_RET);
+void RET(T& reciever) {
+    pushByte(reciever, INTEL_INSTR_RET);
     if (debugInstructionOutput) cout << "RET" << endl;
 }
 template <typename T>
-void RET(T &receiver,  const char *num) {
+void RET(T& reciever,  const char* num) {
     if (bitMode==0) return;
     argumentType numInfo = parseArgument(num);
     if(numInfo.isError) { cout << "num: \"" << num << "\": error" << endl; return; }
@@ -1141,17 +1135,17 @@ void RET(T &receiver,  const char *num) {
     if (!numInfo.isJustNumber) { cout << "ret argument may only be a number" << endl; return; }
     if (numInfo.numValFourBytes >= 65536) { cout << "Number is too large to return." << endl; return; }
 
-    pushByte(receiver, INTEL_INSTR_RET_I16);
-    pushHalfWord(receiver, (uint16_t)numInfo.numValFourBytes, true);
+    pushByte(reciever, INTEL_INSTR_RET_I16);
+    pushWord(reciever, (uint16_t)numInfo.numValFourBytes, true);
     if (debugInstructionOutput) cout << "RET " << numInfo.properString << endl;
 }
 template <typename T>
-void RETF(T &receiver) {
-    pushByte(receiver, INTEL_INSTR_RETF);
+void RETF(T& reciever) {
+    pushByte(reciever, INTEL_INSTR_RETF);
     if (debugInstructionOutput) cout << "RETF" << endl;
 }
 template <typename T>
-void RETF(T &receiver,  const char *num) {
+void RETF(T& reciever,  const char* num) {
     if (bitMode==0) return;
     argumentType numInfo = parseArgument(num);
     if(numInfo.isError) { cout << "num: \"" << num << "\": error" << endl; return; }
@@ -1159,37 +1153,37 @@ void RETF(T &receiver,  const char *num) {
     if (!numInfo.isJustNumber) { cout << "Retf argument may only be a number" << endl; return; }
     if (numInfo.numValFourBytes >= 65536) { cout << "Number is too large to return." << endl; return; }
 
-    pushByte(receiver, INTEL_INSTR_RETF_I16);
-    pushHalfWord(receiver, (uint16_t)numInfo.numValFourBytes, true);
+    pushByte(reciever, INTEL_INSTR_RETF_I16);
+    pushWord(reciever, (uint16_t)numInfo.numValFourBytes, true);
     if (debugInstructionOutput) cout << "RETF " << numInfo.properString << endl;
 }
-template void RET(std::ofstream& receiver);
-template void RET(std::ofstream& receiver, const char *num);
-template void RETF(std::ofstream& receiver);
-template void RETF(std::ofstream& receiver, const char *num);
-template void RET(std::vector<uint8_t>& receiver);
-template void RET(std::vector<uint8_t>& receiver, const char *num);
-template void RETF(std::vector<uint8_t>& receiver);
-template void RETF(std::vector<uint8_t>& receiver, const char *num);
-template void RET(Elf64SegmentHandler*& receiver);
-template void RET(Elf64SegmentHandler*& receiver, const char *num);
-template void RETF(Elf64SegmentHandler*& receiver);
-template void RETF(Elf64SegmentHandler*& receiver, const char *num);
-template void RET(Pe64SectionHandler*& receiver);
-template void RET(Pe64SectionHandler*& receiver, const char *num);
-template void RETF(Pe64SectionHandler*& receiver);
-template void RETF(Pe64SectionHandler*& receiver, const char *num);
+template void RET(std::ofstream& reciever);
+template void RET(std::ofstream& reciever, const char* num);
+template void RETF(std::ofstream& reciever);
+template void RETF(std::ofstream& reciever, const char* num);
+template void RET(std::vector<uint8_t>& reciever);
+template void RET(std::vector<uint8_t>& reciever, const char* num);
+template void RETF(std::vector<uint8_t>& reciever);
+template void RETF(std::vector<uint8_t>& reciever, const char* num);
+template void RET(Elf64SegmentHandler*& reciever);
+template void RET(Elf64SegmentHandler*& reciever, const char* num);
+template void RETF(Elf64SegmentHandler*& reciever);
+template void RETF(Elf64SegmentHandler*& reciever, const char* num);
+template void RET(Pe64SectionHandler*& reciever);
+template void RET(Pe64SectionHandler*& reciever, const char* num);
+template void RETF(Pe64SectionHandler*& reciever);
+template void RETF(Pe64SectionHandler*& reciever, const char* num);
 #pragma endregion RetRetf
 
 #pragma region IntHlt
 template <typename T>
-void INT3(T &receiver) {
+void INT3(T& reciever) {
     if (bitMode==0) return;
-    pushByte(receiver, INTEL_INSTR_INT3);
+    pushByte(reciever, INTEL_INSTR_INT3);
     if (debugInstructionOutput) cout << "INT3" << endl;
 }
 template <typename T>
-void INT(T &receiver,  const char *num) {
+void INT(T& reciever,  const char* num) {
     if (bitMode==0) return;
     argumentType numInfo = parseArgument(num);
     if(numInfo.isError) { cout << "num: \"" << num << "\": error" << endl; return; }
@@ -1198,38 +1192,38 @@ void INT(T &receiver,  const char *num) {
     if (numInfo.numValFourBytes >= 256) { cout << "Number is too large to return." << endl; return; }
 
     if (numInfo.numValFourBytes==3) {
-        pushByte(receiver, INTEL_INSTR_INT3);
+        pushByte(reciever, INTEL_INSTR_INT3);
         if (debugInstructionOutput) cout << "INT 3" << endl;
     } else {
-        pushByte(receiver, INTEL_INSTR_INT_Ib);
-        pushByte(receiver, numInfo.numValFourBytes);
+        pushByte(reciever, INTEL_INSTR_INT_Ib);
+        pushByte(reciever, numInfo.numValFourBytes);
         if (debugInstructionOutput) cout << "INT " << numInfo.properString << endl;
     }
 }
-template void INT3(std::ofstream& receiver);
-template void INT3(std::vector<uint8_t>& receiver);
-template void INT3(Elf64SegmentHandler*& receiver);
-template void INT3(Pe64SectionHandler*& receiver);
-template void INT(std::ofstream& receiver, const char *num);
-template void INT(std::vector<uint8_t>& receiver, const char *num);
-template void INT(Elf64SegmentHandler*& receiver, const char *num);
-template void INT(Pe64SectionHandler*& receiver, const char *num);
+template void INT3(std::ofstream& reciever);
+template void INT3(std::vector<uint8_t>& reciever);
+template void INT3(Elf64SegmentHandler*& reciever);
+template void INT3(Pe64SectionHandler*& reciever);
+template void INT(std::ofstream& reciever, const char* num);
+template void INT(std::vector<uint8_t>& reciever, const char* num);
+template void INT(Elf64SegmentHandler*& reciever, const char* num);
+template void INT(Pe64SectionHandler*& reciever, const char* num);
 
 template <typename T>
-void HLT(T &receiver) {
+void HLT(T& reciever) {
     if (bitMode==0) return;
-    pushByte(receiver, INTEL_INSTR_HLT);
+    pushByte(reciever, INTEL_INSTR_HLT);
     if (debugInstructionOutput) cout << "HLT" << endl;
 }
-template void HLT(std::ofstream& receiver);
-template void HLT(std::vector<uint8_t>& receiver);
-template void HLT(Elf64SegmentHandler*& receiver);
-template void HLT(Pe64SectionHandler*& receiver);
+template void HLT(std::ofstream& reciever);
+template void HLT(std::vector<uint8_t>& reciever);
+template void HLT(Elf64SegmentHandler*& reciever);
+template void HLT(Pe64SectionHandler*& reciever);
 #pragma endregion IntHlt
 
 #pragma region Test
 template <typename T>
-void TEST(T &receiver, const char *arg1, const char *arg2) {
+void TEST(T& reciever, const char* arg1, const char* arg2) {
     if (bitMode==0) return;
     argumentType arg1Info = parseArgument(arg1);
     if(arg1Info.isError) { cout << "arg1: \"" << arg1 << "\": error" << endl; return; }
@@ -1243,36 +1237,36 @@ void TEST(T &receiver, const char *arg1, const char *arg2) {
 
     if (arg1Info.isJustRegister&&arg1Info.registerOffset==INTEL_REG_OFF_eAX) {
         // ex: test eAX/rAX, num
-        if (!arg1Info.isIndirect && arg1Info.bit==64) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_TEST_eAX_Iv);
-        pushWord(receiver, arg2Info.numValFourBytes, true);
+        if (!arg1Info.isIndirect && arg1Info.bit==64) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_TEST_eAX_Iv);
+        pushDword(reciever, arg2Info.numValFourBytes, true);
         if (debugInstructionOutput) cout << "TEST " << arg1Info.properString << ", " << arg2Info.properString << endl;
     } else {
         // ex: test (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num]), num
-        if (arg1Info.isIndirect&&(bitMode==64)&&(arg1Info.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-        if ((arg1Info.isJustRegister&&(arg1Info.bit==64))||(arg1Info.isIndirect&&(bitMode==64))) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-        pushByte(receiver, INTEL_INSTR_OP2v);// Specify if src is a register or an immutable
-        pushByte(receiver, arg1Info.ModRMByte|INTEL_ModRM_OP2_TEST_RM_I);
-        if (arg1Info.requiresSIB) pushByte(receiver, arg1Info.SibByte);
-        if (arg1Info.NumValNumBytes==4) pushWord(receiver, arg1Info.numValFourBytes, true);
-        else if (arg1Info.NumValNumBytes==1) pushByte(receiver, arg1Info.numValOneByte);
-        if (arg1Info.isVar) resolveVar(receiver,arg1Info.varName);
-        pushWord(receiver, arg2Info.numValFourBytes, true);
+        if (arg1Info.isIndirect&&(bitMode==64)&&(arg1Info.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+        if ((arg1Info.isJustRegister&&(arg1Info.bit==64))||(arg1Info.isIndirect&&(bitMode==64))) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+        pushByte(reciever, INTEL_INSTR_OP2v);// Specify if src is a register or an immutable
+        pushByte(reciever, arg1Info.ModRMByte|INTEL_ModRM_OP2_TEST_RM_I);
+        if (arg1Info.requiresSIB) pushByte(reciever, arg1Info.SibByte);
+        if (arg1Info.NumValNumBytes==4) pushDword(reciever, arg1Info.numValFourBytes, true);
+        else if (arg1Info.NumValNumBytes==1) pushByte(reciever, arg1Info.numValOneByte);
+        if (arg1Info.isVar) resolveVar(reciever,arg1Info.varName);
+        pushDword(reciever, arg2Info.numValFourBytes, true);
         if (debugInstructionOutput) {
             if (arg1Info.isIndirect) cout << "TEST " << ((bitMode==64)?"QWORD":"DWORD") << " PTR " << arg1Info.properString << ", " << arg2Info.properString << endl;
             else cout << "TEST " << arg1Info.properString << ", " << arg2Info.properString << endl;
         }
     }
 }
-template void TEST(std::ofstream& receiver, const char *arg1, const char *arg2);
-template void TEST(std::vector<uint8_t>& receiver, const char *arg1, const char *arg2);
-template void TEST(Elf64SegmentHandler*& receiver, const char *arg1, const char *arg2);
-template void TEST(Pe64SectionHandler*& receiver, const char *arg1, const char *arg2);
+template void TEST(std::ofstream& reciever, const char* arg1, const char* arg2);
+template void TEST(std::vector<uint8_t>& reciever, const char* arg1, const char* arg2);
+template void TEST(Elf64SegmentHandler*& reciever, const char* arg1, const char* arg2);
+template void TEST(Pe64SectionHandler*& reciever, const char* arg1, const char* arg2);
 #pragma endregion Test
 
 #pragma region NotNeg
 template <typename T>
-void NotNeg(T &receiver, const char *arg, const char *instructionName, const uint8_t& op2Code=INTEL_ModRM_OP2_NOT_RM) {
+void NotNeg(T& reciever, const char* arg, const char* instructionName, const uint8_t& op2Code=INTEL_ModRM_OP2_NOT_RM) {
     if (bitMode==0) return;
     argumentType argInfo = parseArgument(arg);
     if(argInfo.isError) { cout << "arg: \"" << arg << "\": error" << endl; return; }
@@ -1281,40 +1275,40 @@ void NotNeg(T &receiver, const char *arg, const char *instructionName, const uin
     if ((argInfo.bit!=0)&&(argInfo.bit<32)) { cout << "invalid bit" << endl; return; }// dont have handling for these yet
 
     // ex: POP (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num])
-    if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-    if ((argInfo.isJustRegister&&(argInfo.bit==64))||(argInfo.isIndirect&&(bitMode==64))) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-    pushByte(receiver, INTEL_INSTR_OP2v);
-    pushByte(receiver, argInfo.ModRMByte|op2Code);
-    if (argInfo.requiresSIB) pushByte(receiver, argInfo.SibByte);
-    if (argInfo.NumValNumBytes==4) pushWord(receiver, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
-    else if (argInfo.NumValNumBytes==1) pushByte(receiver, argInfo.numValOneByte);
-    if (argInfo.isVar) resolveVar(receiver,argInfo.varName);
+    if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+    if ((argInfo.isJustRegister&&(argInfo.bit==64))||(argInfo.isIndirect&&(bitMode==64))) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+    pushByte(reciever, INTEL_INSTR_OP2v);
+    pushByte(reciever, argInfo.ModRMByte|op2Code);
+    if (argInfo.requiresSIB) pushByte(reciever, argInfo.SibByte);
+    if (argInfo.NumValNumBytes==4) pushDword(reciever, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
+    else if (argInfo.NumValNumBytes==1) pushByte(reciever, argInfo.numValOneByte);
+    if (argInfo.isVar) resolveVar(reciever,argInfo.varName);
     if (debugInstructionOutput) {
         if (argInfo.isIndirect) cout << instructionName << " " << ((bitMode==64)?"QWORD":"DWORD") << " PTR " << argInfo.properString << endl;
         else cout << instructionName << " " << argInfo.properString << endl;
     }
 }
 template <typename T>
-void NOT(T &receiver, const char *arg) {
-    NotNeg(receiver,arg,"NOT",INTEL_ModRM_OP2_NOT_RM);
+void NOT(T& reciever, const char* arg) {
+    NotNeg(reciever,arg,"NOT",INTEL_ModRM_OP2_NOT_RM);
 }
 template <typename T>
-void NEG(T &receiver, const char *arg) {
-    NotNeg(receiver,arg,"NEG",INTEL_ModRM_OP2_NEG_RM);
+void NEG(T& reciever, const char* arg) {
+    NotNeg(reciever,arg,"NEG",INTEL_ModRM_OP2_NEG_RM);
 }
-template void NOT(std::ofstream& receiver, const char *arg);
-template void NEG(std::ofstream& receiver, const char *arg);
-template void NOT(std::vector<uint8_t>& receiver, const char *arg);
-template void NEG(std::vector<uint8_t>& receiver, const char *arg);
-template void NOT(Elf64SegmentHandler*& receiver, const char *arg);
-template void NEG(Elf64SegmentHandler*& receiver, const char *arg);
-template void NOT(Pe64SectionHandler*& receiver, const char *arg);
-template void NEG(Pe64SectionHandler*& receiver, const char *arg);
+template void NOT(std::ofstream& reciever, const char* arg);
+template void NEG(std::ofstream& reciever, const char* arg);
+template void NOT(std::vector<uint8_t>& reciever, const char* arg);
+template void NEG(std::vector<uint8_t>& reciever, const char* arg);
+template void NOT(Elf64SegmentHandler*& reciever, const char* arg);
+template void NEG(Elf64SegmentHandler*& reciever, const char* arg);
+template void NOT(Pe64SectionHandler*& reciever, const char* arg);
+template void NEG(Pe64SectionHandler*& reciever, const char* arg);
 #pragma endregion NotNeg
 
 #pragma region UmulMulUdivDiv
 template <typename T>
-void UmulMulUdivDiv(T &receiver, const char *arg, const char *instructionName, const uint8_t& op2Code=INTEL_ModRM_OP2_UMUL_eDX_eAX_RM) {
+void UmulMulUdivDiv(T& reciever, const char* arg, const char* instructionName, const uint8_t& op2Code=INTEL_ModRM_OP2_UMUL_eDX_eAX_RM) {
     if (bitMode==0) return;
     argumentType argInfo = parseArgument(arg);
     if(argInfo.isError) { cout << "arg: \"" << arg << "\": error" << endl; return; }
@@ -1323,117 +1317,117 @@ void UmulMulUdivDiv(T &receiver, const char *arg, const char *instructionName, c
     if ((argInfo.bit!=0)&&(argInfo.bit<32)) { cout << "invalid bit" << endl; return; }// dont have handling for these yet
 
     // ex: POP (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num])
-    if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(receiver, INTEL_INSTR_AddrSz_OVRD);
-    if ((argInfo.isJustRegister&&(argInfo.bit==64))||(argInfo.isIndirect&&(bitMode==64))) pushByte(receiver, INTEL_INSTR64_OperandSz_OVRD);
-    pushByte(receiver, INTEL_INSTR_OP2v);
-    pushByte(receiver, argInfo.ModRMByte|op2Code);
-    if (argInfo.requiresSIB) pushByte(receiver, argInfo.SibByte);
-    if (argInfo.NumValNumBytes==4) pushWord(receiver, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
-    else if (argInfo.NumValNumBytes==1) pushByte(receiver, argInfo.numValOneByte);
-    if (argInfo.isVar) resolveVar(receiver,argInfo.varName);
+    if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+    if ((argInfo.isJustRegister&&(argInfo.bit==64))||(argInfo.isIndirect&&(bitMode==64))) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+    pushByte(reciever, INTEL_INSTR_OP2v);
+    pushByte(reciever, argInfo.ModRMByte|op2Code);
+    if (argInfo.requiresSIB) pushByte(reciever, argInfo.SibByte);
+    if (argInfo.NumValNumBytes==4) pushDword(reciever, argInfo.numValFourBytes, true);// implies that it is indirect, because if it is just a number the function would have returned above
+    else if (argInfo.NumValNumBytes==1) pushByte(reciever, argInfo.numValOneByte);
+    if (argInfo.isVar) resolveVar(reciever,argInfo.varName);
     if (debugInstructionOutput) {
         if (argInfo.isIndirect) cout << instructionName << " " << ((bitMode==64)?"QWORD":"DWORD") << " PTR " << argInfo.properString << endl;
         else cout << instructionName << " " << argInfo.properString << endl;
     }
 }
 template <typename T>
-void UMUL(T &receiver, const char *arg) {
-    UmulMulUdivDiv(receiver,arg,"MUL",INTEL_ModRM_OP2_UMUL_eDX_eAX_RM);
+void UMUL(T& reciever, const char* arg) {
+    UmulMulUdivDiv(reciever,arg,"MUL",INTEL_ModRM_OP2_UMUL_eDX_eAX_RM);
 }
 template <typename T>
-void MUL(T &receiver, const char *arg) {
-    UmulMulUdivDiv(receiver,arg,"IMUL",INTEL_ModRM_OP2_MUL_eDX_eAX_RM);
+void MUL(T& reciever, const char* arg) {
+    UmulMulUdivDiv(reciever,arg,"IMUL",INTEL_ModRM_OP2_MUL_eDX_eAX_RM);
 }
 template <typename T>
-void UDIV(T &receiver, const char *arg) {
-    UmulMulUdivDiv(receiver,arg,"DIV",INTEL_ModRM_OP2_UDIV_eDX_eAX_RM);
+void UDIV(T& reciever, const char* arg) {
+    UmulMulUdivDiv(reciever,arg,"DIV",INTEL_ModRM_OP2_UDIV_eDX_eAX_RM);
 }
 template <typename T>
-void DIV(T &receiver, const char *arg) {
-    UmulMulUdivDiv(receiver,arg,"IDIV",INTEL_ModRM_OP2_DIV_eDX_eAX_RM);
+void DIV(T& reciever, const char* arg) {
+    UmulMulUdivDiv(reciever,arg,"IDIV",INTEL_ModRM_OP2_DIV_eDX_eAX_RM);
 }
-template void UMUL(std::ofstream& receiver, const char *arg);
-template void MUL(std::ofstream& receiver, const char *arg);
-template void UDIV(std::ofstream& receiver, const char *arg);
-template void DIV(std::ofstream& receiver, const char *arg);
-template void UMUL(std::vector<uint8_t>& receiver, const char *arg);
-template void MUL(std::vector<uint8_t>& receiver, const char *arg);
-template void UDIV(std::vector<uint8_t>& receiver, const char *arg);
-template void DIV(std::vector<uint8_t>& receiver, const char *arg);
-template void UMUL(Elf64SegmentHandler*& receiver, const char *arg);
-template void MUL(Elf64SegmentHandler*& receiver, const char *arg);
-template void UDIV(Elf64SegmentHandler*& receiver, const char *arg);
-template void DIV(Elf64SegmentHandler*& receiver, const char *arg);
-template void UMUL(Pe64SectionHandler*& receiver, const char *arg);
-template void MUL(Pe64SectionHandler*& receiver, const char *arg);
-template void UDIV(Pe64SectionHandler*& receiver, const char *arg);
-template void DIV(Pe64SectionHandler*& receiver, const char *arg);
+template void UMUL(std::ofstream& reciever, const char* arg);
+template void MUL(std::ofstream& reciever, const char* arg);
+template void UDIV(std::ofstream& reciever, const char* arg);
+template void DIV(std::ofstream& reciever, const char* arg);
+template void UMUL(std::vector<uint8_t>& reciever, const char* arg);
+template void MUL(std::vector<uint8_t>& reciever, const char* arg);
+template void UDIV(std::vector<uint8_t>& reciever, const char* arg);
+template void DIV(std::vector<uint8_t>& reciever, const char* arg);
+template void UMUL(Elf64SegmentHandler*& reciever, const char* arg);
+template void MUL(Elf64SegmentHandler*& reciever, const char* arg);
+template void UDIV(Elf64SegmentHandler*& reciever, const char* arg);
+template void DIV(Elf64SegmentHandler*& reciever, const char* arg);
+template void UMUL(Pe64SectionHandler*& reciever, const char* arg);
+template void MUL(Pe64SectionHandler*& reciever, const char* arg);
+template void UDIV(Pe64SectionHandler*& reciever, const char* arg);
+template void DIV(Pe64SectionHandler*& reciever, const char* arg);
 #pragma endregion UmulMulUdivDiv
 
 #pragma region flag stuff
 // Carry flag
 template <typename T>
-void CLC(T &receiver) {
+void CLC(T& reciever) {
     if (bitMode==0) return;
-    pushByte(receiver, INTEL_INSTR_CLR_CF);
+    pushByte(reciever, INTEL_INSTR_CLR_CF);
     if (debugInstructionOutput) cout << "CLC" << endl;
 }
 template <typename T>
-void STC(T &receiver) {
+void STC(T& reciever) {
     if (bitMode==0) return;
-    pushByte(receiver, INTEL_INSTR_SET_CF);
+    pushByte(reciever, INTEL_INSTR_SET_CF);
     if (debugInstructionOutput) cout << "STC" << endl;
 }
 // Interrupt  flag
 template <typename T>
-void CLI(T &receiver) {
+void CLI(T& reciever) {
     if (bitMode==0) return;
-    pushByte(receiver, INTEL_INSTR_CLR_IF);
+    pushByte(reciever, INTEL_INSTR_CLR_IF);
     if (debugInstructionOutput) cout << "CLI" << endl;
 }
 template <typename T>
-void STI(T &receiver) {
+void STI(T& reciever) {
     if (bitMode==0) return;
-    pushByte(receiver, INTEL_INSTR_SET_IF);
+    pushByte(reciever, INTEL_INSTR_SET_IF);
     if (debugInstructionOutput) cout << "STI" << endl;
 }
 // Direction flag
 template <typename T>
-void CLD(T &receiver) {
+void CLD(T& reciever) {
     if (bitMode==0) return;
-    pushByte(receiver, INTEL_INSTR_CLR_DF);
+    pushByte(reciever, INTEL_INSTR_CLR_DF);
     if (debugInstructionOutput) cout << "CLD" << endl;
 }
 template <typename T>
-void STD(T &receiver) {
+void STD(T& reciever) {
     if (bitMode==0) return;
-    pushByte(receiver, INTEL_INSTR_SET_DF);
+    pushByte(reciever, INTEL_INSTR_SET_DF);
     if (debugInstructionOutput) cout << "STD" << endl;
 }
-template void CLC(std::ofstream& receiver);
-template void STC(std::ofstream& receiver);
-template void CLI(std::ofstream& receiver);
-template void STI(std::ofstream& receiver);
-template void CLD(std::ofstream& receiver);
-template void STD(std::ofstream& receiver);
-template void CLC(std::vector<uint8_t>& receiver);
-template void STC(std::vector<uint8_t>& receiver);
-template void CLI(std::vector<uint8_t>& receiver);
-template void STI(std::vector<uint8_t>& receiver);
-template void CLD(std::vector<uint8_t>& receiver);
-template void STD(std::vector<uint8_t>& receiver);
-template void CLC(Elf64SegmentHandler*& receiver);
-template void STC(Elf64SegmentHandler*& receiver);
-template void CLI(Elf64SegmentHandler*& receiver);
-template void STI(Elf64SegmentHandler*& receiver);
-template void CLD(Elf64SegmentHandler*& receiver);
-template void STD(Elf64SegmentHandler*& receiver);
-template void CLC(Pe64SectionHandler*& receiver);
-template void STC(Pe64SectionHandler*& receiver);
-template void CLI(Pe64SectionHandler*& receiver);
-template void STI(Pe64SectionHandler*& receiver);
-template void CLD(Pe64SectionHandler*& receiver);
-template void STD(Pe64SectionHandler*& receiver);
+template void CLC(std::ofstream& reciever);
+template void STC(std::ofstream& reciever);
+template void CLI(std::ofstream& reciever);
+template void STI(std::ofstream& reciever);
+template void CLD(std::ofstream& reciever);
+template void STD(std::ofstream& reciever);
+template void CLC(std::vector<uint8_t>& reciever);
+template void STC(std::vector<uint8_t>& reciever);
+template void CLI(std::vector<uint8_t>& reciever);
+template void STI(std::vector<uint8_t>& reciever);
+template void CLD(std::vector<uint8_t>& reciever);
+template void STD(std::vector<uint8_t>& reciever);
+template void CLC(Elf64SegmentHandler*& reciever);
+template void STC(Elf64SegmentHandler*& reciever);
+template void CLI(Elf64SegmentHandler*& reciever);
+template void STI(Elf64SegmentHandler*& reciever);
+template void CLD(Elf64SegmentHandler*& reciever);
+template void STD(Elf64SegmentHandler*& reciever);
+template void CLC(Pe64SectionHandler*& reciever);
+template void STC(Pe64SectionHandler*& reciever);
+template void CLI(Pe64SectionHandler*& reciever);
+template void STI(Pe64SectionHandler*& reciever);
+template void CLD(Pe64SectionHandler*& reciever);
+template void STD(Pe64SectionHandler*& reciever);
 #pragma endregion flag stuff
 
 #pragma endregion instructions

@@ -21,15 +21,15 @@ Pe64Handler::~Pe64Handler() {
 }
 void Pe64Handler::push(std::ofstream &stream) {
     // 100 bytes of MZ header
-    pushWord(stream,0x4D5A9000u,false);pushWord(stream,0x03000000u,false);pushWord(stream,0x04000000u,false);pushWord(stream,0xFFFF0000u,false);// 0x00000010
-    pushWord(stream,0xB8000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x40000000u,false);pushWord(stream,0x00000000u,false);// 0x00000020
-    pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);// 0x00000030
-    pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000100u,true );// 0x00000040
-    pushWord(stream,0x0E1FBA0Eu,false);pushWord(stream,0x00B409CDu,false);pushWord(stream,0x21B8014Cu,false);pushWord(stream,0xCD215468u,false);// 0x00000050
-    pushWord(stream,0x69732070u,false);pushWord(stream,0x726F6772u,false);pushWord(stream,0x616D2063u,false);pushWord(stream,0x616E6E6Fu,false);// 0x00000060
-    pushWord(stream,0x74206265u,false);pushWord(stream,0x2072756Eu,false);pushWord(stream,0x20696E20u,false);pushWord(stream,0x444F5320u,false);// 0x00000070
-    pushWord(stream,0x6D6F6465u,false);pushWord(stream,0x2E0D0D0Au,false);pushWord(stream,0x24000000u,false);pushWord(stream,0x00000000u,false);// 0x00000080
-    for (int i = 0; i < 8; i++) { pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false);pushWord(stream,0x00000000u,false); }
+    pushDword(stream,0x4D5A9000u,false);pushDword(stream,0x03000000u,false);pushDword(stream,0x04000000u,false);pushDword(stream,0xFFFF0000u,false);// 0x00000010
+    pushDword(stream,0xB8000000u,false);pushDword(stream,0x00000000u,false);pushDword(stream,0x40000000u,false);pushDword(stream,0x00000000u,false);// 0x00000020
+    pushDword(stream,0x00000000u,false);pushDword(stream,0x00000000u,false);pushDword(stream,0x00000000u,false);pushDword(stream,0x00000000u,false);// 0x00000030
+    pushDword(stream,0x00000000u,false);pushDword(stream,0x00000000u,false);pushDword(stream,0x00000000u,false);pushDword(stream,0x00000100u,true );// 0x00000040
+    pushDword(stream,0x0E1FBA0Eu,false);pushDword(stream,0x00B409CDu,false);pushDword(stream,0x21B8014Cu,false);pushDword(stream,0xCD215468u,false);// 0x00000050
+    pushDword(stream,0x69732070u,false);pushDword(stream,0x726F6772u,false);pushDword(stream,0x616D2063u,false);pushDword(stream,0x616E6E6Fu,false);// 0x00000060
+    pushDword(stream,0x74206265u,false);pushDword(stream,0x2072756Eu,false);pushDword(stream,0x20696E20u,false);pushDword(stream,0x444F5320u,false);// 0x00000070
+    pushDword(stream,0x6D6F6465u,false);pushDword(stream,0x2E0D0D0Au,false);pushDword(stream,0x24000000u,false);pushDword(stream,0x00000000u,false);// 0x00000080
+    for (int i = 0; i < 8; i++) { pushDword(stream,0x00000000u,false);pushDword(stream,0x00000000u,false);pushDword(stream,0x00000000u,false);pushDword(stream,0x00000000u,false); }
 
     uint16_t numHeaders = sectionHeaders64.size();
     peHeader.p_numberOfSections = numHeaders+static_cast<uint16_t>(importNames.size()!=0);
@@ -68,7 +68,7 @@ void Pe64Handler::push(std::ofstream &stream) {
             Pe64Label label = labels[j];
             if (resolution.name.compare(label.name)==0) {
                 found=true;
-                setWordAt(resolution.base->data,resolution.setAt,(label.base->getRVA()+label.offset)-(resolution.base->getRVA()+resolution.setAt)-resolution.relativeToOffset,PE_IS_LSB);
+                setDwordAt(resolution.base->data,resolution.setAt,(label.base->getRVA()+label.offset)-(resolution.base->getRVA()+resolution.setAt)-resolution.relativeToOffset,PE_IS_LSB);
             }
         }
         if (!found) { std::cout << "label/variable definition could not be found" << std::endl; return; }
@@ -143,7 +143,7 @@ void Pe64Handler::push(std::ofstream &stream) {
         padBytes(stream,0x200-(sectionHeaders64[i]->getSize()%(0x200)));
     }
 }
-Pe64SectionHandler *Pe64Handler::addSeg(const char name[8], uint32_t characteristics) {
+Pe64SectionHandler *Pe64Handler::addSeg(const char name[9], uint32_t characteristics) {
     Pe64SectionHandler *hdr = new Pe64SectionHandler(*this, name, characteristics);
     sectionHeaders64.push_back(hdr);
     return hdr;
@@ -161,6 +161,10 @@ void Pe64Handler::resolveLabel(const std::string& name, Pe64SectionHandler* base
 #pragma endregion// Pe64Handler
 
 #pragma region Pe64SectionHandler
+template <>
+void pushChars(Pe64SectionHandler*& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
+    pushChars(reciever->data, chars, len, LSB);
+}
 Pe64SectionHandler::Pe64SectionHandler(Pe64Handler &_peHandler, const char name[8], uint32_t characteristics) : peHandler(_peHandler), sectionHeader(name, characteristics) {
 }
 void Pe64SectionHandler::pushHeader(std::ofstream &stream) {
@@ -194,25 +198,6 @@ void Pe64SectionHandler::setRVA(const uint32_t &Rva) {
 uint32_t Pe64SectionHandler::getRVA() {
     return sectionHeader.s_virtualAddress;
 };
-
-void pushChars(Pe64SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB) {
-    pushChars(section->data, chars, len, LSB);
-}
-void pushByte(Pe64SectionHandler *section, const uint8_t &byte) {
-    pushByte(section->data, byte);
-}
-void pushHalfWord(Pe64SectionHandler *section, const uint16_t &halfword, const bool &LSB) {
-    pushHalfWord(section->data, halfword, LSB);
-}
-void pushWord(Pe64SectionHandler *section, const uint32_t &word, const bool &LSB) {
-    pushWord(section->data, word, LSB);
-}
-void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &LSB) {
-    pushDword(section->data, dword, LSB);
-}
-void pushQword(Pe64SectionHandler *section, const uint64_t &qword, const bool &LSB) {
-    pushQword(section->data, qword, LSB);
-}
 void Pe64SectionHandler::defineLabel(const std::string& name) {
     peHandler.defineLabel(name,this,data.size());
 }

@@ -39,15 +39,15 @@ struct peHdr {  // 22 bytes
         p_sizeOfOptionalHeader = 0;
         p_characteristics = IMAGE_FILE_CHARACTERISTIC_EXECUTABLE_IMAGE | IMAGE_FILE_CHARACTERISTIC_LINE_NUMS_STRIPPED | IMAGE_FILE_CHARACTERISTIC_LOCAL_SYMS_STRIPPED | IMAGE_FILE_CHARACTERISTIC_DEBUG_STRIPPED;
     }
-    void push(std::ofstream &stream) {
+    void push(std::ofstream& stream) {
         pushChars(stream,p_magic,4,PE_IS_LSB);
-        pushHalfWord(stream,p_machine,PE_IS_LSB);
-        pushHalfWord(stream,p_numberOfSections,PE_IS_LSB);
-        pushWord(stream,p_timeDateStamp,PE_IS_LSB);
-        pushWord(stream,p_pointerToSymbolTable,PE_IS_LSB);
-        pushWord(stream,p_numberOfSymbols,PE_IS_LSB);
-        pushHalfWord(stream,p_sizeOfOptionalHeader,PE_IS_LSB);
-        pushHalfWord(stream,p_characteristics,PE_IS_LSB);
+        pushWord(stream,p_machine,PE_IS_LSB);
+        pushWord(stream,p_numberOfSections,PE_IS_LSB);
+        pushDword(stream,p_timeDateStamp,PE_IS_LSB);
+        pushDword(stream,p_pointerToSymbolTable,PE_IS_LSB);
+        pushDword(stream,p_numberOfSymbols,PE_IS_LSB);
+        pushWord(stream,p_sizeOfOptionalHeader,PE_IS_LSB);
+        pushWord(stream,p_characteristics,PE_IS_LSB);
     }
 };
 
@@ -74,16 +74,16 @@ struct peOptHdrStdFields32 {  // 24 bytes
         p_baseOfCode = 0;               // currently unknown v
         p_baseOfData = 0;               // currently unknown v?
     }
-    void push(std::ofstream &stream) {
-        pushHalfWord(stream,p_magic,PE_IS_LSB);
+    void push(std::ofstream& stream) {
+        pushWord(stream,p_magic,PE_IS_LSB);
         pushByte(stream,p_majorLinkerVersion);
         pushByte(stream,p_minorLinkerVersion);
-        pushWord(stream,p_sizeOfCode,PE_IS_LSB);
-        pushWord(stream,p_sizeOfInitializedData,PE_IS_LSB);
-        pushWord(stream,p_sizeOfUninitializedData,PE_IS_LSB);
-        pushWord(stream,p_addressOfEntryPoint,PE_IS_LSB);
-        pushWord(stream,p_baseOfCode,PE_IS_LSB);
-        pushWord(stream,p_baseOfData,PE_IS_LSB);
+        pushDword(stream,p_sizeOfCode,PE_IS_LSB);
+        pushDword(stream,p_sizeOfInitializedData,PE_IS_LSB);
+        pushDword(stream,p_sizeOfUninitializedData,PE_IS_LSB);
+        pushDword(stream,p_addressOfEntryPoint,PE_IS_LSB);
+        pushDword(stream,p_baseOfCode,PE_IS_LSB);
+        pushDword(stream,p_baseOfData,PE_IS_LSB);
     }
 };
 struct peOptHdrStdFields64 {// 28 bytes
@@ -105,15 +105,15 @@ struct peOptHdrStdFields64 {// 28 bytes
         p_addressOfEntryPoint = 0;      // currently unknown v?
         p_baseOfCode = 0;               // currently unknown v
     }
-    void push(std::ofstream &stream) {
-        pushHalfWord(stream,p_magic,PE_IS_LSB);
+    void push(std::ofstream& stream) {
+        pushWord(stream,p_magic,PE_IS_LSB);
         pushByte(stream,p_majorLinkerVersion);
         pushByte(stream,p_minorLinkerVersion);
-        pushWord(stream,p_sizeOfCode,PE_IS_LSB);
-        pushWord(stream,p_sizeOfInitializedData,PE_IS_LSB);
-        pushWord(stream,p_sizeOfUninitializedData,PE_IS_LSB);
-        pushWord(stream,p_addressOfEntryPoint,PE_IS_LSB);
-        pushWord(stream,p_baseOfCode,PE_IS_LSB);
+        pushDword(stream,p_sizeOfCode,PE_IS_LSB);
+        pushDword(stream,p_sizeOfInitializedData,PE_IS_LSB);
+        pushDword(stream,p_sizeOfUninitializedData,PE_IS_LSB);
+        pushDword(stream,p_addressOfEntryPoint,PE_IS_LSB);
+        pushDword(stream,p_baseOfCode,PE_IS_LSB);
     }
 };
 
@@ -165,28 +165,28 @@ struct peOptHdrSpecFields32 {
         p_loaderFlags = 0;          // must always be 0
         p_numberAndSizeOfDataDirs = 13;
     }
-    void push(std::ofstream &stream) {
-        pushWord(stream,p_imageBase,PE_IS_LSB);
-        pushWord(stream,p_sectionAlignment,PE_IS_LSB);
-        pushWord(stream,p_fileAlignment,PE_IS_LSB);
-        pushHalfWord(stream,p_majorOperatingSystemVersion,PE_IS_LSB);
-        pushHalfWord(stream,p_minorOperatingSystemVersion,PE_IS_LSB);
-        pushHalfWord(stream,p_majorImageVersion,PE_IS_LSB);
-        pushHalfWord(stream,p_minorImageVersion,PE_IS_LSB);
-        pushHalfWord(stream,p_majorSubsystemVersion,PE_IS_LSB);
-        pushHalfWord(stream,p_minorSubsystemVersion,PE_IS_LSB);
-        pushWord(stream,p_win32VersionValue,PE_IS_LSB);
-        pushWord(stream,p_sizeOfImage,PE_IS_LSB);
-        pushWord(stream,p_sizeOfHeaders,PE_IS_LSB);
-        pushWord(stream,p_checkSum,PE_IS_LSB);
-        pushHalfWord(stream,p_subSystem,PE_IS_LSB);
-        pushHalfWord(stream,p_dllCharacteristics,PE_IS_LSB);
-        pushWord(stream,p_sizeOfStackReserve,PE_IS_LSB);
-        pushWord(stream,p_sizeOfStackCommit,PE_IS_LSB);
-        pushWord(stream,p_sizeOfHeapReserve,PE_IS_LSB);
-        pushWord(stream,p_sizeOfHeapCommit,PE_IS_LSB);
-        pushWord(stream,p_loaderFlags,PE_IS_LSB);
-        pushWord(stream,p_numberAndSizeOfDataDirs,PE_IS_LSB);
+    void push(std::ofstream& stream) {
+        pushDword(stream,p_imageBase,PE_IS_LSB);
+        pushDword(stream,p_sectionAlignment,PE_IS_LSB);
+        pushDword(stream,p_fileAlignment,PE_IS_LSB);
+        pushWord(stream,p_majorOperatingSystemVersion,PE_IS_LSB);
+        pushWord(stream,p_minorOperatingSystemVersion,PE_IS_LSB);
+        pushWord(stream,p_majorImageVersion,PE_IS_LSB);
+        pushWord(stream,p_minorImageVersion,PE_IS_LSB);
+        pushWord(stream,p_majorSubsystemVersion,PE_IS_LSB);
+        pushWord(stream,p_minorSubsystemVersion,PE_IS_LSB);
+        pushDword(stream,p_win32VersionValue,PE_IS_LSB);
+        pushDword(stream,p_sizeOfImage,PE_IS_LSB);
+        pushDword(stream,p_sizeOfHeaders,PE_IS_LSB);
+        pushDword(stream,p_checkSum,PE_IS_LSB);
+        pushWord(stream,p_subSystem,PE_IS_LSB);
+        pushWord(stream,p_dllCharacteristics,PE_IS_LSB);
+        pushDword(stream,p_sizeOfStackReserve,PE_IS_LSB);
+        pushDword(stream,p_sizeOfStackCommit,PE_IS_LSB);
+        pushDword(stream,p_sizeOfHeapReserve,PE_IS_LSB);
+        pushDword(stream,p_sizeOfHeapCommit,PE_IS_LSB);
+        pushDword(stream,p_loaderFlags,PE_IS_LSB);
+        pushDword(stream,p_numberAndSizeOfDataDirs,PE_IS_LSB);
     }
 };
 struct peOptHdrSpecFields64 {
@@ -237,28 +237,28 @@ struct peOptHdrSpecFields64 {
         p_loaderFlags = 0;          // must always be 0
         p_numberAndSizeOfDataDirs = 0x10;
     }
-    void push(std::ofstream &stream) {
-        pushDword(stream,p_imageBase,PE_IS_LSB);
-        pushWord(stream,p_sectionAlignment,PE_IS_LSB);
-        pushWord(stream,p_fileAlignment,PE_IS_LSB);
-        pushHalfWord(stream,p_majorOperatingSystemVersion,PE_IS_LSB);
-        pushHalfWord(stream,p_minorOperatingSystemVersion,PE_IS_LSB);
-        pushHalfWord(stream,p_majorImageVersion,PE_IS_LSB);
-        pushHalfWord(stream,p_minorImageVersion,PE_IS_LSB);
-        pushHalfWord(stream,p_majorSubsystemVersion,PE_IS_LSB);
-        pushHalfWord(stream,p_minorSubsystemVersion,PE_IS_LSB);
-        pushWord(stream,p_win32VersionValue,PE_IS_LSB);
-        pushWord(stream,p_sizeOfImage,PE_IS_LSB);
-        pushWord(stream,p_sizeOfHeaders,PE_IS_LSB);
-        pushWord(stream,p_checkSum,PE_IS_LSB);
-        pushHalfWord(stream,p_subSystem,PE_IS_LSB);
-        pushHalfWord(stream,p_dllCharacteristics,PE_IS_LSB);
-        pushDword(stream,p_sizeOfStackReserve,PE_IS_LSB);
-        pushDword(stream,p_sizeOfStackCommit,PE_IS_LSB);
-        pushDword(stream,p_sizeOfHeapReserve,PE_IS_LSB);
-        pushDword(stream,p_sizeOfHeapCommit,PE_IS_LSB);
-        pushWord(stream,p_loaderFlags,PE_IS_LSB);
-        pushWord(stream,p_numberAndSizeOfDataDirs,PE_IS_LSB);
+    void push(std::ofstream& stream) {
+        pushQword(stream,p_imageBase,PE_IS_LSB);
+        pushDword(stream,p_sectionAlignment,PE_IS_LSB);
+        pushDword(stream,p_fileAlignment,PE_IS_LSB);
+        pushWord(stream,p_majorOperatingSystemVersion,PE_IS_LSB);
+        pushWord(stream,p_minorOperatingSystemVersion,PE_IS_LSB);
+        pushWord(stream,p_majorImageVersion,PE_IS_LSB);
+        pushWord(stream,p_minorImageVersion,PE_IS_LSB);
+        pushWord(stream,p_majorSubsystemVersion,PE_IS_LSB);
+        pushWord(stream,p_minorSubsystemVersion,PE_IS_LSB);
+        pushDword(stream,p_win32VersionValue,PE_IS_LSB);
+        pushDword(stream,p_sizeOfImage,PE_IS_LSB);
+        pushDword(stream,p_sizeOfHeaders,PE_IS_LSB);
+        pushDword(stream,p_checkSum,PE_IS_LSB);
+        pushWord(stream,p_subSystem,PE_IS_LSB);
+        pushWord(stream,p_dllCharacteristics,PE_IS_LSB);
+        pushQword(stream,p_sizeOfStackReserve,PE_IS_LSB);
+        pushQword(stream,p_sizeOfStackCommit,PE_IS_LSB);
+        pushQword(stream,p_sizeOfHeapReserve,PE_IS_LSB);
+        pushQword(stream,p_sizeOfHeapCommit,PE_IS_LSB);
+        pushDword(stream,p_loaderFlags,PE_IS_LSB);
+        pushDword(stream,p_numberAndSizeOfDataDirs,PE_IS_LSB);
     }
 };
 
@@ -325,39 +325,39 @@ struct peOptHdrDataDirs {
         p_ClrRuntimeHeaderSize = 0;      // currently unknown
         p_zero = 0;                      // must always be 0
     }
-    void push(std::ofstream &stream) {
-        pushWord(stream,p_exportTableRVA,PE_IS_LSB);
-        pushWord(stream,p_exportTableSize,PE_IS_LSB);
-        pushWord(stream,p_importTableRVA,PE_IS_LSB);
-        pushWord(stream,p_importTableSize,PE_IS_LSB);
-        pushWord(stream,p_resourceTableRVA,PE_IS_LSB);
-        pushWord(stream,p_resourceTableSize,PE_IS_LSB);
-        pushWord(stream,p_exceptionTableRVA,PE_IS_LSB);
-        pushWord(stream,p_exceptionTableSize,PE_IS_LSB);
-        pushWord(stream,p_certificateTableRVA,PE_IS_LSB);
-        pushWord(stream,p_certificateTableSize,PE_IS_LSB);
-        pushWord(stream,p_baseRelocationTableRVA,PE_IS_LSB);
-        pushWord(stream,p_baseRelocationTableSize,PE_IS_LSB);
-        pushWord(stream,p_debugRVA,PE_IS_LSB);
-        pushWord(stream,p_debugSize,PE_IS_LSB);
-        pushWord(stream,p_architecture,PE_IS_LSB);
-        pushWord(stream,p_architecture,PE_IS_LSB);
-        pushWord(stream,p_globalPtrRVA,PE_IS_LSB);
-        pushWord(stream,p_globalPtrSize,PE_IS_LSB);
-        pushWord(stream,p_TlsTableRVA,PE_IS_LSB);
-        pushWord(stream,p_TlsTableSize,PE_IS_LSB);
-        pushWord(stream,p_loadConfigTableRVA,PE_IS_LSB);
-        pushWord(stream,p_loadConfigTableSize,PE_IS_LSB);
-        pushWord(stream,p_boundImportRVA,PE_IS_LSB);
-        pushWord(stream,p_boundImportSize,PE_IS_LSB);
-        pushWord(stream,p_ImprtAddressTableRVA,PE_IS_LSB);
-        pushWord(stream,p_ImprtAddressTableSize,PE_IS_LSB);
-        pushWord(stream,p_delayImportDescriptorRVA,PE_IS_LSB);
-        pushWord(stream,p_delayImportDescriptorSize,PE_IS_LSB);
-        pushWord(stream,p_ClrRuntimeHeaderRVA,PE_IS_LSB);
-        pushWord(stream,p_ClrRuntimeHeaderSize,PE_IS_LSB);
-        pushWord(stream,p_zero,PE_IS_LSB);
-        pushWord(stream,p_zero,PE_IS_LSB);
+    void push(std::ofstream& stream) {
+        pushDword(stream,p_exportTableRVA,PE_IS_LSB);
+        pushDword(stream,p_exportTableSize,PE_IS_LSB);
+        pushDword(stream,p_importTableRVA,PE_IS_LSB);
+        pushDword(stream,p_importTableSize,PE_IS_LSB);
+        pushDword(stream,p_resourceTableRVA,PE_IS_LSB);
+        pushDword(stream,p_resourceTableSize,PE_IS_LSB);
+        pushDword(stream,p_exceptionTableRVA,PE_IS_LSB);
+        pushDword(stream,p_exceptionTableSize,PE_IS_LSB);
+        pushDword(stream,p_certificateTableRVA,PE_IS_LSB);
+        pushDword(stream,p_certificateTableSize,PE_IS_LSB);
+        pushDword(stream,p_baseRelocationTableRVA,PE_IS_LSB);
+        pushDword(stream,p_baseRelocationTableSize,PE_IS_LSB);
+        pushDword(stream,p_debugRVA,PE_IS_LSB);
+        pushDword(stream,p_debugSize,PE_IS_LSB);
+        pushDword(stream,p_architecture,PE_IS_LSB);
+        pushDword(stream,p_architecture,PE_IS_LSB);
+        pushDword(stream,p_globalPtrRVA,PE_IS_LSB);
+        pushDword(stream,p_globalPtrSize,PE_IS_LSB);
+        pushDword(stream,p_TlsTableRVA,PE_IS_LSB);
+        pushDword(stream,p_TlsTableSize,PE_IS_LSB);
+        pushDword(stream,p_loadConfigTableRVA,PE_IS_LSB);
+        pushDword(stream,p_loadConfigTableSize,PE_IS_LSB);
+        pushDword(stream,p_boundImportRVA,PE_IS_LSB);
+        pushDword(stream,p_boundImportSize,PE_IS_LSB);
+        pushDword(stream,p_ImprtAddressTableRVA,PE_IS_LSB);
+        pushDword(stream,p_ImprtAddressTableSize,PE_IS_LSB);
+        pushDword(stream,p_delayImportDescriptorRVA,PE_IS_LSB);
+        pushDword(stream,p_delayImportDescriptorSize,PE_IS_LSB);
+        pushDword(stream,p_ClrRuntimeHeaderRVA,PE_IS_LSB);
+        pushDword(stream,p_ClrRuntimeHeaderSize,PE_IS_LSB);
+        pushDword(stream,p_zero,PE_IS_LSB);
+        pushDword(stream,p_zero,PE_IS_LSB);
     }
 };
 
@@ -391,17 +391,17 @@ struct peSectionHdr {
         //if (Align32==1) s_characteristics|=IMAGE_SCN_ALIGN_1BYTES;
         //else if (Align32==512) s_characteristics|=IMAGE_SCN_ALIGN_512BYTES;
     }
-    void push(std::ofstream &stream) {
+    void push(std::ofstream& stream) {
         for (uint32_t i = 0; i < 8; i++) { stream << s_name[i]; }
-        pushWord(stream,s_virtualSize,PE_IS_LSB);
-        pushWord(stream,s_virtualAddress,PE_IS_LSB);
-        pushWord(stream,s_rawDataSize,PE_IS_LSB);
-        pushWord(stream,s_rawDataPointer,PE_IS_LSB);
-        pushWord(stream,s_relocationsPointer,PE_IS_LSB);
-        pushWord(stream,s_lineNumbersPointer,PE_IS_LSB);
-        pushHalfWord(stream,s_numberOfRelocations,PE_IS_LSB);
-        pushHalfWord(stream,s_numberOfLineNumbers,PE_IS_LSB);
-        pushWord(stream,s_characteristics,PE_IS_LSB);
+        pushDword(stream,s_virtualSize,PE_IS_LSB);
+        pushDword(stream,s_virtualAddress,PE_IS_LSB);
+        pushDword(stream,s_rawDataSize,PE_IS_LSB);
+        pushDword(stream,s_rawDataPointer,PE_IS_LSB);
+        pushDword(stream,s_relocationsPointer,PE_IS_LSB);
+        pushDword(stream,s_lineNumbersPointer,PE_IS_LSB);
+        pushWord(stream,s_numberOfRelocations,PE_IS_LSB);
+        pushWord(stream,s_numberOfLineNumbers,PE_IS_LSB);
+        pushDword(stream,s_characteristics,PE_IS_LSB);
     }
 };
 
@@ -419,12 +419,12 @@ struct peImportDirTable {
         i_nameRVA=nameRVA;
         i_addressTableRVA=addressTableRVA;
     }
-    void push(std::vector<uint8_t> &stream) {
-        pushWord(stream,i_lookupTableRVA,PE_IS_LSB);
-        pushWord(stream,i_timeStamp,PE_IS_LSB);
-        pushWord(stream,i_forwarderIndex,PE_IS_LSB);
-        pushWord(stream,i_nameRVA,PE_IS_LSB);
-        pushWord(stream,i_addressTableRVA,PE_IS_LSB);
+    void push(std::vector<uint8_t>& stream) {
+        pushDword(stream,i_lookupTableRVA,PE_IS_LSB);
+        pushDword(stream,i_timeStamp,PE_IS_LSB);
+        pushDword(stream,i_forwarderIndex,PE_IS_LSB);
+        pushDword(stream,i_nameRVA,PE_IS_LSB);
+        pushDword(stream,i_addressTableRVA,PE_IS_LSB);
     }
 };
 
@@ -435,8 +435,8 @@ struct pe32ImportLookupTable {
         if (isOrdinal) std::cout << std::endl << std::endl << std::endl << "ERROR, ordinal lookups not supported" << std::endl << std::endl << std::endl;
         value+=ordinalNumOrHintNameTableRVA;
     }
-    void push(std::vector<uint8_t> &stream) {
-        pushWord(stream,value,PE_IS_LSB);
+    void push(std::vector<uint8_t>& stream) {
+        pushDword(stream,value,PE_IS_LSB);
     }
 };
 struct pe64ImportLookupTable {
@@ -446,8 +446,8 @@ struct pe64ImportLookupTable {
         if (isOrdinal) std::cout << std::endl << std::endl << std::endl << "ERROR, ordinal lookups not supported" << std::endl << std::endl << std::endl;
         value+=ordinalNumOrHintNameTableRVA;
     }
-    void push(std::vector<uint8_t> &stream) {
-        pushDword(stream,value,PE_IS_LSB);
+    void push(std::vector<uint8_t>& stream) {
+        pushQword(stream,value,PE_IS_LSB);
     }
 };
 
@@ -459,8 +459,8 @@ struct pe32ImportAddressTable {
         if (isOrdinal) std::cout << std::endl << std::endl << std::endl << "ERROR, ordinal lookups not supported" << std::endl << std::endl << std::endl;
         value+=ordinalNumOrHintNameTableRVA;
     }
-    void push(std::vector<uint8_t> &stream) {
-        pushWord(stream,value,PE_IS_LSB);
+    void push(std::vector<uint8_t>& stream) {
+        pushDword(stream,value,PE_IS_LSB);
     }
 };
 struct pe64ImportAddressTable {
@@ -470,8 +470,8 @@ struct pe64ImportAddressTable {
         if (isOrdinal) std::cout << std::endl << std::endl << std::endl << "ERROR, ordinal lookups not supported" << std::endl << std::endl << std::endl;
         value+=ordinalNumOrHintNameTableRVA;
     }
-    void push(std::vector<uint8_t> &stream) {
-        pushDword(stream,value,PE_IS_LSB);
+    void push(std::vector<uint8_t>& stream) {
+        pushQword(stream,value,PE_IS_LSB);
     }
 };
 
@@ -482,8 +482,8 @@ struct peHintNameTable {
         i_hint=hint;
         i_name=name;
     }
-    void push(std::vector<uint8_t> &stream) {
-        pushHalfWord(stream,i_hint,PE_IS_LSB);
+    void push(std::vector<uint8_t>& stream) {
+        pushWord(stream,i_hint,PE_IS_LSB);
         pushChars(stream,(const uint8_t*)i_name,strlen(i_name),true);
     }
     uint32_t getSize() {
@@ -525,7 +525,7 @@ private:
 public:
     Pe64Handler();
     ~Pe64Handler();
-    void push(std::ofstream &stream);
+    void push(std::ofstream& stream);
     Pe64SectionHandler *addSeg(const char name[8], uint32_t characteristics);
     void addImport(const uint16_t& hint, const std::string& hintName, const std::string& dllName);
     void defineLabel(const std::string& name, Pe64SectionHandler* base, const uint32_t& offset);
@@ -535,47 +535,39 @@ public:
 };
 
 class Pe64SectionHandler {
-    Pe64Handler &peHandler;
+    Pe64Handler& peHandler;
     peSectionHdr sectionHeader;
     std::vector<uint8_t> data;
 
     uint32_t sectionAlignment=1;
     uint32_t fileAlignment=1;
 public:
-    Pe64SectionHandler(Pe64Handler &_peHandler, const char name[8], uint32_t characteristics);
+    Pe64SectionHandler(Pe64Handler& _peHandler, const char name[8], uint32_t characteristics);
     bool isCode() {
         return ((sectionHeader.s_characteristics&IMAGE_SCN_CNT_CODE)!=0);
     }
-    void pushHeader(std::ofstream &stream);
-    void pushData(std::ofstream &stream);
+    void pushHeader(std::ofstream& stream);
+    void pushData(std::ofstream& stream);
 
     std::string getName();
     uint32_t getSize();
     void setSectionAlign(const uint32_t& align);
     void setFileAlign(const uint32_t& align);
-    void setOffset(const uint32_t &offset);
-    void setRVA(const uint32_t &Rva);
+    void setOffset(const uint32_t& offset);
+    void setRVA(const uint32_t& Rva);
     uint32_t getRVA();
 
-    friend Pe64Handler;
-
-    friend void pushChars(Pe64SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB);
-    friend void pushByte(Pe64SectionHandler *section, const uint8_t &byte);
-    friend void pushHalfWord(Pe64SectionHandler *section, const uint16_t &halfword, const bool &LSB);
-    friend void pushWord(Pe64SectionHandler *section, const uint32_t &word, const bool &LSB);
-    friend void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &LSB);
-    friend void pushQword(Pe64SectionHandler *section, const uint64_t &qword, const bool &LSB);
     // calls the Pe64Handler with "base" set to this, "offset" set to the current position
     void defineLabel(const std::string& name);
     // calls the Pe64Handler with "base" set to this, "setAt" set to the current position
     void resolveLabel(const std::string& name, const int32_t& relativeToOffset);
+
+    friend Pe64Handler;
+    template <typename T>
+    friend void pushChars(T& section, const uint8_t* chars, const size_t& len, const bool& LSB);
 };
-void pushChars(Pe64SectionHandler *section, const uint8_t *chars, uint32_t len, const bool &LSB);
-void pushByte(Pe64SectionHandler *section, const uint8_t &byte);
-void pushHalfWord(Pe64SectionHandler *section, const uint16_t &halfword, const bool &LSB);
-void pushWord(Pe64SectionHandler *section, const uint32_t &word, const bool &LSB);
-void pushDword(Pe64SectionHandler *section, const uint64_t &dword, const bool &LSB);
-void pushQword(Pe64SectionHandler *section, const uint64_t &qword, const bool &LSB);
+template <>
+void pushChars(Pe64SectionHandler*& reciever, const uint8_t* chars, const size_t& len, const bool& LSB);
 #pragma endregion// handlers
 
 #endif  // _PE_H

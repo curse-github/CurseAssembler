@@ -46,7 +46,6 @@ int main(int argc, char *argv[]) {
         Pe64Handler peHandler;
         Pe64SectionHandler *textSec = peHandler.addSeg(".text   ",IMAGE_SCN_CNT_CODE|IMAGE_SCN_MEM_EXECUTE|IMAGE_SCN_MEM_READ);
         Pe64SectionHandler *dataSec = peHandler.addSeg(".data   ",IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_MEM_READ);
-        
         debugInstructionOutput=true;
         // code=0x0f;
         // exit(code);
