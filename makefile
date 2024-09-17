@@ -12,8 +12,8 @@ Linux: ./assembler.out
 
 Win64Test: ./instructionTest.exe
 	./instructionTest.exe Win64 small
-LinuxTest: ./instructionTest.exe
-	./instructionTest.exe Win64 small
+LinuxTest: ./instructionTest.out
+	./instructionTest.out Linux small
 ./instructionTest.exe: makeBin ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/instructionTest.o
 	g++ -g ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/instructionTest.o -I ./src -I ./src/constants -o ./instructionTest.exe
 ./instructionTest.out: makeBin ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/instructionTest.o

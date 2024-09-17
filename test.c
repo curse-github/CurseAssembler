@@ -1,6 +1,7 @@
 #include <unistd.h>
-int code=15;
-int* codeptr=&code;
+int thing = 15;
+int* ptr = NULL;
 void _start (void) {
-  _exit(*codeptr+2);
+  ptr=&thing;
+  _exit(*ptr);
 }

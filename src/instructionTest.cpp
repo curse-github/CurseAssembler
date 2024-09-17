@@ -14,6 +14,7 @@ int main(int argc, char *argv[]) {
     bitMode=64;
     //bitMode=32;
 
+    /*
     ADD(outFile,"eCX","eBX");
     ADD(outFile,"[eCX]","eBX");
     ADD(outFile,"[eCX-300]","eBX");
@@ -227,7 +228,48 @@ int main(int argc, char *argv[]) {
         POP(outFile,"[rCX+rDI*2]");
         POP(outFile,"[rCX+rDI*2-300]");
     }
+    */
 
+    //LEA(outFile,"eCX","eBX");
+    //LEA(outFile,"eDI","eCX");
+    LEA(outFile,"eDI","[eCX]");
+    LEA(outFile,"eDI","[eCX-300]");
+    LEA(outFile,"eDI","[eIP+0]");
+    LEA(outFile,"eDI","[eIP+300]");
+    LEA(outFile,"eDI","[300]");
+    LEA(outFile,"eDI","[eDI*2]");
+    LEA(outFile,"eDI","[eDI*2-300]");
+    LEA(outFile,"eDI","[eCX+eDI*2]");
+    LEA(outFile,"eDI","[eCX+eDI*2+300]");
+    if (bitMode==64) {
+        LEA(outFile,"eDI","[rCX]");
+        LEA(outFile,"eDI","[rCX+300]");
+        LEA(outFile,"eDI","[rIP+0]");
+        LEA(outFile,"eDI","[rIP+300]");
+        LEA(outFile,"eDI","[rDI*2]");
+        LEA(outFile,"eDI","[rDI*2+300]");
+        LEA(outFile,"eDI","[rCX+rDI*2]");
+        LEA(outFile,"eDI","[rCX+rDI*2-300]");
+        //LEA(outFile,"rAX","rCX");
+        LEA(outFile,"rAX","[eCX]");
+        LEA(outFile,"rAX","[eCX-300]");
+        LEA(outFile,"rAX","[rCX]");
+        LEA(outFile,"rAX","[rCX+300]");
+        LEA(outFile,"rAX","[eIP+0]");
+        LEA(outFile,"rAX","[eIP+300]");
+        LEA(outFile,"rAX","[rIP+0]");
+        LEA(outFile,"rAX","[rIP+300]");
+        LEA(outFile,"rAX","[300]");
+        LEA(outFile,"rAX","[eDI*2]");
+        LEA(outFile,"rAX","[eDI*2-300]");
+        LEA(outFile,"rAX","[eCX+eDI*2]");
+        LEA(outFile,"rAX","[eCX+eDI*2+300]");
+        LEA(outFile,"rAX","[rDI*2]");
+        LEA(outFile,"rAX","[rDI*2+300]");
+        LEA(outFile,"rAX","[rCX+rDI*2]");
+        LEA(outFile,"rAX","[rCX+rDI*2-300]");
+    }
+    /*
     NOP(outFile);
     NOP(outFile,"eCX");
     NOP(outFile,"[eCX]");
@@ -514,6 +556,7 @@ int main(int argc, char *argv[]) {
     STI(outFile);
     CLD(outFile);
     STD(outFile);
+    */
 
     outFile.close();
     return 0;

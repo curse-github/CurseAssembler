@@ -318,7 +318,7 @@ unsigned int SIBScaleToInt(const uint8_t& scale);
 #define INTEL_INSTR_MOV_REGb_RMb 0x8A
 #define INTEL_INSTR_MOV_REGv_RMv 0x8B
 //#define INTEL_INSTR_ 0x8C
-//#define INTEL_INSTR_ 0x8D
+#define INTEL_INSTR_LEA_REGv_RMv 0x8D
 //#define INTEL_INSTR_ 0x8E
 #define INTEL_INSTR_POP_RMv 0x8F
 #define INTEL_INSTR_NOP 0x90

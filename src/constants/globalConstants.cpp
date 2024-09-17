@@ -963,6 +963,35 @@ void JCXZ(T& reciever, const char* arg) {
 */
 #pragma endregion jump if instructions
 
+template <typename T>
+void LEA(T& reciever, const char* dst, const char* src) {
+    if (bitMode==0) return;
+    argumentType dstInfo = parseArgument(dst);
+    if(dstInfo.isError) { cout << "dst: \"" << dst << "\": error" << endl; return; }
+    argumentType srcInfo = parseArgument(src);
+    if(srcInfo.isError) { cout << "src: \"" << src << "\": error" << endl; return; }
+
+    if (dstInfo.isIndirect) { cout << "dst cannot both be indirect." << endl; return; }
+    if (dstInfo.isJustNumber) { cout << "dst cannot be just a number." << endl; return; }
+    if (srcInfo.isJustNumber) { cout << "src cannot be just a number." << endl; return; }
+    if ((dstInfo.bit!=0 && dstInfo.bit<32) || (srcInfo.bit!=0 && srcInfo.bit<32)) { cout << "invalid bit" << endl; return; }// dont have handling for these yet
+
+    // ex: lea reg, ([eip/rip+num] or [reg+num] or [base+index*scale+num])
+    if (bitMode==64 && srcInfo.bit==32) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);
+    if (dstInfo.bit==64) pushByte(reciever, INTEL_INSTR64_OperandSz_OVRD);
+    pushByte(reciever, INTEL_INSTR_LEA_REGv_RMv);
+    pushByte(reciever, srcInfo.ModRMByte|dstInfo.registerRegOp);
+    if (srcInfo.requiresSIB) pushByte(reciever, srcInfo.SibByte);
+    if (srcInfo.NumValNumBytes==4) pushDword(reciever, srcInfo.numValFourBytes, true);
+    else if (srcInfo.NumValNumBytes==1) pushByte(reciever, srcInfo.numValOneByte);
+    if (srcInfo.isVar) resolveVar(reciever,srcInfo.varName);
+    if (debugInstructionOutput) cout << "LEA " << dstInfo.properString << ", " << ((dstInfo.bit==64)?"QWORD":"DWORD") << " PTR " << srcInfo.properString << endl;
+}
+template void LEA(std::ofstream& reciever, const char* dst, const char* src);
+template void LEA(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void LEA(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void LEA(Pe64SectionHandler*& reciever, const char* dst, const char* src);
+
 #pragma region NOP
 template <typename T>
 void NOP(T& reciever) {

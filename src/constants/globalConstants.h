@@ -53,138 +53,141 @@ void padBytes(std::vector<uint8_t>& vector, const size_t& numBytes);
 
 extern bool debugInstructionOutput;
 template <typename T>
-void resolveVar(T& receiver, const std::string& varName);
+void resolveVar(T& reciever, const std::string& varName);
 
 template<typename T>
-void ADD(T& receiver, const char* dst, const char* src);
+void ADD(T& reciever, const char* dst, const char* src);
 template <typename T>
-void OR(T& receiver, const char* dst, const char* src);
+void OR(T& reciever, const char* dst, const char* src);
 template <typename T>
-void ADC(T& receiver, const char* dst, const char* src);
+void ADC(T& reciever, const char* dst, const char* src);
 template <typename T>
-void SBB(T& receiver, const char* dst, const char* src);
+void SBB(T& reciever, const char* dst, const char* src);
 template <typename T>
-void AND(T& receiver, const char* dst, const char* src);
+void AND(T& reciever, const char* dst, const char* src);
 template <typename T>
-void SUB(T& receiver, const char* dst, const char* src);
+void SUB(T& reciever, const char* dst, const char* src);
 template <typename T>
-void XOR(T& receiver, const char* dst, const char* src);
+void XOR(T& reciever, const char* dst, const char* src);
 template <typename T>
-void CMP(T& receiver, const char* dst, const char* src);
+void CMP(T& reciever, const char* dst, const char* src);
 template <typename T>
-void INC(T& receiver, const char* arg);
+void INC(T& reciever, const char* arg);
 template <typename T>
-void DEC(T& receiver, const char* arg);
+void DEC(T& reciever, const char* arg);
 template <typename T>
-void CALL(T& receiver, const char* arg);
+void CALL(T& reciever, const char* arg);
 /*template <typename T>
-void CALLF(T& receiver, const char* arg);*/
+void CALLF(T& reciever, const char* arg);*/
 template <typename T>
-void JMP(T& receiver, const char* arg);
+void JMP(T& reciever, const char* arg);
 /*template <typename T>
-void JMPF(T& receiver, const char* arg);*/
+void JMPF(T& reciever, const char* arg);*/
 template <typename T>
-void PUSH(T& receiver, const char* arg);
+void PUSH(T& reciever, const char* arg);
 template <typename T>
-void POP(T& receiver, const char* arg);
+void POP(T& reciever, const char* arg);
 
 /*#pragma region jump if instructions
 template <typename T>
-void JOV(T& receiver, const char* arg);
+void JOV(T& reciever, const char* arg);
 template <typename T>
-void JNOV(T& receiver, const char* arg);
+void JNOV(T& reciever, const char* arg);
 template <typename T>
-void JULT(T& receiver, const char* arg);
+void JULT(T& reciever, const char* arg);
 template <typename T>
-void JUGE(T& receiver, const char* arg);
+void JUGE(T& reciever, const char* arg);
 template <typename T>
-void JET(T& receiver, const char* arg);
+void JET(T& reciever, const char* arg);
 template <typename T>
-void JNE(T& receiver, const char* arg);
+void JNE(T& reciever, const char* arg);
 template <typename T>
-void JULE(T& receiver, const char* arg);
+void JULE(T& reciever, const char* arg);
 template <typename T>
-void JUGT(T& receiver, const char* arg);
+void JUGT(T& reciever, const char* arg);
 template <typename T>
-void JS(T& receiver, const char* arg);
+void JS(T& reciever, const char* arg);
 template <typename T>
-void JNS(T& receiver, const char* arg);
+void JNS(T& reciever, const char* arg);
 template <typename T>
-void JP(T& receiver, const char* arg);
+void JP(T& reciever, const char* arg);
 template <typename T>
-void JNP(T& receiver, const char* arg);
+void JNP(T& reciever, const char* arg);
 template <typename T>
-void JLT(T& receiver, const char* arg);
+void JLT(T& reciever, const char* arg);
 template <typename T>
-void JGE(T& receiver, const char* arg);
+void JGE(T& reciever, const char* arg);
 template <typename T>
-void JLE(T& receiver, const char* arg);
+void JLE(T& reciever, const char* arg);
 template <typename T>
-void JGT(T& receiver, const char* arg);
+void JGT(T& reciever, const char* arg);
 template <typename T>
-void JCXZ(T& receiver, const char* arg);
+void JCXZ(T& reciever, const char* arg);
 #pragma endregion jump if instructions*/
 
 template <typename T>
-void NOP(T& receiver);
+void LEA(T& reciever, const char* dst, const char* src);
+
 template <typename T>
-void NOP(T& receiver, const char* arg);
+void NOP(T& reciever);
 template <typename T>
-void XCHG(T& receiver, const char* arg1, const char* arg2);
+void NOP(T& reciever, const char* arg);
 template <typename T>
-void MOV(T& receiver, const char* dst, const char* src);
+void XCHG(T& reciever, const char* arg1, const char* arg2);
 template <typename T>
-void RET(T& receiver, const char* num);
+void MOV(T& reciever, const char* dst, const char* src);
 template <typename T>
-void RET(T& receiver);
+void RET(T& reciever, const char* num);
 template <typename T>
-void RETF(T& receiver, const char* num);
+void RET(T& reciever);
 template <typename T>
-void RETF(T& receiver);
+void RETF(T& reciever, const char* num);
 template <typename T>
-void INT3(T& receiver);
+void RETF(T& reciever);
 template <typename T>
-void INT(T& receiver, const char* num);
+void INT3(T& reciever);
+template <typename T>
+void INT(T& reciever, const char* num);
 
 /*//uses code 0xE0
 template <typename T>
-void LOOPNE(T& receiver, const uint8_t& value);
+void LOOPNE(T& reciever, const uint8_t& value);
 //uses code 0xE1
 template <typename T>
-void LOOPET(T& receiver, const uint8_t& value);
+void LOOPET(T& reciever, const uint8_t& value);
 //uses code 0xE2
 template <typename T>
-void LOOP(T& receiver, const uint8_t& value);*/
+void LOOP(T& reciever, const uint8_t& value);*/
 
 template <typename T>
-void HLT(T& receiver);
+void HLT(T& reciever);
 template <typename T>
-void TEST(T& receiver, const char* arg1, const char* arg2);
+void TEST(T& reciever, const char* arg1, const char* arg2);
 template <typename T>
-void NOT(T& receiver, const char* arg);
+void NOT(T& reciever, const char* arg);
 template <typename T>
-void NEG(T& receiver, const char* arg);
+void NEG(T& reciever, const char* arg);
 
 template <typename T>
-void UMUL(T& receiver, const char* arg);
+void UMUL(T& reciever, const char* arg);
 template <typename T>
-void MUL(T& receiver, const char* arg);
+void MUL(T& reciever, const char* arg);
 template <typename T>
-void UDIV(T& receiver, const char* arg);
+void UDIV(T& reciever, const char* arg);
 template <typename T>
-void DIV(T& receiver, const char* arg);
+void DIV(T& reciever, const char* arg);
 
 template <typename T>
-void CLC(T& receiver);
+void CLC(T& reciever);
 template <typename T>
-void STC(T& receiver);
+void STC(T& reciever);
 template <typename T>
-void CLI(T& receiver);
+void CLI(T& reciever);
 template <typename T>
-void STI(T& receiver);
+void STI(T& reciever);
 template <typename T>
-void CLD(T& receiver);
+void CLD(T& reciever);
 template <typename T>
-void STD(T& receiver);
+void STD(T& reciever);
 
 #endif  // _GLOBAL_CONSTANTS_H
