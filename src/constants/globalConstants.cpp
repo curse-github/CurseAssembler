@@ -4,6 +4,13 @@
 #include <algorithm>// for std::min and std::max
 using std::string,std::cout,std::endl;
 
+//utility func
+uint32_t roundToAlign(const uint32_t &value, const uint32_t &align) {
+    unsigned int mod = value%align;
+    if (mod==0) return value;
+    return value+align-mod;
+}
+
 #include "globalConstants.h"
 #include "intelConstants.h"
 
@@ -453,7 +460,9 @@ void resolveVar<std::ofstream>(std::ofstream& reciever, const std::string& varNa
 template <>
 void resolveVar<std::vector<uint8_t>>(std::vector<uint8_t>& reciever, const std::string& varName){}
 template <>
-void resolveVar<Elf64SegmentHandler*>(Elf64SegmentHandler*& reciever, const std::string& varName){ return; }
+void resolveVar<Elf64SegmentHandler*>(Elf64SegmentHandler*& reciever, const std::string& varName){
+    reciever->resolveLabel(varName,4);
+}
 template <>
 void resolveVar<Pe64SectionHandler*>(Pe64SectionHandler*& reciever, const std::string& varName){
     reciever->resolveLabel(varName,4);

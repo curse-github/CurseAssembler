@@ -20,15 +20,15 @@ int main(int argc, char *argv[]) {
         elf_machine = ELF_MACHINE_AMD64;
 
         Elf64Handler elfHandler;
-        Elf64SegmentHandler *textSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ | ELF_SEGMENT_FLAG_EXECUTE);
         Elf64SegmentHandler *dataSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ);
+        Elf64SegmentHandler *textSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ | ELF_SEGMENT_FLAG_EXECUTE);
         
         textSeg->defineLabel("_main");
-        MOV(textSeg,"eBX","code");
-        MOV(textSeg,"eAX",std::to_string(LINUX_SYSCALL_EXIT).c_str());
+        MOV(textSeg,"rAX",std::to_string(LINUX_SYSCALL_EXIT).c_str());
+        MOV(textSeg,"rBX","code");
         INT(textSeg,"0x80");
         dataSeg->defineLabel("code");
-        pushQword(dataSeg,0x0f,true);
+        pushQword(dataSeg,179,true);
 
         elfHandler.push(outFile);
         outFile.close();
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
         MOV(textSec,"eCX","code");
         JMP(textSec,"[rIP+0x2024]");// jumps to _exit, at 0x3038
         dataSec->defineLabel("code");
-        pushQword(dataSec,0x0f,true);
+        pushDword(dataSec,0x0f,true);
         peHandler.addImport(0x25,"_exit","api-ms-win-crt-runtime-l1-1-0.dll");
 
         peHandler.push(outFile);

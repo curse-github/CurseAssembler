@@ -4,13 +4,6 @@
 #include <iomanip>
 #include <string.h>
 
-//utility func
-uint32_t roundToAlign(const uint32_t &value, const uint32_t &align) {
-    unsigned int mod = value%align;
-    if (mod==0) return value;
-    return value+align-mod;
-}
-
 #pragma region Pe64Handler
 Pe64Handler::Pe64Handler() : peHeader(), peStdFieldsHeader(), peSpecFieldsHeader(), peDataDirHeader() {
     bitMode=64;
@@ -52,13 +45,13 @@ void Pe64Handler::push(std::ofstream &stream) {
         uint32_t sectionSize = sectionHeaders[i]->getSize();
         uint32_t virtSize = roundToAlign(sectionSize,SECTION_ALIGN);
         uint32_t fileSize = roundToAlign(sectionSize,FILE_ALIGN);
+        runningOffset += fileSize;
         runningRVA += virtSize;
         
         if (sectionHeaders[i]->isCode()) sizeOfCode+=fileSize;
         else {
             sizeOfInitializedData+=fileSize;
         }
-        runningOffset += fileSize;
     }
     for (unsigned int i = 0; i < labelResolutions.size(); i++) {
         Pe64LabelResolution resolution = labelResolutions[i];
@@ -72,7 +65,7 @@ void Pe64Handler::push(std::ofstream &stream) {
         }
         if (!found) { std::cout << "label/variable definition could not be found" << std::endl; return; }
     }
-    for (unsigned int i = 0; i < labels.size(); i++) if (labels[i].name.compare("_main")==0) { peStdFieldsHeader.p_addressOfEntryPoint=(labels[i].base->getRVA()+labels[i].offset); continue;}
+    for (unsigned int i = 0; i < labels.size(); i++) if (labels[i].name.compare("_main")==0) { peStdFieldsHeader.p_addressOfEntryPoint=(labels[i].base->getRVA()+labels[i].offset); break;}
     
     // create and fill import section
     unsigned int numImports=importNames.size();
@@ -128,7 +121,7 @@ void Pe64Handler::push(std::ofstream &stream) {
     peStdFieldsHeader.p_sizeOfInitializedData = sizeOfInitializedData;
     peStdFieldsHeader.p_sizeOfUninitializedData = sizeOfUninitializedData;
 
-    peStdFieldsHeader.p_baseOfCode = 0x1000;
+    peStdFieldsHeader.p_baseOfCode = SECTION_ALIGN;
     peSpecFieldsHeader.p_sizeOfImage = runningRVA;
     // push all the data
     peHeader.push(stream);
@@ -139,7 +132,7 @@ void Pe64Handler::push(std::ofstream &stream) {
     padBytes(stream,baseOffset-(0x100 + sizeof(peHdr) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr))));
     for (unsigned int i = 0; i < numHeaders; i++) {// push all section content
         sectionHeaders[i]->pushData(stream);
-        padBytes(stream,0x200-(sectionHeaders[i]->getSize()%(0x200)));
+        padBytes(stream,FILE_ALIGN-(sectionHeaders[i]->getSize()%(FILE_ALIGN)));
     }
 }
 Pe64SectionHandler *Pe64Handler::addSec(const char name[9], uint32_t characteristics) {
@@ -170,7 +163,7 @@ void Pe64SectionHandler::pushHeader(std::ofstream &stream) {
     // set some stuff first
     size_t size = data.size();
     sectionHeader.s_virtualSize = size;
-    sectionHeader.s_rawDataSize = size+fileAlignment-(size%fileAlignment);
+    sectionHeader.s_rawDataSize = roundToAlign(size,fileAlignment);
     sectionHeader.push(stream);
 }
 void Pe64SectionHandler::pushData(std::ofstream &stream) {

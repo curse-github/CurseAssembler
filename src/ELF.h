@@ -41,7 +41,7 @@ struct elfSegmentHdr32 {
         // flags
         s_flags = flags;
         // bit aligment
-        s_align = Align32;
+        s_align = SECTION_ALIGN;
     }
     void push(std::ofstream& stream) {
         bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
@@ -84,17 +84,17 @@ struct elfSegmentHdr64 {
         // flags
         s_flags = flags;
         // bit aligment
-        s_align = Align64;
+        s_align = 1;// not set yet
     }
     void push(std::ofstream& stream) {
         bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
         pushDword(stream, s_type, LSB);
-        pushDword(stream, s_fileOffset, LSB);
+        pushDword(stream, s_flags, LSB);
+        pushQword(stream, s_fileOffset, LSB);
         pushQword(stream, s_virtualAddress, LSB);
         pushQword(stream, s_physAddress, LSB);
         pushQword(stream, s_sizeFile, LSB);
         pushQword(stream, s_sizeMemory, LSB);
-        pushQword(stream, s_flags, LSB);
         pushQword(stream, s_align, LSB);
     }
 };
@@ -364,6 +364,8 @@ class Elf64SegmentHandler {
     elfSegmentHdr64 segmentHeader;
     std::vector<uint8_t> data;
 
+    uint32_t sectionAlignment=1;
+    uint32_t fileAlignment=1;
 public:
     Elf64SegmentHandler(Elf64Handler& _elfHandler, const uint32_t& type, const uint32_t& flags);
     constexpr bool isLSB() const {
@@ -373,8 +375,12 @@ public:
     void pushData(std::ofstream& stream);
 
     uint32_t getSize();
+    void setSectionAlign(const uint32_t& align);
+    void setFileAlign(const uint32_t& align);
     void setOffset(const uint32_t& offset);
     uint32_t getOffset();
+    void setRVA(const uint32_t& Rva);
+    uint32_t getRVA();
 
     // calls the Pe64Handler with "base" set to this, "offset" set to the current position
     void defineLabel(const std::string& name);

@@ -7,12 +7,13 @@
 #include <iomanip>
 
 const uint32_t VirtAddr32 = 0x00400000;
-const uint32_t Align32 = 0x00000200;
 const uint64_t VirtAddr64 = 0x0000000140000000;
-const uint64_t Align64 = 0x0000000000000200;
 
 #define SECTION_ALIGN 0x1000u
 #define FILE_ALIGN 0x200u
+
+//utility func
+uint32_t roundToAlign(const uint32_t &value, const uint32_t &align);
 
 extern uint8_t bitMode;
 
