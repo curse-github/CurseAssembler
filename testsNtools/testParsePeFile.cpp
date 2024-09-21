@@ -1,4 +1,5 @@
 #include "globalConstants.h"
+#ifdef _WIN32
 namespace WIN {
     #include <windows.h>
 }
@@ -7,6 +8,11 @@ void setPrintColor(const Color& color) {// function that sets the console output
     WIN::SetConsoleOutputCP(CP_UTF8);
     WIN::SetConsoleTextAttribute(WIN::GetStdHandle((WIN::DWORD)-11),(int)color);
 }
+#else
+enum class Color {Red=0,Green=1,Blue=2,DarkCyan=3,Cyan=4,White=5};
+void setPrintColor(const Color& color) {// function that sets the console output color based on the enum passed in
+}
+#endif
 
 void printBytes(const std::vector<uint8_t>& vec, const uint32_t& startOffset) {
     setPrintColor(Color::Cyan);

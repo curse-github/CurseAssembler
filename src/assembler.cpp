@@ -14,6 +14,7 @@ int main(int argc, char *argv[]) {
         Elf64Handler elfHandler;
         Elf64SegmentHandler *textSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ|ELF_SEGMENT_FLAG_EXECUTE);
         Elf64SegmentHandler *dataSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ);
+        Elf64SegmentHandler *dynamicSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_DYN, ELF_SEGMENT_FLAG_READ);
         
         textSeg->defineLabel("_main");
         POP(textSeg,"rBP");
@@ -41,12 +42,12 @@ int main(int argc, char *argv[]) {
         LEA(textSec,"rAX","code");
         MOV(textSec,"rCX","[rAX]");
         SUB(textSec,"rSP","0x20");
-        CALL(textSec,"_exit");
+        //CALL(textSec,"ex");
 
         dataSec->defineLabel("code");
         pushDword(dataSec,15,true);
 
-        peHandler.addImport("api-ms-win-crt-runtime-l1-1-0.dll");
+        //peHandler.addImport("api-ms-win-crt-runtime-l1-1-0.dll");
         //peHandler.addImport("FakeDll.dll");
 
         peHandler.push(outFile);
