@@ -42,12 +42,12 @@ int main(int argc, char *argv[]) {
         LEA(textSec,"rAX","code");
         MOV(textSec,"rCX","[rAX]");
         SUB(textSec,"rSP","0x20");
-        //CALL(textSec,"ex");
+        CALL(textSec,"_exit");
 
         dataSec->defineLabel("code");
         pushDword(dataSec,15,true);
 
-        //peHandler.addImport("api-ms-win-crt-runtime-l1-1-0.dll");
+        peHandler.addImport("api-ms-win-crt-runtime-l1-1-0.dll");
         //peHandler.addImport("FakeDll.dll");
 
         peHandler.push(outFile);

@@ -85,7 +85,7 @@ struct peHdr {  // 22 bytes
         } catch (int code) { returnData.isValid=false; return returnData; }
     }
     void print(std::string delimmiter="\n") {
-        std::cout << "p_magic: \"PE\\0\\0\"" << delimmiter;
+        std::cout << "p_magic: \"P,E,\\0,\\0\"" << delimmiter;
         std::cout << "p_machine: " << intToHex(p_machine) << delimmiter;
         std::cout << "p_numberOfSections: " << p_numberOfSections << delimmiter;
         std::cout << "p_timeDateStamp: " << p_timeDateStamp << delimmiter;

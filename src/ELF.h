@@ -22,24 +22,17 @@ struct elfSegmentHdr32 {
 
     elfSegmentHdr32(const uint32_t& type, const uint32_t& flags) {
         // segment type
-        if (type == ELF_SEGMENT_TYPE_LOAD || type == ELF_SEGMENT_TYPE_DYN || type == ELF_SEGMENT_TYPE_INTP || type == ELF_SEGMENT_TYPE_NT || type == ELF_SEGMENT_TYPE_PHDR || type == ELF_SEGMENT_TYPE_TLS)
+        if (type == ELF_SEGMENT_TYPE_LOAD || type == ELF_SEGMENT_TYPE_DYN || type == ELF_SEGMENT_TYPE_INTP || type == ELF_SEGMENT_TYPE_NOTE || type == ELF_SEGMENT_TYPE_PHDR || type == ELF_SEGMENT_TYPE_TLS)
             s_type = type;
         else
             s_type = ELF_SEGMENT_TYPE_INV;
-        // file offset
         s_fileOffset = 0x00000000;  // currently unknown
-        // virtual address
         s_virtualAddress = 0x00000000;  // currently unknown
-        // physical address
-        s_physAddress = 0x00000000;
-        // size in the file
+        s_physAddress = 0x00000000;// not used in most executablews
         s_sizeFile = 0x00000000;  // currently unknown
-        // size in memory
         s_sizeMemory = 0x00000000;  // currently unknown
-        // flags
         s_flags = flags;
-        // bit aligment
-        s_align = SECTION_ALIGN;
+        s_align = SECTION_ALIGN;// bit aligment
     }
     void push(std::ofstream& stream) {
         bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
@@ -62,27 +55,19 @@ struct elfSegmentHdr64 {
     uint64_t s_sizeFile;        // dword
     uint64_t s_sizeMemory;      // dword
     uint64_t s_align;           // dword
-
     elfSegmentHdr64(const uint32_t& type, const uint32_t& flags) {
         // segment type
-        if (type == ELF_SEGMENT_TYPE_LOAD || type == ELF_SEGMENT_TYPE_DYN || type == ELF_SEGMENT_TYPE_INTP || type == ELF_SEGMENT_TYPE_NT || type == ELF_SEGMENT_TYPE_PHDR || type == ELF_SEGMENT_TYPE_TLS)
+        if (type == ELF_SEGMENT_TYPE_LOAD || type == ELF_SEGMENT_TYPE_DYN || type == ELF_SEGMENT_TYPE_INTP || type == ELF_SEGMENT_TYPE_NOTE || type == ELF_SEGMENT_TYPE_PHDR || type == ELF_SEGMENT_TYPE_TLS)
             s_type = type;
         else
             s_type = ELF_SEGMENT_TYPE_INV;
-        // file offset
         s_fileOffset = 0x0000000000000000;  // currently unknown
-        // virtual address
         s_virtualAddress = 0x0000000000000000;  // currently unknown
-        // physical address
         s_physAddress = 0x0000000000000000;
-        // size in the file
         s_sizeFile = 0x0000000000000000;  // currently unknown
-        // size in memory
         s_sizeMemory = 0x0000000000000000;  // currently unknown
-        // flags
-        s_flags = flags;
-        // bit aligment
-        s_align = 1;// not set yet
+        s_flags = flags;// flags
+        s_align = 1;// bit aligment
     }
     void push(std::ofstream& stream) {
         bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
@@ -94,6 +79,41 @@ struct elfSegmentHdr64 {
         pushQword(stream, s_sizeFile, LSB);
         pushQword(stream, s_sizeMemory, LSB);
         pushQword(stream, s_align, LSB);
+    }
+    bool read(std::ifstream& stream, uint32_t& count) {
+        try {
+            s_type = readDword(stream, count);
+            s_flags = readDword(stream, count);
+            s_fileOffset = readQword(stream, count);
+            s_virtualAddress = readQword(stream, count);
+            s_physAddress = readQword(stream, count);
+            s_sizeFile = readQword(stream, count);
+            s_sizeMemory = readQword(stream, count);
+            s_align = readQword(stream, count);
+            return true;
+        } catch (int code) { return false; }
+    }
+    void print(std::string delimmiter="\n") {
+        std::cout << "s_type: " << intToHex(s_type) << " -> ";
+        if ((s_type&ELF_SEGMENT_TYPE_LOAD)>0) std::cout << "LOAD";
+        else if ((s_type&ELF_SEGMENT_TYPE_DYN)>0) std::cout << "DYNAMIC";
+        else if ((s_type&ELF_SEGMENT_TYPE_INTP)>0) std::cout << "INTERP";
+        else if ((s_type&ELF_SEGMENT_TYPE_NOTE)>0) std::cout << "NOTE";
+        else if ((s_type&ELF_SEGMENT_TYPE_PHDR)>0) std::cout << "Program Header Table";
+        else if ((s_type&ELF_SEGMENT_TYPE_TLS)>0) std::cout << "Thread local storage";
+        std::cout << delimmiter;
+        std::cout << "s_flags: " << intToHex(s_flags) << " -> ";
+        if ((s_flags&ELF_SEGMENT_FLAG_READ)>0) std::cout << "R"; else std::cout << "-";
+        if ((s_flags&ELF_SEGMENT_FLAG_WRITE)>0) std::cout << "W"; else std::cout << "-";
+        if ((s_flags&ELF_SEGMENT_FLAG_EXECUTE)>0) std::cout << "E"; else std::cout << "-";
+        std::cout << delimmiter;
+        std::cout << "s_fileOffset: " << intToHex(s_fileOffset) << delimmiter;
+        std::cout << "s_virtualAddress: " << intToHex(s_virtualAddress) << delimmiter;
+        std::cout << "s_physAddress: " << intToHex(s_physAddress) << delimmiter;
+        std::cout << "s_sizeFile: " << intToHex(s_sizeFile) << delimmiter;
+        std::cout << "s_sizeMemory: " << intToHex(s_sizeMemory) << delimmiter;
+        std::cout << "s_align: " << intToHex(s_align);
+        std::cout << '\n';
     }
 };
 
@@ -235,26 +255,19 @@ struct elfHdr64 {
     uint16_t e_sectionHdrSize;   // half word
     uint16_t e_numSectionHdrs;   // half word
     uint16_t e_stringTableNdx;   // half word
-
     elfHdr64() {
         e_magic[0] = 0x7f;
         e_magic[1] = 'E';
         e_magic[2] = 'L';
         e_magic[3] = 'F';
-        // architecture
         e_architecture = ELF_ARCHITECTURE_64;
-        // data encoding
         e_encoding = ELF_ENCODING_LSB;
-        // metadata version
         e_metadataVersion = 0x01;
-        // OS ABI
         if (elf_osAbi == ELF_OS_NONE || elf_osAbi == ELF_OS_HPUX || elf_osAbi == ELF_OS_NETBSD || elf_osAbi == ELF_OS_LINUX)
             e_abi = elf_osAbi;
         else
             e_abi = ELF_OS_INV;
-        // ABI version
         e_abiVersion = 0x00;
-        // padding
         e_padding[0] = 0x00;
         e_padding[1] = 0x00;
         e_padding[2] = 0x00;
@@ -262,40 +275,26 @@ struct elfHdr64 {
         e_padding[4] = 0x00;
         e_padding[5] = 0x00;
         e_padding[6] = 0x00;
-        // file type
         if (elf_type == ELF_TYPE_REL || elf_type == ELF_TYPE_EXE || elf_type == ELF_TYPE_SO || elf_type == ELF_TYPE_CORE)
             e_fileType = elf_type;
         else
             e_fileType = ELF_TYPE_INV;
-        // machine type
-        if (elf_machine == ELF_MACHINE_x86 || elf_machine == ELF_MACHINE_MIPS || elf_machine == ELF_MACHINE_ARM || elf_machine == ELF_MACHINE_AMD64 || elf_machine == ELF_MACHINE_ARM8 || elf_machine == ELF_MACHINE_RISCV)
+        if (elf_machine == ELF_MACHINE_NONE || elf_machine == ELF_MACHINE_x86 || elf_machine == ELF_MACHINE_MIPS || elf_machine == ELF_MACHINE_ARM || elf_machine == ELF_MACHINE_AMD64 || elf_machine == ELF_MACHINE_ARM8 || elf_machine == ELF_MACHINE_RISCV)
             e_machineType = elf_machine;
         else
             e_machineType = ELF_TYPE_INV;
-        // version
         e_version = 0x00000001;
-        // entry
         e_entryAddress = 0x0000000000000000;
-        // phoff
         e_segmentHdrOffset = sizeof(elfHdr64);
-        // shoff
         e_sectionHdrOffset = 0x0000000000000000;
-        // flags
         e_flags = 0x00000000;
-        // ehsize
         e_elfHdrSize = sizeof(elfHdr64);
-        // phentsize
         e_segmentHdrSize = sizeof(elfSegmentHdr64);
-        // phnum
         e_numSegmentHdrs = 0x0000;
-        // shentsize
         e_sectionHdrSize = 0;  // sizeof(sectionHdr64);
-        // shnum
         e_numSectionHdrs = 0x0000;
-        // shstrndx
         e_stringTableNdx = 0x0000;
     }
-
     void push(std::ofstream& stream) const {
         bool LSB = e_encoding == ELF_ENCODING_LSB;  // is little endian
         for (uint8_t i = 0; i < 4; i++) pushByte(stream, e_magic[i]);
@@ -318,6 +317,86 @@ struct elfHdr64 {
         pushWord(stream, e_sectionHdrSize, LSB);
         pushWord(stream, e_numSectionHdrs, LSB);
         pushWord(stream, e_stringTableNdx, LSB);
+    }
+    bool read(std::ifstream& stream, uint32_t& count) {
+        try {
+            // get PE header
+            if ((readChar(stream,count)!=0x7f)||(readChar(stream,count)!='E')||(readChar(stream,count)!='L')||(readChar(stream,count)!='F')) { std::cout << "File not ELF file" << std::endl; stream.close(); return false; }
+            e_magic[0] = 0x7f;
+            e_magic[1] = 'E';
+            e_magic[2] = 'L';
+            e_magic[3] = 'F';
+            e_architecture = readByte(stream, count);
+            if (e_architecture!=ELF_ARCHITECTURE_64) { std::cout << "ELF header e_architecture bit not supported." << std::endl; stream.close(); return false; }
+            e_encoding = readByte(stream, count);
+            if (e_encoding!=ELF_ENCODING_LSB) { std::cout << "ELF header e_encoding not supported." << std::endl; stream.close(); return false; }
+            e_metadataVersion = readByte(stream, count);
+            if (e_metadataVersion!=1) { std::cout << "ELF header e_metadataVersion invalid." << std::endl; stream.close(); return false; }
+            e_abi = readByte(stream, count);
+            if ((e_abi!=ELF_OS_LINUX)&&(e_abi!=ELF_OS_NONE)) { std::cout << "ELF header not linux e_abi not supported." << std::endl; stream.close(); return false; }
+            e_abiVersion = readByte(stream, count);
+            if (e_abiVersion!=0) { std::cout << "ELF invalid e_abiVersion." << std::endl; stream.close(); return false; }
+            for (size_t i = 0; i < 7; i++) e_padding[i]=readByte(stream, count);
+            e_fileType = readWord(stream, count);
+            e_machineType = readWord(stream, count);
+            if ((e_machineType!=ELF_MACHINE_AMD64)&&(e_machineType!=ELF_MACHINE_NONE)) { std::cout << "ELF header e_machineType unknown." << std::endl; stream.close(); return false; }
+            e_version = readDword(stream, count);
+            e_entryAddress = readQword(stream, count);
+            e_segmentHdrOffset = readQword(stream, count);
+            e_sectionHdrOffset = readQword(stream, count);
+            e_flags = readDword(stream, count);
+            e_elfHdrSize = readWord(stream, count);
+            if (e_elfHdrSize!=sizeof(elfHdr64)) { std::cout << "ELF header invalid e_elfHdrSize." << std::endl; stream.close(); return false; }
+            e_segmentHdrSize = readWord(stream, count);
+            if (e_segmentHdrSize!=sizeof(elfSegmentHdr64)) { std::cout << "ELF header invalid e_segmentHdrSize." << std::endl; stream.close(); return false; }
+            e_numSegmentHdrs = readWord(stream, count);
+            e_sectionHdrSize = readWord(stream, count);
+            e_numSectionHdrs = readWord(stream, count);
+            e_stringTableNdx = readWord(stream, count);
+            return true;
+        } catch (int code) { return false; }
+    }
+    void print(std::string delimmiter="\n") {
+        std::cout << "p_magic: \"\\7f,E,L,F\"" << delimmiter;
+        std::cout << "e_architecture: " << intToHex(e_architecture) << " -> 64bit" << delimmiter;
+        std::cout << "e_encoding: " << intToHex(e_encoding) << " -> LSB (Least Significant Bit)" << delimmiter;
+        std::cout << "e_metadataVersion: " << (int)e_metadataVersion << delimmiter;
+        std::cout << "e_abi: " << intToHex(e_abi) << " -> ";
+        if ((e_abi&ELF_OS_LINUX)>0) std::cout << "linux";
+        else if (e_abi==ELF_OS_NONE) std::cout << "none/nondescript";
+        std::cout << delimmiter;
+        std::cout << "e_abiVersion: " << (int)e_abiVersion << delimmiter;
+        std::cout << "e_paddin: \"\\0,\\0,\\0,\\0,\\0,\\0,\\0\"" << delimmiter;
+        std::cout << "e_fileType: " << intToHex(e_fileType) << " -> ";
+        const bool isRelocatable = ((e_fileType&ELF_TYPE_REL)>0);
+        const bool isExecutable = ((e_fileType&ELF_TYPE_EXE)>0);
+        const bool isSo = isRelocatable&isExecutable;// equivilent to (e_fileType&ELF_TYPE_SO)>0)
+        const bool isCore = ((e_fileType&ELF_TYPE_CORE)>0);
+        if (!isRelocatable&&!isExecutable&&!isSo&&!isCore) std::cout << "Unknown";
+        else if (isSo) std::cout << "Shared Object (Dynamic Linked Library)";
+        else {
+            if (isRelocatable) std::cout << "Relocatable";
+            if (isRelocatable&&(isExecutable||isCore)) std::cout << ", ";
+            if (isExecutable) std::cout << "Executable";
+            if (isExecutable&&isCore) std::cout << ", ";
+            if (isCore) std::cout << "Core";
+        }
+        std::cout << delimmiter;
+        std::cout << "e_machineType: " << intToHex(e_machineType) << " -> ";
+        if ((e_machineType&ELF_MACHINE_AMD64)>0) std::cout << "AMD64";
+        else if (e_machineType==ELF_MACHINE_NONE) std::cout << "none/nondescript";
+        std::cout << delimmiter;
+        std::cout << "e_version: " << e_version << delimmiter;
+        std::cout << "e_entryAddress: " << intToHex(e_entryAddress) << delimmiter;
+        std::cout << "e_segmentHdrOffset: " << intToHex(e_segmentHdrOffset) << delimmiter;
+        std::cout << "e_sectionHdrOffset: " << intToHex(e_sectionHdrOffset) << delimmiter;
+        std::cout << "e_flags: " << intToHex(e_flags) << delimmiter;
+        std::cout << "e_elfHdrSize: " << intToHex(e_elfHdrSize) << delimmiter;
+        std::cout << "e_segmentHdrSize: " << intToHex(e_segmentHdrSize) << delimmiter;
+        std::cout << "e_numSegmentHdrs: " << e_numSegmentHdrs << delimmiter;
+        std::cout << "e_sectionHdrSize: " << intToHex(e_sectionHdrSize) << delimmiter;
+        std::cout << "e_numSectionHdrs: " << e_numSectionHdrs << delimmiter;
+        std::cout << "e_stringTableNdx: " << e_stringTableNdx << '\n';
     }
 };
 #pragma endregion structs

@@ -187,7 +187,7 @@ std::vector<dllExportData> parseDll(const std::string& name) {
     std::string dllName;
     std::vector<dllExportData> exports;
     try {
-        // read pe header
+        // read pe header and optional header
         peHdr::peHdrPullReturnData peHdrPullReturn = peHeader.read(inFile,count);
         if (!peHdrPullReturn.isValid) return {};
         if ((peHeader.p_characteristics&IMAGE_FILE_CHARACTERISTIC_DLL)==0) { std::cout << "File is not a DLL"; return {}; }

@@ -52,9 +52,9 @@ int main(int argc, char *argv[]) {
     std::vector<std::string> exportNames;
     std::vector<dllExportData> exports;
     try {
+        // read pe header and optional header
         peHdr::peHdrPullReturnData peHdrPullReturn = peHeader.read(inFile,count);
         if (!peHdrPullReturn.isValid) return 1;
-        isDll=((peHeader.p_characteristics&IMAGE_FILE_CHARACTERISTIC_DLL)!=0);
         PeHeaderOffset = peHdrPullReturn.PeHeaderOffset;
         bool stdFieldsHdrPullReturn = stdFieldsHeader.read(inFile,count);
         if (!stdFieldsHdrPullReturn) return 1;
@@ -62,17 +62,19 @@ int main(int argc, char *argv[]) {
         if (!specFieldsHdrPullReturn) return 1;
         bool dataDirsPullReturn = dataDirs.read(inFile,count);
         if (!dataDirsPullReturn) return 1;
+        // read sectopm headers
         p_numberOfSections = peHeader.p_numberOfSections;
         for (size_t i = 0; i < p_numberOfSections; i++) {
             peSectionHdr sectionHdrI("        ");
-            sectionHdrI.read(inFile,count);
+            if (!sectionHdrI.read(inFile,count)) { std::cout << "error reading section header #" << i << "\n"; return 1; }
             sectionHeaders.push_back(sectionHdrI);
         }
-        // read sections
+        // read section data
         for (size_t i = 0; i < p_numberOfSections; i++) {
             trashBytes(inFile,count,sectionHeaders[i].s_rawDataPointer-count);
             sectionData.push_back(readBytes(inFile, count, sectionHeaders[i].s_virtualSize));
         }
+        isDll=((peHeader.p_characteristics&IMAGE_FILE_CHARACTERISTIC_DLL)!=0);
         if (isDll) {
             // find export table
             if (dataDirs.p_exportTableRVA==0) { std::cout << "DLL has no export table."; return {}; }
