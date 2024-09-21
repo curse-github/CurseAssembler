@@ -1,44 +1,32 @@
-Win64: ./assembler.exe
+Win64: ./assembler.exe ./FakeDll.dll
 	./assembler.exe Win64 small
-Linux: ./assembler.out
+Linux: ./assembler.out ./FakeDll.so
 	./assembler.out Linux small
 	chmod 777 ./small.out
-./assembler.exe: makeBin ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o
-	g++ -g ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o -I ./src -I ./src/constants -o ./assembler.exe
-./assembler.out: makeBin ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o
-	g++ -g ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/assembler.o -I ./src -I ./src/constants -o ./assembler.out
-./bin/assembler.o: makeBin ./src/constants/globalConstants.h ./src/ELF.h ./src/PE.h ./src/assembler.cpp
-	g++ -c -g ./src/assembler.cpp -I ./src -I ./src/constants -o ./bin/assembler.o
 
-Win64Test: ./instructionTest.exe
-	./instructionTest.exe Win64 small
-LinuxTest: ./instructionTest.out
-	./instructionTest.out Linux small
-./instructionTest.exe: makeBin ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/instructionTest.o
-	g++ -g ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/instructionTest.o -I ./src -I ./src/constants -o ./instructionTest.exe
-./instructionTest.out: makeBin ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/instructionTest.o
-	g++ -g ./bin/globalConstants.o ./bin/intelConstants.o ./bin/ELF.o ./bin/PE.o ./bin/instructionTest.o -I ./src -I ./src/constants -o ./instructionTest.out
-./bin/instructionTest.o: makeBin ./src/constants/globalConstants.h ./src/ELF.h ./src/PE.h ./src/instructionTest.cpp
-	g++ -c -g ./src/instructionTest.cpp -I ./src -I ./src/constants -o ./bin/instructionTest.o
-
-./bin/PE.o: makeBin ./src/constants/peConstants.h ./src/constants/globalConstants.h ./src/PE.h ./src/PE.cpp
+./assembler.exe: makeBin ./bin/assembler.o ./bin/globalConstants.o ./bin/PE.o ./bin/ELF.o
+	g++ -g ./bin/assembler.o ./bin/globalConstants.o ./bin/PE.o ./bin/ELF.o -I ./src -I ./src/constants -o ./assembler.exe
+./assembler.out: makeBin ./bin/assembler.o ./bin/globalConstants.o ./bin/PE.o ./bin/ELF.o
+	g++ -g ./bin/assembler.o ./bin/globalConstants.o ./bin/PE.o ./bin/ELF.o -I ./src -I ./src/constants -o ./assembler.out
+./bin/assembler.o: makeBin ./src/assembler.cpp ./src/constants/globalConstants.h ./src/PE.h ./src/constants/peConstants.h ./src/ELF.h ./src/constants/elfConstants.h
 	g++ -c -g ./src/assembler.cpp -I ./src -I ./src/constants -o ./bin/assembler.o
-./bin/PE.o: makeBin ./src/constants/peConstants.h ./src/constants/globalConstants.h ./src/PE.h ./src/PE.cpp
+./FakeDll.dll: makeBin ./src/FakeDll.c
+	gcc -nostartfiles ./src/FakeDll.c -s -shared -fno-exceptions -fno-asynchronous-unwind-tables -o ./FakeDll.dll
+./FakeDll.so: makeBin ./src/FakeDll.c
+	gcc -nostartfiles ./src/FakeDll.c -s -shared -fno-exceptions -fno-asynchronous-unwind-tables -o ./FakeDll.so
+
+./bin/PE.o: makeBin ./src/PE.cpp ./src/PE.h ./src/constants/peConstants.h ./src/constants/globalConstants.h
 	g++ -c -g ./src/PE.cpp -I ./src -I ./src/constants -o ./bin/PE.o
-./bin/ELF.o: makeBin ./src/constants/elfConstants.h ./src/constants/globalConstants.h ./src/ELF.h ./src/ELF.cpp
+./bin/ELF.o: makeBin ./src/ELF.cpp ./src/ELF.h ./src/constants/elfConstants.h ./src/constants/globalConstants.h 
 	g++ -c -g ./src/ELF.cpp -I ./src -I ./src/constants -o ./bin/ELF.o
-./bin/globalConstants.o: makeBin ./src/constants/intelConstants.h ./src/constants/globalConstants.h ./src/constants/globalConstants.cpp
+./bin/globalConstants.o: makeBin ./src/constants/globalConstants.cpp ./src/constants/globalConstants.h ./src/PE.h ./src/constants/peConstants.h ./src/ELF.h ./src/constants/elfConstants.h
 	g++ -c -g ./src/constants/globalConstants.cpp -I ./src -I ./src/constants -o ./bin/globalConstants.o
-./bin/intelConstants.o: makeBin ./src/constants/intelConstants.h ./src/constants/intelConstants.cpp
-	g++ -c -g ./src/constants/intelConstants.cpp -I ./src -I ./src/constants -o ./bin/intelConstants.o
 
 makeBin:
 	-mkdir bin
 clean:
 	@-rm -rf ./bin
-	@-rm ./assembler.out
-	@-rm ./instructionTest.out
 	@-del bin /s /q
 	@-rmdir bin
 	@-del assembler.exe
-	@-del instructionTest.exe
+	@-rm ./assembler.out

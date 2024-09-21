@@ -1,40 +1,108 @@
-#include <string.h>
-#include <iostream>
-#include <string>
-#include <algorithm>// for std::min and std::max
-using std::string,std::cout,std::endl;
+#include "globalConstants.h"
+using std::cout, std::endl;
+using std::string;
+using std::dec, std::hex, std::setfill, std::setw;
+using std::vector, std::ofstream, std::ostream, std::stringstream;
+using std::min;
 
-//utility func
+uint32_t VirtAddr32 = 0x00400000;
+uint64_t VirtAddr64 = 0x0000000140000000;
+uint8_t bitMode = 0;
+
+#pragma region helper functions
 uint32_t roundToAlign(const uint32_t &value, const uint32_t &align) {
     unsigned int mod = value%align;
     if (mod==0) return value;
     return value+align-mod;
 }
+template<>
+string intToHex(const int8_t& i, const char *prefix) {
+    stringstream stream;
+    stream << prefix << hex << setw(2) << std::setfill('0') << (int)i;
+    return stream.str();
+}
+template<>
+string intToHex(const uint8_t& i, const char *prefix) {
+    stringstream stream;
+    stream << prefix << hex << setw(2) << std::setfill('0') << (int)i;
+    return stream.str();
+}
+template<>
+string intToHex(const int16_t& i, const char *prefix) {
+    stringstream stream;
+    stream << prefix << hex << setw(4) << std::setfill('0') << i;
+    return stream.str();
+}
+template<>
+string intToHex(const uint16_t& i, const char *prefix) {
+    stringstream stream;
+    stream << prefix << hex << setw(4) << std::setfill('0') << i;
+    return stream.str();
+}
+template<>
+string intToHex(const int32_t& i, const char *prefix) {
+    stringstream stream;
+    stream << prefix << hex << setw(8) << std::setfill('0') << i;
+    return stream.str();
+}
+template<>
+string intToHex(const uint32_t& i, const char *prefix) {
+    stringstream stream;
+    stream << prefix << hex << setw(8) << std::setfill('0') << i;
+    return stream.str();
+}
+template<>
+string intToHex(const int64_t& i, const char *prefix) {
+    stringstream stream;
+    stream << prefix << hex << setw(16) << std::setfill('0') << i;
+    return stream.str();
+}
+template<>
+string intToHex(const uint64_t& i, const char *prefix) {
+    stringstream stream;
+    stream << prefix << hex << setw(16) << std::setfill('0') << i;
+    return stream.str();
+}
+void padBytes(ofstream& stream, const size_t& numBytes) {
+    uint8_t C8[5]{0x00,0x00,0x00,0x00,0x00};
+    for (int i = 0; i < numBytes; i++) {
+        stream << C8[i%5];
+    }
+}
+void padBytes(vector<uint8_t>& vector, const size_t& numBytes) {
+    uint8_t C8[5]{0x00,0x00,0x00,0x00,0x00};
+    for (int i = 0; i < numBytes; i++) {
+        vector.push_back(C8[i%5]);
+    }
+}
+char toLower(char chr) {
+    return ((chr>='A')&&(chr<='Z'))?(chr-'A'+'a'):chr;
+}
+char toUpper(char chr) {
+    return ((chr>='a')&&(chr<='z'))?(chr-'a'+'A'):chr;
+}
+void trashBytes(std::ifstream& stream, uint32_t& count, const uint32_t& num) {
+    for (size_t i = 0; i < num; i++) readByte(stream,count);
+}
 
-#include "globalConstants.h"
-#include "intelConstants.h"
-
-uint8_t bitMode = 0;
-
-#pragma region helper functions
 template <>
-void pushChars(std::ostream& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
-    reciever << std::hex << std::setfill('0') << std::setw(2);
+void pushChars(ostream& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
+    reciever << hex << setfill('0') << setw(2);
     if (LSB)
         for (short i = 0; i < len; i++) reciever << (int)chars[i] << " ";
     else
         for (short i = len - 1; i >= 0; i--) reciever << (int)chars[i] << " ";
-    reciever << std::dec << std::setfill(' ');
+    reciever << dec << setfill(' ');
 }
 template <>
-void pushChars(std::ofstream& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
+void pushChars(ofstream& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
     if (LSB)
         for (short i = 0; i < len; i++) reciever << chars[i];
     else
         for (short i = len - 1; i >= 0; i--) reciever << chars[i];
 }
 template <>
-void pushChars(std::vector<uint8_t>& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
+void pushChars(vector<uint8_t>& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
     if (LSB)
         for (short i = 0; i < len; i++) reciever.push_back(chars[i]);
     else
@@ -42,16 +110,16 @@ void pushChars(std::vector<uint8_t>& reciever, const uint8_t* chars, const size_
 }
 
 template <typename T>
-void pushChars(T& reciever, const std::vector<uint8_t>& vector) {
+void pushChars(T& reciever, const vector<uint8_t>& vector) {
     for (size_t i = 0; i < vector.size(); i++) pushChars(reciever,&vector[i],1,false);
 }
-template void pushChars(std::ostream& stream, const std::vector<uint8_t>& vector);
-template void pushChars(std::ofstream& file, const std::vector<uint8_t>& vector);
-template void pushChars(std::vector<uint8_t>& vector1, const std::vector<uint8_t>& vector2);
-template void pushChars(Elf64SegmentHandler*& segment, const std::vector<uint8_t>& vector);
-template void pushChars(Pe64SectionHandler*& section, const std::vector<uint8_t>& vector);
+template void pushChars(ostream& stream, const vector<uint8_t>& vector);
+template void pushChars(ofstream& file, const vector<uint8_t>& vector);
+template void pushChars(vector<uint8_t>& vector1, const vector<uint8_t>& vector2);
+template void pushChars(Elf64SegmentHandler*& segment, const vector<uint8_t>& vector);
+template void pushChars(Pe64SectionHandler*& section, const vector<uint8_t>& vector);
 
-void setCharsAt(std::vector<uint8_t>& vector, const size_t& index, const uint8_t* chars, const size_t& len, const bool& LSB) {
+void setCharsAt(vector<uint8_t>& vector, const size_t& index, const uint8_t* chars, const size_t& len, const bool& LSB) {
     if (LSB)
         for (short i = 0; i < len; i++) vector[index+i]=chars[i];
     else
@@ -74,64 +142,116 @@ template <typename T>
 void pushQword(T& reciever, const uint64_t& qword, const bool& LSB) {
     pushChars(reciever, static_cast<const uint8_t* >(static_cast<const void *>(&qword)), 8, LSB);
 }
-template void pushByte (std::ostream& stream, const uint8_t& byte);
-template void pushByte (std::ofstream& file, const uint8_t& byte);
-template void pushByte (std::vector<uint8_t>& vector, const uint8_t& byte);
+template void pushByte (ostream& stream, const uint8_t& byte);
+template void pushByte (ofstream& file, const uint8_t& byte);
+template void pushByte (vector<uint8_t>& vector, const uint8_t& byte);
 template void pushByte (Elf64SegmentHandler*& vector, const uint8_t& byte);
 template void pushByte (Pe64SectionHandler*& section, const uint8_t& byte);
-template void pushWord (std::ostream& stream, const uint16_t& word, const bool& LSB);
-template void pushWord (std::ofstream& file, const uint16_t& word, const bool& LSB);
-template void pushWord (std::vector<uint8_t>& vector, const uint16_t& word, const bool& LSB);
+template void pushWord (ostream& stream, const uint16_t& word, const bool& LSB);
+template void pushWord (ofstream& file, const uint16_t& word, const bool& LSB);
+template void pushWord (vector<uint8_t>& vector, const uint16_t& word, const bool& LSB);
 template void pushWord (Elf64SegmentHandler*& vector, const uint16_t& word, const bool& LSB);
 template void pushWord (Pe64SectionHandler*& section, const uint16_t& word, const bool& LSB);
-template void pushDword(std::ostream& stream, const uint32_t& dword, const bool& LSB);
-template void pushDword(std::ofstream& file, const uint32_t& dword, const bool& LSB);
-template void pushDword(std::vector<uint8_t>& vector, const uint32_t& dword, const bool& LSB);
+template void pushDword(ostream& stream, const uint32_t& dword, const bool& LSB);
+template void pushDword(ofstream& file, const uint32_t& dword, const bool& LSB);
+template void pushDword(vector<uint8_t>& vector, const uint32_t& dword, const bool& LSB);
 template void pushDword(Elf64SegmentHandler*& vector, const uint32_t& dword, const bool& LSB);
 template void pushDword(Pe64SectionHandler*& section, const uint32_t& dword, const bool& LSB);
-template void pushQword(std::ostream& stream, const uint64_t& qword, const bool& LSB);
-template void pushQword(std::ofstream& file, const uint64_t& qword, const bool& LSB);
-template void pushQword(std::vector<uint8_t>& vector, const uint64_t& qword, const bool& LSB);
+template void pushQword(ostream& stream, const uint64_t& qword, const bool& LSB);
+template void pushQword(ofstream& file, const uint64_t& qword, const bool& LSB);
+template void pushQword(vector<uint8_t>& vector, const uint64_t& qword, const bool& LSB);
 template void pushQword(Elf64SegmentHandler*& vector, const uint64_t& qword, const bool& LSB);
 template void pushQword(Pe64SectionHandler*& section, const uint64_t& qword, const bool& LSB);
-void setByteAt(std::vector<uint8_t>& vector, const size_t& index, const uint8_t& byte) {
+void setByteAt(vector<uint8_t>& vector, const size_t& index, const uint8_t& byte) {
     setCharsAt(vector, index,& byte, 1, false);
 }
-void setWordAt(std::vector<uint8_t>& vector, const size_t& index, const uint16_t& word, const bool& LSB) {
+void setWordAt(vector<uint8_t>& vector, const size_t& index, const uint16_t& word, const bool& LSB) {
     setCharsAt(vector, index, static_cast<const uint8_t* >(static_cast<const void *>(&word)), 2, LSB);
 }
-void setDwordAt(std::vector<uint8_t>& vector, const size_t& index, const uint32_t& dword, const bool& LSB) {
+void setDwordAt(vector<uint8_t>& vector, const size_t& index, const uint32_t& dword, const bool& LSB) {
     setCharsAt(vector, index, static_cast<const uint8_t* >(static_cast<const void *>(&dword)), 4, LSB);
 }
-void setQwordAt(std::vector<uint8_t>& vector, const size_t& index, const uint64_t& qword, const bool& LSB) {
+void setQwordAt(vector<uint8_t>& vector, const size_t& index, const uint64_t& qword, const bool& LSB) {
     setCharsAt(vector, index, static_cast<const uint8_t* >(static_cast<const void *>(&qword)), 8, LSB);
 }
-
-void padBytes(std::ofstream& stream, const size_t& numBytes) {
-    uint8_t C8[5]{0x00,0x00,0x00,0x00,0x00};
-    for (int i = 0; i < numBytes; i++) {
-        stream << C8[i%5];
+std::vector<uint8_t> readBytes(std::ifstream& stream, uint32_t& count, const size_t& num) {
+    std::vector<uint8_t> vec;
+    for (size_t i = 0; i < num; i++) {
+        if (stream.eof()) throw 1;
+        vec.push_back(readByte(stream,count));
     }
-}
-void padBytes(std::vector<uint8_t>& vector, const size_t& numBytes) {
-    uint8_t C8[5]{0x00,0x00,0x00,0x00,0x00};
-    for (int i = 0; i < numBytes; i++) {
-        vector.push_back(C8[i%5]);
-    }
+    return vec;
 }
 
-char toLower(char chr) {
-    return ((chr>='A')&&(chr<='Z'))?(chr-'A'+'a'):chr;
+uint16_t wordFrom(const uint8_t chars[2]) {
+    return static_cast<uint16_t>(chars[0])+(static_cast<uint16_t>(chars[1])<<8);
 }
-char toUpper(char chr) {
-    return ((chr>='a')&&(chr<='z'))?(chr-'a'+'A'):chr;
+uint32_t dwordFrom(const uint8_t chars[4]) {
+    return static_cast<uint32_t>(chars[0])+(static_cast<uint32_t>(chars[1])<<8)+(static_cast<uint32_t>(chars[2])<<16)+(static_cast<uint32_t>(chars[3])<<24);
 }
-template<typename T>
-std::string int_to_hex(T i) {
-    std::stringstream stream;
-    stream << "0x" << std::hex << i;
-    return stream.str();
+uint64_t qwordFrom(const uint8_t chars[8]) {
+    return static_cast<uint64_t>(chars[0])+(static_cast<uint64_t>(chars[1])<<8)+(static_cast<uint64_t>(chars[2])<<16)+(static_cast<uint64_t>(chars[3])<<24)+(static_cast<uint64_t>(chars[4])<<32)+(static_cast<uint64_t>(chars[5])<<40)+(static_cast<uint64_t>(chars[6])<<48)+(static_cast<uint64_t>(chars[7])<<56);
 }
+
+char readChar(std::ifstream& stream, uint32_t& count) {
+    if (stream.eof()) throw 1;
+    char char1 = stream.get();
+    count+=1u;
+    return static_cast<uint8_t>(char1);
+}
+uint8_t readByte(std::ifstream& stream, uint32_t& count) {
+    if (stream.eof()) throw 1;
+    uint8_t char1 = stream.get();
+    count+=1u;
+    return static_cast<uint8_t>(char1);
+}
+uint16_t readWord(std::ifstream& stream, uint32_t& count) {
+    std::vector<uint8_t> vec = readBytes(stream,count,2);
+    return wordFrom(&vec[0]);
+}
+uint32_t readDword(std::ifstream& stream, uint32_t& count) {
+    std::vector<uint8_t> vec = readBytes(stream,count,4);
+    return dwordFrom(&vec[0]);
+}
+uint32_t readQword(std::ifstream& stream, uint32_t& count) {
+    std::vector<uint8_t> vec = readBytes(stream,count,8);
+    return qwordFrom(&vec[0]);
+}
+
+
+std::vector<uint8_t> readBytesAt(std::vector<uint8_t>& vec, const size_t& at, const size_t& num) {
+    std::vector<uint8_t> newVec;
+    for (size_t i = 0; i < num; i++) {
+        vec.push_back(vec[at+i]);
+    }
+    return newVec;
+}
+char readCharAt(std::vector<uint8_t>& vec, const size_t& at) {
+    return static_cast<uint8_t>(vec[at]);
+}
+uint8_t readByteAt(std::vector<uint8_t>& vec, const size_t& at) {
+    return static_cast<uint8_t>(vec[at]);
+}
+uint16_t readWordAt(std::vector<uint8_t>& vec, const size_t& at) {
+    return wordFrom(&vec[at]);
+}
+uint32_t readDwordAt(std::vector<uint8_t>& vec, const size_t& at) {
+    return dwordFrom(&vec[at]);
+}
+uint32_t readQwordAt(std::vector<uint8_t>& vec, const size_t& at) {
+    return qwordFrom(&vec[at]);
+}
+std::string readStringAt(std::vector<uint8_t>& vec, const size_t& at) {
+    string output = "";
+    uint32_t i = 0;
+    while (true) {
+        if (vec[at+i]=='\0') break;
+        output+=vec[at+i];
+        i++;
+    }
+    return output;
+}
+
 #pragma endregion helper functions
 
 #pragma region parsers
@@ -202,7 +322,7 @@ numberInfo parseNum(string str) {
     size_t index = 0;
     bool isNegative = str[index]=='-';
     unsigned int numBase = 10;
-    std::string numStr = "";
+    string numStr = "";
     if (isNegative) { numStr+='-'; info.len++; index++; }
     if (str[index]=='0'&&(str[index+1]=='b'||str[index+1]=='d'||str[index+1]=='x')) {// for numbers in the form of 0xb0001101, 0d25, or 0x19
         if (str[index+1]=='b') numBase=2;// get number base based on the number abbreviation
@@ -213,7 +333,7 @@ numberInfo parseNum(string str) {
     // loop through string until it reaches 32 characters, or finds an ending character
     bool foundEnd = false;
     for (unsigned int i = index; i < std::min(static_cast<unsigned int>(32u+index),static_cast<unsigned int>(strLen)); i++) {
-        const char chr = std::tolower(str[i]);
+        const char chr = toLower(str[i]);
         if (chr==']'||chr=='+') { foundEnd=true; break; }
         else if ((chr>='0' && chr<='9') || (chr>='a' && chr<='z') || (chr>='A' && chr<='Z')) {
             info.len++; numStr+=chr;
@@ -239,14 +359,14 @@ struct argumentType {
     uint8_t registerRegOp = 0;
     bool isJustNumber = false;
     uint8_t NumValNumBytes = 0;// used for just number arguments and address offsets
-    int numValOneByte = 0;
-    int numValFourBytes = 0;
+    uint8_t numValOneByte = 0;
+    uint32_t numValFourBytes = 0;
     bool isIndirect = false;
     uint8_t ModRMByte = 0;
     bool requiresSIB = false;
     uint8_t SibByte = 0;
     bool isVar = false;
-    std::string varName = "";
+    string varName = "";
 };
 argumentType parseArgument(const string& str) {
     argumentType returnVal;
@@ -349,8 +469,6 @@ argumentType parseArgument(const string& str) {
         if ((reg1.offset!=-1)&&(reg2.offset!=-1)) returnVal.properString += '+';
         if (reg2.offset!=-1) returnVal.properString += reg2.properString+'*'+std::to_string(reg2Scale);
         if ((hasEip||(reg1.offset!=-1)||(reg2.offset!=-1))&&hasNumber&&(numValue>=0)) returnVal.properString += '+';
-        if (hasNumber) returnVal.properString += std::string(((numValue<0)?"-":""))+int_to_hex(abs(numValue));
-        returnVal.properString += ']';
         if (hasEip) {
             returnVal.ModRMByte = INTEL_ModRM_MOD_Address|INTEL_ModRM_RM_DisplaceOnly;
             returnVal.NumValNumBytes=4;
@@ -363,6 +481,8 @@ argumentType parseArgument(const string& str) {
                 returnVal.numValOneByte=256+numValue;
                 returnVal.numValFourBytes=4294967296+numValue;
             }
+            if (returnVal.NumValNumBytes==4) returnVal.properString += intToHex(returnVal.numValFourBytes);
+            if (returnVal.NumValNumBytes==1) returnVal.properString += intToHex(returnVal.numValOneByte);
         } else if ((bitMode==32)&&(reg1.offset==-1)&&(reg2.offset==-1)&&hasNumber) {
             returnVal.ModRMByte = INTEL_ModRM_MOD_Address|INTEL_ModRM_RM_DisplaceOnly;
             returnVal.NumValNumBytes=4;
@@ -375,6 +495,8 @@ argumentType parseArgument(const string& str) {
                 returnVal.numValOneByte=256+numValue;
                 returnVal.numValFourBytes=4294967296+numValue;
             }
+            if (returnVal.NumValNumBytes==4) returnVal.properString += intToHex(returnVal.numValFourBytes);
+            if (returnVal.NumValNumBytes==1) returnVal.properString += intToHex(returnVal.numValOneByte);
         } else if ((reg2.offset!=-1)||(hasNumber&&(reg1.offset==-1))) {
             returnVal.requiresSIB=true;
             if (reg1.offset==INTEL_SIB_Base_None) { cout << "Register \"" << reg1.properString << "\" is an invalid address base" << endl; returnVal.isError=true; returnVal.errorCode=14; return returnVal; }
@@ -395,6 +517,8 @@ argumentType parseArgument(const string& str) {
                 returnVal.numValOneByte=256+numValue;
                 returnVal.numValFourBytes=4294967296+numValue;
             }
+            if (returnVal.NumValNumBytes==4) returnVal.properString += intToHex(returnVal.numValFourBytes);
+            if (returnVal.NumValNumBytes==1) returnVal.properString += intToHex(returnVal.numValOneByte);
         } else {
             if (hasNumber) returnVal.NumValNumBytes=(((numValue>=128)||(numValue<(-128)))?4:1);
             returnVal.ModRMByte = (hasNumber?((returnVal.NumValNumBytes==4)?INTEL_ModRM_MOD_4byteDisp:INTEL_ModRM_MOD_1byteDisp):INTEL_ModRM_MOD_Address)|reg1.offset;
@@ -407,7 +531,10 @@ argumentType parseArgument(const string& str) {
             } else {
                 returnVal.numValOneByte=returnVal.numValFourBytes=numValue;
             }
+            if (returnVal.NumValNumBytes==4) returnVal.properString += intToHex(returnVal.numValFourBytes);
+            if (returnVal.NumValNumBytes==1) returnVal.properString += intToHex(returnVal.numValOneByte);
         }
+        returnVal.properString += ']';
         return returnVal;
     } else if (((tmp1>='0')&&(tmp1<='9')) || (tmp1=='-')) {
         numberInfo numInfo = parseNum(str);
@@ -416,7 +543,9 @@ argumentType parseArgument(const string& str) {
         returnVal.NumValNumBytes=(((numInfo.val>=128)||(numInfo.val<(-128)))?4:1);
         if (numInfo.val<0) { returnVal.isError=true; returnVal.errorCode=19; return returnVal; }
         returnVal.numValOneByte=returnVal.numValFourBytes=numInfo.val;
-        returnVal.properString=std::string(((numInfo.val<0)?"-":""))+int_to_hex(abs(numInfo.val));
+        if (returnVal.NumValNumBytes==4) returnVal.properString = intToHex(returnVal.numValFourBytes);
+        if (returnVal.NumValNumBytes==1) returnVal.properString = intToHex(returnVal.numValOneByte);
+
         return returnVal;
     } else if (((tmp1>='a')&&(tmp1<='e'))||(tmp1=='s')||(tmp1=='r')) {// starts with 'e', 'r', 'a', 'c', 'd', 'b', 's'
         // could be a register or a label
@@ -432,7 +561,7 @@ argumentType parseArgument(const string& str) {
             return returnVal;
         } if (regInfo.offset==-2) { returnVal.isError=true; returnVal.errorCode=21; return returnVal; }// else will just continue to if statement below
     }
-    if ((tmp1>='a' && tmp1<='z')||(tmp1>='A' && tmp1<='Z')) {// starts with 'a'-'z' or 'A'-'Z'
+    if ((tmp1>='a' && tmp1<='z')||(tmp1>='A' && tmp1<='Z')||(tmp1=='_')||(tmp1=='-')) {// starts with 'a'-'z' or 'A'-'Z'
         // is a label
         // check that there is not spaces or special characters other than '_' and '-'
         for (size_t i = 0; i < str.size(); i++) {
@@ -456,15 +585,15 @@ bool debugInstructionOutput = false;
 
 #pragma region resolveVar
 template <>
-void resolveVar<std::ofstream>(std::ofstream& reciever, const std::string& varName){}
+void resolveVar<ofstream>(ofstream& reciever, const string& varName){}
 template <>
-void resolveVar<std::vector<uint8_t>>(std::vector<uint8_t>& reciever, const std::string& varName){}
+void resolveVar<vector<uint8_t>>(vector<uint8_t>& reciever, const string& varName){}
 template <>
-void resolveVar<Elf64SegmentHandler*>(Elf64SegmentHandler*& reciever, const std::string& varName){
+void resolveVar<Elf64SegmentHandler*>(Elf64SegmentHandler*& reciever, const string& varName){
     reciever->resolveLabel(varName,4);
 }
 template <>
-void resolveVar<Pe64SectionHandler*>(Pe64SectionHandler*& reciever, const std::string& varName){
+void resolveVar<Pe64SectionHandler*>(Pe64SectionHandler*& reciever, const string& varName){
     reciever->resolveLabel(varName,4);
 }
 #pragma endregion resolveVar
@@ -558,22 +687,22 @@ void CMP(T& reciever, const char* dst, const char* src) {
     AddOrAdcSbbAndSubXorCmp(reciever,dst,src,"CMP",INTEL_ModRM_OP1_CMP_RM_I,INTEL_INSTR_CMP_RMv_REGv,INTEL_INSTR_CMP_REGv_RMv,INTEL_INSTR_CMP_eAX_Iv);
 }
 #pragma region AddOrAdcSbbAndSubXorCmp instatiations
-template void ADD(std::ofstream& reciever, const char* dst, const char* src);
-template void OR (std::ofstream& reciever, const char* dst, const char* src);
-template void ADC(std::ofstream& reciever, const char* dst, const char* src);
-template void SBB(std::ofstream& reciever, const char* dst, const char* src);
-template void AND(std::ofstream& reciever, const char* dst, const char* src);
-template void SUB(std::ofstream& reciever, const char* dst, const char* src);
-template void XOR(std::ofstream& reciever, const char* dst, const char* src);
-template void CMP(std::ofstream& reciever, const char* dst, const char* src);
-template void ADD(std::vector<uint8_t>& reciever, const char* dst, const char* src);
-template void OR (std::vector<uint8_t>& reciever, const char* dst, const char* src);
-template void ADC(std::vector<uint8_t>& reciever, const char* dst, const char* src);
-template void SBB(std::vector<uint8_t>& reciever, const char* dst, const char* src);
-template void AND(std::vector<uint8_t>& reciever, const char* dst, const char* src);
-template void SUB(std::vector<uint8_t>& reciever, const char* dst, const char* src);
-template void XOR(std::vector<uint8_t>& reciever, const char* dst, const char* src);
-template void CMP(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void ADD(ofstream& reciever, const char* dst, const char* src);
+template void OR (ofstream& reciever, const char* dst, const char* src);
+template void ADC(ofstream& reciever, const char* dst, const char* src);
+template void SBB(ofstream& reciever, const char* dst, const char* src);
+template void AND(ofstream& reciever, const char* dst, const char* src);
+template void SUB(ofstream& reciever, const char* dst, const char* src);
+template void XOR(ofstream& reciever, const char* dst, const char* src);
+template void CMP(ofstream& reciever, const char* dst, const char* src);
+template void ADD(vector<uint8_t>& reciever, const char* dst, const char* src);
+template void OR (vector<uint8_t>& reciever, const char* dst, const char* src);
+template void ADC(vector<uint8_t>& reciever, const char* dst, const char* src);
+template void SBB(vector<uint8_t>& reciever, const char* dst, const char* src);
+template void AND(vector<uint8_t>& reciever, const char* dst, const char* src);
+template void SUB(vector<uint8_t>& reciever, const char* dst, const char* src);
+template void XOR(vector<uint8_t>& reciever, const char* dst, const char* src);
+template void CMP(vector<uint8_t>& reciever, const char* dst, const char* src);
 template void ADD(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
 template void OR (Elf64SegmentHandler*& reciever, const char* dst, const char* src);
 template void ADC(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
@@ -631,10 +760,10 @@ template <typename T>
 void DEC(T& reciever, const char* arg) {
     IncDec(reciever,arg,"DEC",INTEL_ModRM_OP3_DEC_RM,INTEL_INSTR32_DECpRv);
 }
-template void INC(std::ofstream& reciever, const char* arg);
-template void DEC(std::ofstream& reciever, const char* arg);
-template void INC(std::vector<uint8_t>& reciever, const char* arg);
-template void DEC(std::vector<uint8_t>& reciever, const char* arg);
+template void INC(ofstream& reciever, const char* arg);
+template void DEC(ofstream& reciever, const char* arg);
+template void INC(vector<uint8_t>& reciever, const char* arg);
+template void DEC(vector<uint8_t>& reciever, const char* arg);
 template void INC(Elf64SegmentHandler*& reciever, const char* arg);
 template void DEC(Elf64SegmentHandler*& reciever, const char* arg);
 template void INC(Pe64SectionHandler*& reciever, const char* arg);
@@ -690,14 +819,14 @@ void CALLF(T& reciever, const char* arg) {
 void JMPF(T& reciever, const char* arg) {
     
 }*/
-template void CALL(std::ofstream& reciever, const char* arg);
-template void JMP(std::ofstream& reciever, const char* arg);
-//template void CALLF(std::ofstream& reciever, const char* arg);
-//template void JMPF(std::ofstream& reciever, const char* arg);
-template void CALL(std::vector<uint8_t>& reciever, const char* arg);
-template void JMP(std::vector<uint8_t>& reciever, const char* arg);
-//template void CALLF(std::vector<uint8_t>& reciever, const char* arg);
-//template void JMPF(std::vector<uint8_t>& reciever, const char* arg);
+template void CALL(ofstream& reciever, const char* arg);
+template void JMP(ofstream& reciever, const char* arg);
+//template void CALLF(ofstream& reciever, const char* arg);
+//template void JMPF(ofstream& reciever, const char* arg);
+template void CALL(vector<uint8_t>& reciever, const char* arg);
+template void JMP(vector<uint8_t>& reciever, const char* arg);
+//template void CALLF(vector<uint8_t>& reciever, const char* arg);
+//template void JMPF(vector<uint8_t>& reciever, const char* arg);
 template void CALL(Elf64SegmentHandler*& reciever, const char* arg);
 template void JMP(Elf64SegmentHandler*& reciever, const char* arg);
 //template void CALLF(Elf64SegmentHandler& reciever, const char* arg);
@@ -778,10 +907,10 @@ void POP(T& reciever, const char* arg) {
         }
     }
 }
-template void PUSH(std::ofstream& reciever, const char* arg);
-template void POP(std::ofstream& reciever, const char* arg);
-template void PUSH(std::vector<uint8_t>& reciever, const char* arg);
-template void POP(std::vector<uint8_t>& reciever, const char* arg);
+template void PUSH(ofstream& reciever, const char* arg);
+template void POP(ofstream& reciever, const char* arg);
+template void PUSH(vector<uint8_t>& reciever, const char* arg);
+template void POP(vector<uint8_t>& reciever, const char* arg);
 template void PUSH(Elf64SegmentHandler*& reciever, const char* arg);
 template void POP(Elf64SegmentHandler*& reciever, const char* arg);
 template void PUSH(Pe64SectionHandler*& reciever, const char* arg);
@@ -987,8 +1116,8 @@ void LEA(T& reciever, const char* dst, const char* src) {
     if (srcInfo.isVar) resolveVar(reciever,srcInfo.varName);
     if (debugInstructionOutput) cout << "LEA " << dstInfo.properString << ", " << ((dstInfo.bit==64)?"QWORD":"DWORD") << " PTR " << srcInfo.properString << endl;
 }
-template void LEA(std::ofstream& reciever, const char* dst, const char* src);
-template void LEA(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void LEA(ofstream& reciever, const char* dst, const char* src);
+template void LEA(vector<uint8_t>& reciever, const char* dst, const char* src);
 template void LEA(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
 template void LEA(Pe64SectionHandler*& reciever, const char* dst, const char* src);
 
@@ -1022,10 +1151,10 @@ void NOP(T& reciever, const char* arg) {
         else cout << "NOP " << argInfo.properString << endl;
     }
 }
-template void NOP(std::ofstream& reciever);
-template void NOP(std::ofstream& reciever, const char* arg);
-template void NOP(std::vector<uint8_t>& reciever);
-template void NOP(std::vector<uint8_t>& reciever, const char* arg);
+template void NOP(ofstream& reciever);
+template void NOP(ofstream& reciever, const char* arg);
+template void NOP(vector<uint8_t>& reciever);
+template void NOP(vector<uint8_t>& reciever, const char* arg);
 template void NOP(Elf64SegmentHandler*& reciever);
 template void NOP(Elf64SegmentHandler*& reciever, const char* arg);
 template void NOP(Pe64SectionHandler*& reciever);
@@ -1094,8 +1223,8 @@ void XCHG(T& reciever, const char* arg1, const char* arg2) {
         }
     }
 }
-template void XCHG(std::ofstream& reciever, const char* arg1, const char* arg2);
-template void XCHG(std::vector<uint8_t>& reciever, const char* arg1, const char* arg2);
+template void XCHG(ofstream& reciever, const char* arg1, const char* arg2);
+template void XCHG(vector<uint8_t>& reciever, const char* arg1, const char* arg2);
 template void XCHG(Elf64SegmentHandler*& reciever, const char* arg1, const char* arg2);
 template void XCHG(Pe64SectionHandler*& reciever, const char* arg1, const char* arg2);
 #pragma endregion XCHG
@@ -1152,8 +1281,8 @@ void MOV(T& reciever, const char* dst, const char* src) {
         }
     }
 }
-template void MOV(std::ofstream& reciever, const char* dst, const char* src);
-template void MOV(std::vector<uint8_t>& reciever, const char* dst, const char* src);
+template void MOV(ofstream& reciever, const char* dst, const char* src);
+template void MOV(vector<uint8_t>& reciever, const char* dst, const char* src);
 template void MOV(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
 template void MOV(Pe64SectionHandler*& reciever, const char* dst, const char* src);
 #pragma endregion MOV
@@ -1195,14 +1324,14 @@ void RETF(T& reciever,  const char* num) {
     pushWord(reciever, (uint16_t)numInfo.numValFourBytes, true);
     if (debugInstructionOutput) cout << "RETF " << numInfo.properString << endl;
 }
-template void RET(std::ofstream& reciever);
-template void RET(std::ofstream& reciever, const char* num);
-template void RETF(std::ofstream& reciever);
-template void RETF(std::ofstream& reciever, const char* num);
-template void RET(std::vector<uint8_t>& reciever);
-template void RET(std::vector<uint8_t>& reciever, const char* num);
-template void RETF(std::vector<uint8_t>& reciever);
-template void RETF(std::vector<uint8_t>& reciever, const char* num);
+template void RET(ofstream& reciever);
+template void RET(ofstream& reciever, const char* num);
+template void RETF(ofstream& reciever);
+template void RETF(ofstream& reciever, const char* num);
+template void RET(vector<uint8_t>& reciever);
+template void RET(vector<uint8_t>& reciever, const char* num);
+template void RETF(vector<uint8_t>& reciever);
+template void RETF(vector<uint8_t>& reciever, const char* num);
 template void RET(Elf64SegmentHandler*& reciever);
 template void RET(Elf64SegmentHandler*& reciever, const char* num);
 template void RETF(Elf64SegmentHandler*& reciever);
@@ -1238,12 +1367,12 @@ void INT(T& reciever,  const char* num) {
         if (debugInstructionOutput) cout << "INT " << numInfo.properString << endl;
     }
 }
-template void INT3(std::ofstream& reciever);
-template void INT3(std::vector<uint8_t>& reciever);
+template void INT3(ofstream& reciever);
+template void INT3(vector<uint8_t>& reciever);
 template void INT3(Elf64SegmentHandler*& reciever);
 template void INT3(Pe64SectionHandler*& reciever);
-template void INT(std::ofstream& reciever, const char* num);
-template void INT(std::vector<uint8_t>& reciever, const char* num);
+template void INT(ofstream& reciever, const char* num);
+template void INT(vector<uint8_t>& reciever, const char* num);
 template void INT(Elf64SegmentHandler*& reciever, const char* num);
 template void INT(Pe64SectionHandler*& reciever, const char* num);
 
@@ -1253,8 +1382,8 @@ void HLT(T& reciever) {
     pushByte(reciever, INTEL_INSTR_HLT);
     if (debugInstructionOutput) cout << "HLT" << endl;
 }
-template void HLT(std::ofstream& reciever);
-template void HLT(std::vector<uint8_t>& reciever);
+template void HLT(ofstream& reciever);
+template void HLT(vector<uint8_t>& reciever);
 template void HLT(Elf64SegmentHandler*& reciever);
 template void HLT(Pe64SectionHandler*& reciever);
 #pragma endregion IntHlt
@@ -1296,8 +1425,8 @@ void TEST(T& reciever, const char* arg1, const char* arg2) {
         }
     }
 }
-template void TEST(std::ofstream& reciever, const char* arg1, const char* arg2);
-template void TEST(std::vector<uint8_t>& reciever, const char* arg1, const char* arg2);
+template void TEST(ofstream& reciever, const char* arg1, const char* arg2);
+template void TEST(vector<uint8_t>& reciever, const char* arg1, const char* arg2);
 template void TEST(Elf64SegmentHandler*& reciever, const char* arg1, const char* arg2);
 template void TEST(Pe64SectionHandler*& reciever, const char* arg1, const char* arg2);
 #pragma endregion Test
@@ -1334,10 +1463,10 @@ template <typename T>
 void NEG(T& reciever, const char* arg) {
     NotNeg(reciever,arg,"NEG",INTEL_ModRM_OP2_NEG_RM);
 }
-template void NOT(std::ofstream& reciever, const char* arg);
-template void NEG(std::ofstream& reciever, const char* arg);
-template void NOT(std::vector<uint8_t>& reciever, const char* arg);
-template void NEG(std::vector<uint8_t>& reciever, const char* arg);
+template void NOT(ofstream& reciever, const char* arg);
+template void NEG(ofstream& reciever, const char* arg);
+template void NOT(vector<uint8_t>& reciever, const char* arg);
+template void NEG(vector<uint8_t>& reciever, const char* arg);
 template void NOT(Elf64SegmentHandler*& reciever, const char* arg);
 template void NEG(Elf64SegmentHandler*& reciever, const char* arg);
 template void NOT(Pe64SectionHandler*& reciever, const char* arg);
@@ -1384,14 +1513,14 @@ template <typename T>
 void DIV(T& reciever, const char* arg) {
     UmulMulUdivDiv(reciever,arg,"IDIV",INTEL_ModRM_OP2_DIV_eDX_eAX_RM);
 }
-template void UMUL(std::ofstream& reciever, const char* arg);
-template void MUL(std::ofstream& reciever, const char* arg);
-template void UDIV(std::ofstream& reciever, const char* arg);
-template void DIV(std::ofstream& reciever, const char* arg);
-template void UMUL(std::vector<uint8_t>& reciever, const char* arg);
-template void MUL(std::vector<uint8_t>& reciever, const char* arg);
-template void UDIV(std::vector<uint8_t>& reciever, const char* arg);
-template void DIV(std::vector<uint8_t>& reciever, const char* arg);
+template void UMUL(ofstream& reciever, const char* arg);
+template void MUL(ofstream& reciever, const char* arg);
+template void UDIV(ofstream& reciever, const char* arg);
+template void DIV(ofstream& reciever, const char* arg);
+template void UMUL(vector<uint8_t>& reciever, const char* arg);
+template void MUL(vector<uint8_t>& reciever, const char* arg);
+template void UDIV(vector<uint8_t>& reciever, const char* arg);
+template void DIV(vector<uint8_t>& reciever, const char* arg);
 template void UMUL(Elf64SegmentHandler*& reciever, const char* arg);
 template void MUL(Elf64SegmentHandler*& reciever, const char* arg);
 template void UDIV(Elf64SegmentHandler*& reciever, const char* arg);
@@ -1442,18 +1571,18 @@ void STD(T& reciever) {
     pushByte(reciever, INTEL_INSTR_SET_DF);
     if (debugInstructionOutput) cout << "STD" << endl;
 }
-template void CLC(std::ofstream& reciever);
-template void STC(std::ofstream& reciever);
-template void CLI(std::ofstream& reciever);
-template void STI(std::ofstream& reciever);
-template void CLD(std::ofstream& reciever);
-template void STD(std::ofstream& reciever);
-template void CLC(std::vector<uint8_t>& reciever);
-template void STC(std::vector<uint8_t>& reciever);
-template void CLI(std::vector<uint8_t>& reciever);
-template void STI(std::vector<uint8_t>& reciever);
-template void CLD(std::vector<uint8_t>& reciever);
-template void STD(std::vector<uint8_t>& reciever);
+template void CLC(ofstream& reciever);
+template void STC(ofstream& reciever);
+template void CLI(ofstream& reciever);
+template void STI(ofstream& reciever);
+template void CLD(ofstream& reciever);
+template void STD(ofstream& reciever);
+template void CLC(vector<uint8_t>& reciever);
+template void STC(vector<uint8_t>& reciever);
+template void CLI(vector<uint8_t>& reciever);
+template void STI(vector<uint8_t>& reciever);
+template void CLD(vector<uint8_t>& reciever);
+template void STD(vector<uint8_t>& reciever);
 template void CLC(Elf64SegmentHandler*& reciever);
 template void STC(Elf64SegmentHandler*& reciever);
 template void CLI(Elf64SegmentHandler*& reciever);

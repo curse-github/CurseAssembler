@@ -1,8 +1,6 @@
 #ifndef _INTEL_CONSTANTS_H
 #define _INTEL_CONSTANTS_H
 
-#include <cstdint>
-
 // instruction RM byte mod bits
 #define INTEL_ModRM_MOD_Address 0b00000000
 #define INTEL_ModRM_MOD_1byteDisp 0b01000000
@@ -121,6 +119,7 @@
 #define INTEL_SIB_Scale_2 0b01000000
 #define INTEL_SIB_Scale_4 0b10000000
 #define INTEL_SIB_Scale_8 0b11000000
+#include <cstdint>
 uint8_t intToSIBScale(const unsigned int& num);
 unsigned int SIBScaleToInt(const uint8_t& scale);
 

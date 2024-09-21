@@ -1,10 +1,4 @@
-#include <fstream>
-#include <string>
-#include <cstring>
-#include <iostream>
-
 #include "globalConstants.h"
-#include "intelConstants.h"
 
 const uint32_t exit_code = 0x00000028;
 int main(int argc, char *argv[]) {

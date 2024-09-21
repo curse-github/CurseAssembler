@@ -1,8 +1,6 @@
 #ifndef _ELF_H
 #define _ELF_H
 
-#include <vector>
-
 #include "elfConstants.h"
 #include "globalConstants.h"
 
@@ -362,11 +360,11 @@ public:
 class Elf64SegmentHandler {
     Elf64Handler& elfHandler;
     elfSegmentHdr64 segmentHeader;
-    std::vector<uint8_t> data;
-
+public:
     uint32_t sectionAlignment=1;
     uint32_t fileAlignment=1;
-public:
+    std::vector<uint8_t> data;
+
     Elf64SegmentHandler(Elf64Handler& _elfHandler, const uint32_t& type, const uint32_t& flags);
     constexpr bool isLSB() const {
         return elfHandler.isLSB();

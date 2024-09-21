@@ -1,5 +1,5 @@
 make Win64
 small.exe
-echo %ERRORLEVEL%
+echo exit code: %ERRORLEVEL%
 pause
 make clean

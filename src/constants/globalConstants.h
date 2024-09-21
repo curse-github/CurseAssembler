@@ -1,21 +1,51 @@
 #ifndef _GLOBAL_CONSTANTS_H
 #define _GLOBAL_CONSTANTS_H
 
+#include <cstdint>// for uint8_t, uint16_t, uint32_t, and uint64_t
 #include <fstream>
-#include <vector>
-#include <cstdint>
-#include <iomanip>
+#include <iostream>
+#include <string>
+#include <cstring>
 
-const uint32_t VirtAddr32 = 0x00400000;
-const uint64_t VirtAddr64 = 0x0000000140000000;
+#include <vector>
+#include <iomanip>
+#include <algorithm>// for std::min and std::max
+#include <filesystem>
+
+#include "intelConstants.h"
 
 #define SECTION_ALIGN 0x1000u
 #define FILE_ALIGN 0x200u
 
+extern uint32_t VirtAddr32;
+extern uint64_t VirtAddr64;
+extern uint8_t bitMode;
+
 //utility func
 uint32_t roundToAlign(const uint32_t &value, const uint32_t &align);
-
-extern uint8_t bitMode;
+template<typename T>
+std::string intToHex(const T& i, const char *prefix="0x");
+template<>
+std::string intToHex(const int8_t& i, const char *prefix);
+template<>
+std::string intToHex(const uint8_t& i, const char *prefix);
+template<>
+std::string intToHex(const int16_t& i, const char *prefix);
+template<>
+std::string intToHex(const uint16_t& i, const char *prefix);
+template<>
+std::string intToHex(const int32_t& i, const char *prefix);
+template<>
+std::string intToHex(const uint32_t& i, const char *prefix);
+template<>
+std::string intToHex(const int64_t& i, const char *prefix);
+template<>
+std::string intToHex(const uint64_t& i, const char *prefix);
+void padBytes(std::ofstream& stream, const size_t& numBytes);
+void padBytes(std::vector<uint8_t>& vector, const size_t& numBytes);
+char toLower(char chr);
+char toUpper(char chr);
+void trashBytes(std::ifstream& stream, uint32_t& count, const uint32_t& num);
 
 #pragma region void pushChars(T&, const uint8_t*, const size_t&, const bool&)
 template <typename T>
@@ -44,12 +74,22 @@ void setWordAt (std::vector<uint8_t>& vector, const size_t& index, const uint16_
 void setDwordAt(std::vector<uint8_t>& vector, const size_t& index, const uint32_t& dword, const bool& LSB);
 void setQwordAt(std::vector<uint8_t>& vector, const size_t& index, const uint64_t& qword, const bool& LSB);
 
-void padBytes(std::ofstream& stream, const size_t& numBytes);
-void padBytes(std::vector<uint8_t>& vector, const size_t& numBytes);
+std::vector<uint8_t> readBytes(std::ifstream& stream, uint32_t& count, const size_t& num);
+char readChar(std::ifstream& stream, uint32_t& count);
+uint8_t readByte(std::ifstream& stream, uint32_t& count);
+uint16_t readWord(std::ifstream& stream, uint32_t& count);
+uint32_t readDword(std::ifstream& stream, uint32_t& count);
+uint32_t readQword(std::ifstream& stream, uint32_t& count);
+std::vector<uint8_t> readBytesAt(std::vector<uint8_t>& vec, const size_t& at, const size_t& num);
+char readCharAt(std::vector<uint8_t>& vec, const size_t& at);
+uint8_t readByteAt(std::vector<uint8_t>& vec, const size_t& at);
+uint16_t readWordAt(std::vector<uint8_t>& vec, const size_t& at);
+uint32_t readDwordAt(std::vector<uint8_t>& vec, const size_t& at);
+uint32_t readQwordAt(std::vector<uint8_t>& vec, const size_t& at);
+std::string readStringAt(std::vector<uint8_t>& vec, const size_t& at);
 
 #include "ELF.h"
 #include "PE.h"
-
 
 extern bool debugInstructionOutput;
 template <typename T>
