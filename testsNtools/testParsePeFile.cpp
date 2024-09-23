@@ -1,27 +1,28 @@
 #include "globalConstants.h"
 #ifdef _WIN32
-namespace WIN {
-    #include <windows.h>
-}
-enum class Color {Red=FOREGROUND_RED,Green=FOREGROUND_GREEN,Blue=FOREGROUND_BLUE,DarkCyan=FOREGROUND_GREEN|FOREGROUND_BLUE,Cyan=FOREGROUND_GREEN|FOREGROUND_BLUE|FOREGROUND_INTENSITY,White=FOREGROUND_RED|FOREGROUND_GREEN|FOREGROUND_BLUE|FOREGROUND_INTENSITY};
-void setPrintColor(const Color& color) {// function that sets the console output color based on the enum passed in
-    WIN::SetConsoleOutputCP(CP_UTF8);
-    WIN::SetConsoleTextAttribute(WIN::GetStdHandle((WIN::DWORD)-11),(int)color);
-}
+    namespace WIN {
+        #include <windows.h>
+    }
+    enum class Color {Red=FOREGROUND_RED,Green=FOREGROUND_GREEN,Blue=FOREGROUND_BLUE,DarkCyan=FOREGROUND_GREEN|FOREGROUND_BLUE,Cyan=FOREGROUND_GREEN|FOREGROUND_BLUE|FOREGROUND_INTENSITY,White=FOREGROUND_RED|FOREGROUND_GREEN|FOREGROUND_BLUE|FOREGROUND_INTENSITY};
+    void setPrintColor(const Color& color) {// function that sets the console output color based on the enum passed in
+        WIN::SetConsoleOutputCP(CP_UTF8);
+        WIN::SetConsoleTextAttribute(WIN::GetStdHandle((WIN::DWORD)-11),(int)color);
+    }
 #else
-enum class Color {Red=0,Green=1,Blue=2,DarkCyan=3,Cyan=4,White=5};
-void setPrintColor(const Color& color) {// function that sets the console output color based on the enum passed in
-}
+    enum class Color {Red=31,Green=32,Blue=34,DarkCyan=36,Cyan=96,White=0};
+    void setPrintColor(const Color& color) {// function that sets the console output color based on the enum passed in
+        std::cout << "\u001b[" << (int)color << 'm';
+    }
 #endif
 
 void printBytes(const std::vector<uint8_t>& vec, const uint32_t& startOffset) {
     setPrintColor(Color::Cyan);
-    std::cout << "  Offset 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f\n";
+    std::cout << "  Offset: 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f\n";
     setPrintColor(Color::White);
     if ((startOffset%16u)!=0) for (uint32_t i = 0; i < 16u-(startOffset%16u); i++) std::cout << "   ";
     size_t size = vec.size();
     for (size_t i = 0; i < size; i++) {
-        if (((startOffset+i)%16u)==0) { setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(startOffset+i),"") << ' '; setPrintColor(Color::White); }
+        if (((startOffset+i)%16u)==0) { setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(startOffset+i),""); setPrintColor(Color::White); std::cout << ": ";}
         std::cout << intToHex(vec[i],"");
         if (((startOffset+i+1)%16u)==0) std::cout << '\n'; else std::cout << ' ';
     }
@@ -37,7 +38,7 @@ int main(int argc, char *argv[]) {
     uint32_t count = 0;
 
     peHdr peHeader;
-    peOptHdrStdFields64 stdFieldsHeader;
+    peOptHdrStdFields stdFieldsHeader;
     peOptHdrSpecFields64 specFieldsHeader;
     peOptHdrDataDirs dataDirs;
     uint16_t p_numberOfSections = 0;
@@ -54,19 +55,19 @@ int main(int argc, char *argv[]) {
     try {
         // read pe header and optional header
         peHdr::peHdrPullReturnData peHdrPullReturn = peHeader.read(inFile,count);
-        if (!peHdrPullReturn.isValid) return 1;
+        if (!peHdrPullReturn.isValid) { inFile.close(); return 1; }
         PeHeaderOffset = peHdrPullReturn.PeHeaderOffset;
         bool stdFieldsHdrPullReturn = stdFieldsHeader.read(inFile,count);
-        if (!stdFieldsHdrPullReturn) return 1;
+        if (!stdFieldsHdrPullReturn) { inFile.close(); return 1; }
         bool specFieldsHdrPullReturn = specFieldsHeader.read(inFile,count);
-        if (!specFieldsHdrPullReturn) return 1;
+        if (!specFieldsHdrPullReturn) { inFile.close(); return 1; }
         bool dataDirsPullReturn = dataDirs.read(inFile,count);
-        if (!dataDirsPullReturn) return 1;
+        if (!dataDirsPullReturn) { inFile.close(); return 1; }
         // read sectopm headers
         p_numberOfSections = peHeader.p_numberOfSections;
         for (size_t i = 0; i < p_numberOfSections; i++) {
             peSectionHdr sectionHdrI("        ");
-            if (!sectionHdrI.read(inFile,count)) { std::cout << "error reading section header #" << i << "\n"; return 1; }
+            if (!sectionHdrI.read(inFile,count)) { std::cout << "error reading section header #" << i << "\n"; inFile.close(); return 1; }
             sectionHeaders.push_back(sectionHdrI);
         }
         // read section data
@@ -77,9 +78,9 @@ int main(int argc, char *argv[]) {
         isDll=((peHeader.p_characteristics&IMAGE_FILE_CHARACTERISTIC_DLL)!=0);
         if (isDll) {
             // find export table
-            if (dataDirs.p_exportTableRVA==0) { std::cout << "DLL has no export table."; return {}; }
+            if (dataDirs.p_exportTableRVA==0) { std::cout << "DLL has no export table."; inFile.close(); return 1; }
             exportTableLocation = RVAtoSectionPlusOffset(dataDirs.p_exportTableRVA,dataDirs.p_exportTableSize,sectionHeaders);
-            if (exportTableLocation.section==nullptr) { std::cout << "DLL export table could not be found."; return {}; }
+            if (exportTableLocation.section==nullptr) { std::cout << "DLL export table could not be found."; inFile.close(); return 1; }
             const peSectionHdr* sectionWithExportTable = exportTableLocation.section;
             std::vector<uint8_t>* sectionDataWithExportTable = &sectionData[exportTableLocation.index];
             exportDirTable.readAt(*sectionDataWithExportTable,exportTableLocation.offset);
@@ -92,8 +93,8 @@ int main(int argc, char *argv[]) {
                 exports.push_back({i,name,dllName});
             }
         }
-    } catch(const int& err) { std::cout << "EOF reached before expected"; return 1; }
-    catch ( ... ) { std::cout << "error..."; return 1; }
+    } catch(const int& err) { std::cout << "EOF reached before expected"; inFile.close(); return 1; }
+    catch ( ... ) { std::cout << "error..."; inFile.close(); return 1; }
 
     uint16_t p_characteristics = peHeader.p_characteristics;
     uint32_t p_addressOfEntryPoint = stdFieldsHeader.p_addressOfEntryPoint;

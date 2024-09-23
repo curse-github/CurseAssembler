@@ -19,7 +19,7 @@ struct SectionPlusOffset {
 SectionPlusOffset RVAtoSectionPlusOffset(const uint32_t& RVA, const uint32_t& size, std::vector<peSectionHdr>& sections);
 
 #include <time.h>
-struct peHdr {  // 22 bytes
+struct peHdr {  // 24 bytes
     uint8_t p_magic[4];
     uint16_t p_machine;
     uint16_t p_numberOfSections;    // limited at 96 sections
@@ -59,28 +59,57 @@ struct peHdr {  // 22 bytes
         peHdrPullReturnData returnData;
         try {
             // skip past MZ header
-            if ((readChar(stream,count)!='M')||(readChar(stream,count)!='Z')) { std::cout << "File not PE file" << std::endl; stream.close(); returnData.isValid=false; return returnData; }
+            if ((readChar(stream,count)!='M')||(readChar(stream,count)!='Z')) { std::cout << "File not PE file" << std::endl; returnData.isValid=false; return returnData; }
             for (size_t i = 0; i < 0x3a; i++) readByte(stream,count);
             returnData.PeHeaderOffset = readDword(stream, count);
-            if (returnData.PeHeaderOffset==0) { std::cout << "PE header offset not found." << std::endl; stream.close(); returnData.isValid=false; return returnData; }
+            if (returnData.PeHeaderOffset==0) { std::cout << "PE header offset not found." << std::endl; returnData.isValid=false; return returnData; }
             size_t numBytesToTrash = returnData.PeHeaderOffset-count;
             for (size_t i = 0; i < numBytesToTrash; i++) readByte(stream,count);
 
             // get PE header
-            if ((readChar(stream,count)!='P')||(readChar(stream,count)!='E')||(readChar(stream,count)!='\0')||(readChar(stream,count)!='\0')) { std::cout << "File not PE file" << std::endl; stream.close(); returnData.isValid=false; return returnData; }
+            if ((readChar(stream,count)!='P')||(readChar(stream,count)!='E')||(readChar(stream,count)!='\0')||(readChar(stream,count)!='\0')) { std::cout << "File not PE file" << std::endl; returnData.isValid=false; return returnData; }
             p_magic[0] = 'P';
             p_magic[1] = 'E';
             p_magic[2] = '\0';
             p_magic[3] = '\0';
             p_machine = readWord(stream, count);
-            if (p_machine!=IMAGE_FILE_MACHINE_AMD64) { std::cout << "PE header p_machine unknown." << std::endl; stream.close(); returnData.isValid=false; return returnData; }
+            if (p_machine!=IMAGE_FILE_MACHINE_AMD64) { std::cout << "PE header p_machine unknown." << std::endl; returnData.isValid=false; return returnData; }
             p_numberOfSections = readWord(stream, count);
-            if (p_numberOfSections>96) { std::cout << "Invalid number of sections." << std::endl; stream.close(); returnData.isValid=false; return returnData; }
+            if (p_numberOfSections>96) { std::cout << "Invalid number of sections." << std::endl; returnData.isValid=false; return returnData; }
             p_timeDateStamp = readDword(stream, count);
             p_pointerToSymbolTable = readDword(stream, count);
             p_numberOfSymbols = readDword(stream, count);
             p_sizeOfOptionalHeader = readWord(stream, count);
             p_characteristics = readWord(stream, count);
+            return returnData;
+        } catch (int code) { returnData.isValid=false; return returnData; }
+    }
+    peHdrPullReturnData readAt(std::vector<uint8_t>& vec, const uint32_t index) {
+        peHdrPullReturnData returnData;
+        try {
+            // skip past MZ header
+            if ((readCharAt(vec,index)!='M')||(readCharAt(vec,index+1)!='Z')) { std::cout << "File not PE file" << std::endl; returnData.isValid=false; return returnData; }
+            for (size_t i = 0; i < 0x3a; i++) readByteAt(vec,index+2+i);
+            returnData.PeHeaderOffset = readDwordAt(vec,index+2+0x3a);
+            if (returnData.PeHeaderOffset==0) { std::cout << "PE header offset not found." << std::endl; returnData.isValid=false; return returnData; }
+            uint32_t PeHeaderOffset = returnData.PeHeaderOffset;
+            //for (size_t i = 0; i < numBytesToTrash; i++) readByte(stream,count);
+
+            // get PE header
+            if ((readCharAt(vec,PeHeaderOffset)!='P')||(readCharAt(vec,PeHeaderOffset+1)!='E')||(readCharAt(vec,PeHeaderOffset+2)!='\0')||(readCharAt(vec,PeHeaderOffset+3)!='\0')) { std::cout << "File not PE file" << std::endl; returnData.isValid=false; return returnData; }
+            p_magic[0] = 'P';
+            p_magic[1] = 'E';
+            p_magic[2] = '\0';
+            p_magic[3] = '\0';
+            p_machine = readWordAt(vec,PeHeaderOffset+4);
+            if (p_machine!=IMAGE_FILE_MACHINE_AMD64) { std::cout << "PE header p_machine unknown." << std::endl; returnData.isValid=false; return returnData; }
+            p_numberOfSections = readWordAt(vec,PeHeaderOffset+6);
+            if (p_numberOfSections>96) { std::cout << "Invalid number of sections." << std::endl; returnData.isValid=false; return returnData; }
+            p_timeDateStamp = readDwordAt(vec,PeHeaderOffset+8);
+            p_pointerToSymbolTable = readDwordAt(vec,PeHeaderOffset+12);
+            p_numberOfSymbols = readDwordAt(vec,PeHeaderOffset+16);
+            p_sizeOfOptionalHeader = readWordAt(vec,PeHeaderOffset+20);
+            p_characteristics = readWordAt(vec,PeHeaderOffset+22);
             return returnData;
         } catch (int code) { returnData.isValid=false; return returnData; }
     }
@@ -116,7 +145,7 @@ struct peHdr {  // 22 bytes
 
 // Optional header
 
-struct peOptHdrStdFields32 {  // 24 bytes
+struct peOptHdrStdFields {// 24 bytes
     uint16_t p_magic;
     uint8_t p_majorLinkerVersion;
     uint8_t p_minorLinkerVersion;
@@ -125,41 +154,8 @@ struct peOptHdrStdFields32 {  // 24 bytes
     uint32_t p_sizeOfUninitializedData;
     uint32_t p_addressOfEntryPoint;
     uint32_t p_baseOfCode;
-    uint32_t p_baseOfData;  // virtual address??
-    peOptHdrStdFields32() {
-        p_magic = IMAGE_FILE_MAGIC32;
-        p_majorLinkerVersion = 0x02;
-        p_minorLinkerVersion = 0x19;
-        p_sizeOfCode = 0;               // currently unknown v
-        p_sizeOfInitializedData = 0;    // currently unknown v
-        p_sizeOfUninitializedData = 0;  // currently unknown v
-        p_addressOfEntryPoint = 0;      // currently unknown v?
-        p_baseOfCode = 0;               // currently unknown v
-        p_baseOfData = 0;               // currently unknown v?
-    }
-    void push(std::ofstream& stream) {
-        pushWord(stream,p_magic,true);
-        pushByte(stream,p_majorLinkerVersion);
-        pushByte(stream,p_minorLinkerVersion);
-        pushDword(stream,p_sizeOfCode,true);
-        pushDword(stream,p_sizeOfInitializedData,true);
-        pushDword(stream,p_sizeOfUninitializedData,true);
-        pushDword(stream,p_addressOfEntryPoint,true);
-        pushDword(stream,p_baseOfCode,true);
-        pushDword(stream,p_baseOfData,true);
-    }
-};
-struct peOptHdrStdFields64 {// 28 bytes
-    uint16_t p_magic;
-    uint8_t p_majorLinkerVersion;
-    uint8_t p_minorLinkerVersion;
-    uint32_t p_sizeOfCode;
-    uint32_t p_sizeOfInitializedData;
-    uint32_t p_sizeOfUninitializedData;
-    uint32_t p_addressOfEntryPoint;
-    uint32_t p_baseOfCode;
-    peOptHdrStdFields64() {
-        p_magic = IMAGE_FILE_MAGIC64;
+    peOptHdrStdFields() {
+        p_magic = (bitMode==64)?IMAGE_FILE_MAGIC64:IMAGE_FILE_MAGIC32;
         p_majorLinkerVersion = 0x02;
         p_minorLinkerVersion = 0x19;
         p_sizeOfCode = 0;               // currently unknown v
@@ -181,7 +177,7 @@ struct peOptHdrStdFields64 {// 28 bytes
     bool read(std::ifstream& stream, uint32_t& count) {
         try {
             uint16_t p_std_magic = readWord(stream, count);
-            if (p_std_magic!=IMAGE_FILE_MAGIC64)  { std::cout << "Only 64 bit can be parsed currently" << std::endl; stream.close(); return false; }
+            if (p_std_magic!=IMAGE_FILE_MAGIC64)  { std::cout << "Only 64 bit can be parsed currently" << std::endl; return false; }
             p_minorLinkerVersion = readByte(stream, count);
             p_minorLinkerVersion = readByte(stream, count);
             p_sizeOfCode = readDword(stream, count);
@@ -189,6 +185,20 @@ struct peOptHdrStdFields64 {// 28 bytes
             p_sizeOfUninitializedData = readDword(stream, count);
             p_addressOfEntryPoint = readDword(stream, count);
             p_baseOfCode = readDword(stream, count);
+            return true;
+        } catch (int code) { return false; }
+    }
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t index) {
+        try {
+            uint16_t p_std_magic = readWordAt(vec, index);
+            if (p_std_magic!=IMAGE_FILE_MAGIC64)  { std::cout << "Only 64 bit can be parsed currently" << std::endl; return false; }
+            p_minorLinkerVersion = readByteAt(vec, index+2);
+            p_minorLinkerVersion = readByteAt(vec, index+3);
+            p_sizeOfCode = readDwordAt(vec, index+4);
+            p_sizeOfInitializedData = readDwordAt(vec, index+8);
+            p_sizeOfUninitializedData = readDwordAt(vec, index+12);
+            p_addressOfEntryPoint = readDwordAt(vec, index+16);
+            p_baseOfCode = readDwordAt(vec, index+20);
             return true;
         } catch (int code) { return false; }
     }
@@ -267,7 +277,7 @@ struct peOptHdrSpecFields32 {
         pushDword(stream,p_numberAndSizeOfDataDirs,true);
     }
 };
-struct peOptHdrSpecFields64 {
+struct peOptHdrSpecFields64 {// 88 bytes
     uint64_t p_imageBase;
     uint32_t p_sectionAlignment;
     uint32_t p_fileAlignment;
@@ -364,6 +374,32 @@ struct peOptHdrSpecFields64 {
             return true;
         } catch (int code) { return false; }
     }
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t index) {
+        try {
+            p_imageBase = readQwordAt(vec,index);
+            p_sectionAlignment = readDwordAt(vec,index+8);
+            p_fileAlignment = readDwordAt(vec,index+12);
+            p_majorOperatingSystemVersion = readWordAt(vec,index+16);
+            p_minorOperatingSystemVersion = readWordAt(vec,index+18);
+            p_majorImageVersion = readWordAt(vec,index+20);
+            p_minorImageVersion = readWordAt(vec,index+22);
+            p_majorSubsystemVersion = readWordAt(vec,index+24);
+            p_minorSubsystemVersion = readWordAt(vec,index+26);
+            p_win32VersionValue = readDwordAt(vec,index+28);
+            p_sizeOfImage = readDwordAt(vec,index+32);
+            p_sizeOfHeaders = readDwordAt(vec,index+36);
+            p_checkSum = readDwordAt(vec,index+40);
+            p_subSystem = readWordAt(vec,index+44);
+            p_dllCharacteristics = readWordAt(vec,index+46);
+            p_sizeOfStackReserve = readQwordAt(vec,index+48);
+            p_sizeOfStackCommit = readQwordAt(vec,index+56);
+            p_sizeOfHeapReserve = readQwordAt(vec,index+64);
+            p_sizeOfHeapCommit = readQwordAt(vec,index+72);
+            p_loaderFlags = readDwordAt(vec,index+80);
+            p_numberAndSizeOfDataDirs = readDwordAt(vec,index+84);
+            return true;
+        } catch (int code) { return false; }
+    }
     void print(std::string delimmiter="\n") {
         std::cout << "p_imageBase: " << intToHex(p_imageBase) << delimmiter;
         std::cout << "p_sectionAlignment: " << intToHex(p_sectionAlignment) << delimmiter;
@@ -389,7 +425,7 @@ struct peOptHdrSpecFields64 {
     }
 };
 
-struct peOptHdrDataDirs {
+struct peOptHdrDataDirs {// 128 bytes
     uint32_t p_exportTableRVA;
     uint32_t p_exportTableSize;
     uint32_t p_importTableRVA;
@@ -521,12 +557,47 @@ struct peOptHdrDataDirs {
             return true;
         } catch (int code) { return false; }
     }
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t index) {
+        try {
+            p_exportTableRVA = readDwordAt(vec,index);
+            p_exportTableSize = readDwordAt(vec,index+4);
+            p_importTableRVA = readDwordAt(vec,index+8);
+            p_importTableSize = readDwordAt(vec,index+12);
+            p_resourceTableRVA = readDwordAt(vec,index+16);
+            p_resourceTableSize = readDwordAt(vec,index+20);
+            p_exceptionTableRVA = readDwordAt(vec,index+24);
+            p_exceptionTableSize = readDwordAt(vec,index+28);
+            p_certificateTableRVA = readDwordAt(vec,index+32);
+            p_certificateTableSize = readDwordAt(vec,index+36);
+            p_baseRelocationTableRVA = readDwordAt(vec,index+40);
+            p_baseRelocationTableSize = readDwordAt(vec,index+44);
+            p_debugRVA = readDwordAt(vec,index+48);
+            p_debugSize = readDwordAt(vec,index+52);
+            p_architecture = readQwordAt(vec,index+56);
+            p_globalPtrRVA = readDwordAt(vec,index+64);
+            p_globalPtrSize = readDwordAt(vec,index+68);
+            p_TlsTableRVA = readDwordAt(vec,index+72);
+            p_TlsTableSize = readDwordAt(vec,index+76);
+            p_loadConfigTableRVA = readDwordAt(vec,index+80);
+            p_loadConfigTableSize = readDwordAt(vec,index+84);
+            p_boundImportRVA = readDwordAt(vec,index+88);
+            p_boundImportSize = readDwordAt(vec,index+92);
+            p_ImprtAddressTableRVA = readDwordAt(vec,index+96);
+            p_ImprtAddressTableSize = readDwordAt(vec,index+100);
+            p_delayImportDescriptorRVA = readDwordAt(vec,index+104);
+            p_delayImportDescriptorSize = readDwordAt(vec,index+108);
+            p_ClrRuntimeHeaderRVA = readDwordAt(vec,index+112);
+            p_ClrRuntimeHeaderSize = readDwordAt(vec,index+116);
+            p_zero = readQwordAt(vec,index+120);
+            return true;
+        } catch (int code) { return false; }
+    }
     void print(std::vector<peSectionHdr>& sections, std::string delimmiter="\n");
 };
 
 // section tables
 
-struct peSectionHdr {
+struct peSectionHdr {// 40 bytes
     char s_name[8];
     uint32_t s_virtualSize;     // size in memory, invalid for object files
     uint32_t s_virtualAddress;  // virtual address in memory, invalid for object files
@@ -576,6 +647,21 @@ struct peSectionHdr {
             s_numberOfRelocations = readWord(stream, count);
             s_numberOfLineNumbers = readWord(stream, count);
             s_characteristics = readDword(stream, count);
+            return true;
+        } catch (int code) { return false; }
+    }
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t index) {
+        try {
+            for (size_t i = 0; i < 8; i++) s_name[i]=(char)readByteAt(vec,index+i);
+            s_virtualSize = readDwordAt(vec,index+8);
+            s_virtualAddress = readDwordAt(vec,index+12);
+            s_rawDataSize = readDwordAt(vec,index+16);
+            s_rawDataPointer = readDwordAt(vec,index+20);
+            s_relocationsPointer = readDwordAt(vec,index+24);
+            s_lineNumbersPointer = readDwordAt(vec,index+28);
+            s_numberOfRelocations = readWordAt(vec,index+32);
+            s_numberOfLineNumbers = readWordAt(vec,index+34);
+            s_characteristics = readDwordAt(vec,index+36);
             return true;
         } catch (int code) { return false; }
     }
@@ -774,7 +860,7 @@ class Pe64Handler {
 private:
     std::vector<Pe64SectionHandler *> sectionHeaders;
     peHdr peHeader;
-    peOptHdrStdFields64 peStdFieldsHeader;
+    peOptHdrStdFields peStdFieldsHeader;
     peOptHdrSpecFields64 peSpecFieldsHeader;
     peOptHdrDataDirs peDataDirHeader;
 

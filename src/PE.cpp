@@ -14,7 +14,7 @@ SectionPlusOffset RVAtoSectionPlusOffset(const uint32_t& RVA, const uint32_t& si
 }
 
 #pragma region struct print functions
-void peOptHdrStdFields64::print(std::vector<peSectionHdr>& sections, std::string delimmiter) {
+void peOptHdrStdFields::print(std::vector<peSectionHdr>& sections, std::string delimmiter) {
     std::cout << "p_majorLinkerVersion: " << (int)p_majorLinkerVersion << delimmiter;
     std::cout << "p_minorLinkerVersion: " << (int)p_minorLinkerVersion << delimmiter;
     std::cout << "p_sizeOfCode: " << intToHex(p_sizeOfCode) << delimmiter;
@@ -176,7 +176,7 @@ std::vector<dllExportData> parseDll(const std::string& name) {
     uint32_t count = 0;
 
     peHdr peHeader;
-    peOptHdrStdFields64 stdFieldsHeader;
+    peOptHdrStdFields stdFieldsHeader;
     peOptHdrSpecFields64 specFieldsHeader;
     peOptHdrDataDirs dataDirs;
     uint16_t p_numberOfSections = 0;
@@ -189,14 +189,14 @@ std::vector<dllExportData> parseDll(const std::string& name) {
     try {
         // read pe header and optional header
         peHdr::peHdrPullReturnData peHdrPullReturn = peHeader.read(inFile,count);
-        if (!peHdrPullReturn.isValid) return {};
-        if ((peHeader.p_characteristics&IMAGE_FILE_CHARACTERISTIC_DLL)==0) { std::cout << "File is not a DLL"; return {}; }
+        if (!peHdrPullReturn.isValid) { inFile.close(); return {}; }
+        if ((peHeader.p_characteristics&IMAGE_FILE_CHARACTERISTIC_DLL)==0) { std::cout << "File is not a DLL"; inFile.close(); return {}; }
         bool stdFieldsHdrPullReturn = stdFieldsHeader.read(inFile,count);
-        if (!stdFieldsHdrPullReturn) return {};
+        if (!stdFieldsHdrPullReturn) { inFile.close(); return {}; }
         bool specFieldsHdrPullReturn = specFieldsHeader.read(inFile,count);
-        if (!specFieldsHdrPullReturn) return {};
+        if (!specFieldsHdrPullReturn) { inFile.close(); return {}; }
         bool dataDirsPullReturn = dataDirs.read(inFile,count);
-        if (!dataDirsPullReturn) return {};
+        if (!dataDirsPullReturn) { inFile.close(); return {}; }
         // read section headers
         p_numberOfSections = peHeader.p_numberOfSections;
         for (size_t i = 0; i < p_numberOfSections; i++) {
@@ -210,9 +210,9 @@ std::vector<dllExportData> parseDll(const std::string& name) {
             sectionData.push_back(readBytes(inFile, count, sectionHeaders[i].s_virtualSize));
         }
         // find export table
-        if (dataDirs.p_exportTableRVA==0) { std::cout << "DLL has no export table."; return {}; }
+        if (dataDirs.p_exportTableRVA==0) { std::cout << "DLL has no export table."; inFile.close(); return {}; }
         exportTableLocation = RVAtoSectionPlusOffset(dataDirs.p_exportTableRVA,dataDirs.p_exportTableSize,sectionHeaders);
-        if (exportTableLocation.section==nullptr) { std::cout << "DLL export table could not be found."; return {}; }
+        if (exportTableLocation.section==nullptr) { std::cout << "DLL export table could not be found."; inFile.close(); return {}; }
         const peSectionHdr* sectionWithExportTable = exportTableLocation.section;
         std::vector<uint8_t>* sectionDataWithExportTable = &sectionData[exportTableLocation.index];
         exportDirTable.readAt(*sectionDataWithExportTable,exportTableLocation.offset);
@@ -223,9 +223,10 @@ std::vector<dllExportData> parseDll(const std::string& name) {
             std::string name = readStringAt(*sectionDataWithExportTable,namePointer-sectionWithExportTable->s_virtualAddress);
             exports.push_back(dllExportData{i,name,dllName});
         }
+        inFile.close();
         return exports;
-    } catch(const int& err) { std::cout << "EOF reached before expected"; return {}; }
-    catch ( ... ) { std::cout << "error..."; return {}; }
+    } catch(const int& err) { std::cout << "EOF reached before expected"; inFile.close(); return {}; }
+    catch ( ... ) { std::cout << "error..."; inFile.close(); return {}; }
 }
 #pragma endregion Dll parsing
 
@@ -290,7 +291,7 @@ void Pe64Handler::push(std::ofstream &stream) {
 
     uint16_t numHeaders = sectionHeaders.size();
     peHeader.p_numberOfSections = numHeaders+static_cast<uint16_t>(numImports>0);
-    peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields64) + sizeof(peOptHdrSpecFields64) + sizeof(peOptHdrDataDirs);
+    peHeader.p_sizeOfOptionalHeader = sizeof(peOptHdrStdFields) + sizeof(peOptHdrSpecFields64) + sizeof(peOptHdrDataDirs);
     peSpecFieldsHeader.p_sizeOfHeaders = sizeof(peHdr) + peHeader.p_sizeOfOptionalHeader + (numHeaders * sizeof(peSectionHdr)) + ((numImports>0)?sizeof(peSectionHdr):0);
     uint32_t baseOffset = roundToAlign(0x100 + peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);
     peSpecFieldsHeader.p_sizeOfHeaders = roundToAlign(peSpecFieldsHeader.p_sizeOfHeaders,FILE_ALIGN);

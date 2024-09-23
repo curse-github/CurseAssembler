@@ -47,8 +47,8 @@ struct elfSegmentHdr32 {
     }
 };
 struct elfSegmentHdr64 {
-    uint32_t s_type;             // word
-    uint32_t s_flags;            // word
+    uint32_t s_type;            // word
+    uint32_t s_flags;           // word
     uint64_t s_fileOffset;      // Offset
     uint64_t s_virtualAddress;  // Address
     uint64_t s_physAddress;     // Address
@@ -90,6 +90,19 @@ struct elfSegmentHdr64 {
             s_sizeFile = readQword(stream, count);
             s_sizeMemory = readQword(stream, count);
             s_align = readQword(stream, count);
+            return true;
+        } catch (int code) { return false; }
+    }
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t index) {
+        try {
+            s_type = readDwordAt(vec, index);
+            s_flags = readDwordAt(vec, index+4);
+            s_fileOffset = readQwordAt(vec, index+8);
+            s_virtualAddress = readQwordAt(vec, index+16);
+            s_physAddress = readQwordAt(vec, index+24);
+            s_sizeFile = readQwordAt(vec, index+32);
+            s_sizeMemory = readQwordAt(vec, index+40);
+            s_align = readQwordAt(vec, index+48);
             return true;
         } catch (int code) { return false; }
     }
@@ -234,7 +247,7 @@ struct elfHdr32 {
     }
 };
 
-struct elfHdr64 {
+struct elfHdr64 {// 63 bytes?
     uint8_t e_magic[4];          // 4 bytes
     uint8_t e_architecture;      // byte
     uint8_t e_encoding;          // byte
@@ -321,38 +334,76 @@ struct elfHdr64 {
     bool read(std::ifstream& stream, uint32_t& count) {
         try {
             // get PE header
-            if ((readChar(stream,count)!=0x7f)||(readChar(stream,count)!='E')||(readChar(stream,count)!='L')||(readChar(stream,count)!='F')) { std::cout << "File not ELF file" << std::endl; stream.close(); return false; }
+            if ((readChar(stream,count)!=0x7f)||(readChar(stream,count)!='E')||(readChar(stream,count)!='L')||(readChar(stream,count)!='F')) { std::cout << "File not ELF file" << std::endl; return false; }
             e_magic[0] = 0x7f;
             e_magic[1] = 'E';
             e_magic[2] = 'L';
             e_magic[3] = 'F';
             e_architecture = readByte(stream, count);
-            if (e_architecture!=ELF_ARCHITECTURE_64) { std::cout << "ELF header e_architecture bit not supported." << std::endl; stream.close(); return false; }
+            if (e_architecture!=ELF_ARCHITECTURE_64) { std::cout << "ELF header e_architecture bit not supported." << std::endl; return false; }
             e_encoding = readByte(stream, count);
-            if (e_encoding!=ELF_ENCODING_LSB) { std::cout << "ELF header e_encoding not supported." << std::endl; stream.close(); return false; }
+            if (e_encoding!=ELF_ENCODING_LSB) { std::cout << "ELF header e_encoding not supported." << std::endl; return false; }
             e_metadataVersion = readByte(stream, count);
-            if (e_metadataVersion!=1) { std::cout << "ELF header e_metadataVersion invalid." << std::endl; stream.close(); return false; }
+            if (e_metadataVersion!=1) { std::cout << "ELF header e_metadataVersion invalid." << std::endl; return false; }
             e_abi = readByte(stream, count);
-            if ((e_abi!=ELF_OS_LINUX)&&(e_abi!=ELF_OS_NONE)) { std::cout << "ELF header not linux e_abi not supported." << std::endl; stream.close(); return false; }
+            if ((e_abi!=ELF_OS_LINUX)&&(e_abi!=ELF_OS_NONE)) { std::cout << "ELF header not linux e_abi not supported." << std::endl; return false; }
             e_abiVersion = readByte(stream, count);
-            if (e_abiVersion!=0) { std::cout << "ELF invalid e_abiVersion." << std::endl; stream.close(); return false; }
+            if (e_abiVersion!=0) { std::cout << "ELF invalid e_abiVersion." << std::endl; return false; }
             for (size_t i = 0; i < 7; i++) e_padding[i]=readByte(stream, count);
             e_fileType = readWord(stream, count);
             e_machineType = readWord(stream, count);
-            if ((e_machineType!=ELF_MACHINE_AMD64)&&(e_machineType!=ELF_MACHINE_NONE)) { std::cout << "ELF header e_machineType unknown." << std::endl; stream.close(); return false; }
+            if ((e_machineType!=ELF_MACHINE_AMD64)&&(e_machineType!=ELF_MACHINE_NONE)) { std::cout << "ELF header e_machineType unknown." << std::endl; return false; }
             e_version = readDword(stream, count);
             e_entryAddress = readQword(stream, count);
             e_segmentHdrOffset = readQword(stream, count);
             e_sectionHdrOffset = readQword(stream, count);
             e_flags = readDword(stream, count);
             e_elfHdrSize = readWord(stream, count);
-            if (e_elfHdrSize!=sizeof(elfHdr64)) { std::cout << "ELF header invalid e_elfHdrSize." << std::endl; stream.close(); return false; }
+            if (e_elfHdrSize!=sizeof(elfHdr64)) { std::cout << "ELF header invalid e_elfHdrSize." << std::endl; return false; }
             e_segmentHdrSize = readWord(stream, count);
-            if (e_segmentHdrSize!=sizeof(elfSegmentHdr64)) { std::cout << "ELF header invalid e_segmentHdrSize." << std::endl; stream.close(); return false; }
+            if (e_segmentHdrSize!=sizeof(elfSegmentHdr64)) { std::cout << "ELF header invalid e_segmentHdrSize." << std::endl; return false; }
             e_numSegmentHdrs = readWord(stream, count);
             e_sectionHdrSize = readWord(stream, count);
             e_numSectionHdrs = readWord(stream, count);
             e_stringTableNdx = readWord(stream, count);
+            return true;
+        } catch (int code) { return false; }
+    }
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t index) {
+        try {
+            // get PE header
+            if ((readCharAt(vec,index)!=0x7f)||(readCharAt(vec,index+1)!='E')||(readCharAt(vec,index+2)!='L')||(readCharAt(vec,index+3)!='F')) { std::cout << "File not ELF file" << std::endl; return false; }
+            e_magic[0] = 0x7f;
+            e_magic[1] = 'E';
+            e_magic[2] = 'L';
+            e_magic[3] = 'F';
+            e_architecture = readByteAt(vec, index+4);
+            if (e_architecture!=ELF_ARCHITECTURE_64) { std::cout << "ELF header e_architecture bit not supported." << std::endl; return false; }
+            e_encoding = readByteAt(vec, index+5);
+            if (e_encoding!=ELF_ENCODING_LSB) { std::cout << "ELF header e_encoding not supported." << std::endl; return false; }
+            e_metadataVersion = readByteAt(vec, index+6);
+            if (e_metadataVersion!=1) { std::cout << "ELF header e_metadataVersion invalid." << std::endl; return false; }
+            e_abi = readByteAt(vec, index+7);
+            if ((e_abi!=ELF_OS_LINUX)&&(e_abi!=ELF_OS_NONE)) { std::cout << "ELF header not linux e_abi not supported." << std::endl; return false; }
+            e_abiVersion = readByteAt(vec, index+8);
+            if (e_abiVersion!=0) { std::cout << "ELF invalid e_abiVersion." << std::endl; return false; }
+            for (size_t i = 0; i < 7; i++) e_padding[i]=readByteAt(vec, index+9+i);
+            e_fileType = readWordAt(vec, index+16);
+            e_machineType = readWordAt(vec, index+18);
+            if ((e_machineType!=ELF_MACHINE_AMD64)&&(e_machineType!=ELF_MACHINE_NONE)) { std::cout << "ELF header e_machineType unknown." << std::endl; return false; }
+            e_version = readDwordAt(vec, index+20);
+            e_entryAddress = readQwordAt(vec, index+24);
+            e_segmentHdrOffset = readQwordAt(vec, index+32);
+            e_sectionHdrOffset = readQwordAt(vec, index+40);
+            e_flags = readDwordAt(vec, index+48);
+            e_elfHdrSize = readWordAt(vec, index+52);
+            if (e_elfHdrSize!=sizeof(elfHdr64)) { std::cout << "ELF header invalid e_elfHdrSize." << std::endl; return false; }
+            e_segmentHdrSize = readWordAt(vec, index+54);
+            if (e_segmentHdrSize!=sizeof(elfSegmentHdr64)) { std::cout << "ELF header invalid e_segmentHdrSize." << std::endl; return false; }
+            e_numSegmentHdrs = readWordAt(vec, index+56);
+            e_sectionHdrSize = readWordAt(vec, index+58);
+            e_numSectionHdrs = readWordAt(vec, index+60);
+            e_stringTableNdx = readWordAt(vec, index+62);
             return true;
         } catch (int code) { return false; }
     }

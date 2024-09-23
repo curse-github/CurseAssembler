@@ -174,6 +174,17 @@ void setDwordAt(vector<uint8_t>& vector, const size_t& index, const uint32_t& dw
 void setQwordAt(vector<uint8_t>& vector, const size_t& index, const uint64_t& qword, const bool& LSB) {
     setCharsAt(vector, index, static_cast<const uint8_t* >(static_cast<const void *>(&qword)), 8, LSB);
 }
+
+uint16_t wordFromBytes(const uint8_t chars[2]) {
+    return static_cast<uint16_t>(chars[0])+(static_cast<uint16_t>(chars[1])<<8);
+}
+uint32_t dwordFromBytes(const uint8_t chars[4]) {
+    return static_cast<uint32_t>(chars[0])+(static_cast<uint32_t>(chars[1])<<8)+(static_cast<uint32_t>(chars[2])<<16)+(static_cast<uint32_t>(chars[3])<<24);
+}
+uint64_t qwordFromBytes(const uint8_t chars[8]) {
+    return static_cast<uint64_t>(chars[0])+(static_cast<uint64_t>(chars[1])<<8)+(static_cast<uint64_t>(chars[2])<<16)+(static_cast<uint64_t>(chars[3])<<24)+(static_cast<uint64_t>(chars[4])<<32)+(static_cast<uint64_t>(chars[5])<<40)+(static_cast<uint64_t>(chars[6])<<48)+(static_cast<uint64_t>(chars[7])<<56);
+}
+
 std::vector<uint8_t> readBytes(std::ifstream& stream, uint32_t& count, const size_t& num) {
     std::vector<uint8_t> vec;
     for (size_t i = 0; i < num; i++) {
@@ -182,17 +193,6 @@ std::vector<uint8_t> readBytes(std::ifstream& stream, uint32_t& count, const siz
     }
     return vec;
 }
-
-uint16_t wordFrom(const uint8_t chars[2]) {
-    return static_cast<uint16_t>(chars[0])+(static_cast<uint16_t>(chars[1])<<8);
-}
-uint32_t dwordFrom(const uint8_t chars[4]) {
-    return static_cast<uint32_t>(chars[0])+(static_cast<uint32_t>(chars[1])<<8)+(static_cast<uint32_t>(chars[2])<<16)+(static_cast<uint32_t>(chars[3])<<24);
-}
-uint64_t qwordFrom(const uint8_t chars[8]) {
-    return static_cast<uint64_t>(chars[0])+(static_cast<uint64_t>(chars[1])<<8)+(static_cast<uint64_t>(chars[2])<<16)+(static_cast<uint64_t>(chars[3])<<24)+(static_cast<uint64_t>(chars[4])<<32)+(static_cast<uint64_t>(chars[5])<<40)+(static_cast<uint64_t>(chars[6])<<48)+(static_cast<uint64_t>(chars[7])<<56);
-}
-
 char readChar(std::ifstream& stream, uint32_t& count) {
     if (stream.eof()) throw 1;
     char char1 = stream.get();
@@ -207,39 +207,44 @@ uint8_t readByte(std::ifstream& stream, uint32_t& count) {
 }
 uint16_t readWord(std::ifstream& stream, uint32_t& count) {
     std::vector<uint8_t> vec = readBytes(stream,count,2);
-    return wordFrom(&vec[0]);
+    return wordFromBytes(&vec[0]);
 }
 uint32_t readDword(std::ifstream& stream, uint32_t& count) {
     std::vector<uint8_t> vec = readBytes(stream,count,4);
-    return dwordFrom(&vec[0]);
+    return dwordFromBytes(&vec[0]);
 }
 uint32_t readQword(std::ifstream& stream, uint32_t& count) {
     std::vector<uint8_t> vec = readBytes(stream,count,8);
-    return qwordFrom(&vec[0]);
+    return qwordFromBytes(&vec[0]);
 }
 
-
 std::vector<uint8_t> readBytesAt(std::vector<uint8_t>& vec, const size_t& at, const size_t& num) {
+    if (at+num>vec.size()) throw 1;
     std::vector<uint8_t> newVec;
     for (size_t i = 0; i < num; i++) {
-        vec.push_back(vec[at+i]);
+        newVec.push_back(vec[at+i]);
     }
     return newVec;
 }
 char readCharAt(std::vector<uint8_t>& vec, const size_t& at) {
+    if ((at+1)>vec.size()) throw 1;
     return static_cast<uint8_t>(vec[at]);
 }
 uint8_t readByteAt(std::vector<uint8_t>& vec, const size_t& at) {
+    if ((at+1)>vec.size()) throw 1;
     return static_cast<uint8_t>(vec[at]);
 }
 uint16_t readWordAt(std::vector<uint8_t>& vec, const size_t& at) {
-    return wordFrom(&vec[at]);
+    if ((at+2)>vec.size()) throw 1;
+    return wordFromBytes(&vec[at]);
 }
 uint32_t readDwordAt(std::vector<uint8_t>& vec, const size_t& at) {
-    return dwordFrom(&vec[at]);
+    if ((at+4)>vec.size()) throw 1;
+    return dwordFromBytes(&vec[at]);
 }
 uint32_t readQwordAt(std::vector<uint8_t>& vec, const size_t& at) {
-    return qwordFrom(&vec[at]);
+    if ((at+8)>vec.size()) throw 1;
+    return qwordFromBytes(&vec[at]);
 }
 std::string readStringAt(std::vector<uint8_t>& vec, const size_t& at) {
     string output = "";
