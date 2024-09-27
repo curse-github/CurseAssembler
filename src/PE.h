@@ -11,12 +11,12 @@
 #pragma region structs
 
 struct peSectionHdr;
-struct SectionPlusOffset {
+struct peSectionPlusOffset {
     peSectionHdr* section=nullptr;
     int32_t index;
     uint32_t offset=0;
 };
-SectionPlusOffset RVAtoSectionPlusOffset(const uint32_t& RVA, const uint32_t& size, std::vector<peSectionHdr>& sections);
+peSectionPlusOffset RVAtoSectionPlusOffset(const uint32_t& RVA, const uint32_t& size, std::vector<peSectionHdr>& sections);
 
 #include <time.h>
 struct peHdr {  // 24 bytes

@@ -10,6 +10,16 @@ extern uint8_t elf_osAbi;
 extern uint16_t elf_machine;
 
 #pragma region structs
+
+struct elfSectionHdr64;
+struct elfSectionPlusOffset {
+    elfSectionHdr64* section=nullptr;
+    int32_t index;
+    uint32_t offset=0;
+};
+elfSectionPlusOffset RVAtoSectionPlusOffset(const uint32_t& RVA, const uint32_t& size, std::vector<elfSectionHdr64>& sections);
+elfSectionPlusOffset fileOffsettoSectionPlusOffset(const uint32_t& offset, const uint32_t& size, std::vector<elfSectionHdr64>& sections);
+
 struct elfSegmentHdr32 {
     uint32_t s_type;            // word
     uint32_t s_fileOffset;      // Offset
@@ -93,7 +103,7 @@ struct elfSegmentHdr64 {
             return true;
         } catch (int code) { return false; }
     }
-    bool readAt(std::vector<uint8_t>& vec, const uint32_t index) {
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t& index) {
         try {
             s_type = readDwordAt(vec, index);
             s_flags = readDwordAt(vec, index+4);
@@ -131,7 +141,227 @@ struct elfSegmentHdr64 {
 };
 
 struct elfSectionHdr32 {};
-struct elfSectionHdr64 {};
+
+struct elf64Symbol {// 24 bytes
+    uint32_t sy_name_idx; // index to string table defined by section header
+    uint8_t sy_typeNbinding; // Type and binding attributes
+    uint8_t sy_other; // must be 0
+    uint16_t sy_secIdx; // Associated section index
+    uint64_t sy_value;
+    uint64_t sy_size;
+    elf64Symbol() {
+        sy_name_idx=0;
+        sy_typeNbinding=0;
+        sy_other=0;
+        sy_secIdx=0;
+        sy_value=0;
+        sy_size=0;
+    }
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t& index) {
+        try {
+            sy_name_idx = readDwordAt(vec, index);
+            sy_typeNbinding = readByteAt(vec, index+4);
+            sy_other = readByteAt(vec, index+5);
+            sy_secIdx = readWordAt(vec, index+6);
+            sy_value = readQwordAt(vec, index+8);
+            sy_size = readQwordAt(vec, index+16);
+            return true;
+        } catch (int code) { return false; }
+    }
+    void print(std::vector<uint8_t>& file, const uint32_t& strTabOffset, std::string delimmiter="\n") {
+        std::cout << "{" << delimmiter << "    ";
+        std::cout << "name_idx: " << sy_name_idx << " -> \"" << readStringAt(file,strTabOffset+sy_name_idx) << "\"";
+        std::cout << ',' << delimmiter << "    ";
+        std::cout << "type&binding: " << intToHex(sy_typeNbinding) << ',' << delimmiter << "        ";
+        const uint8_t type = sy_typeNbinding&0x0F;
+        const uint8_t binding = sy_typeNbinding>>4;
+        std::cout << "type: " << intToHex(type) << " -> ";
+        if (type==ELF_SYMBOL_TYPE_NOTYPE) std::cout << "NOTYPE";
+        else if (type==ELF_SYMBOL_TYPE_OBJECT) std::cout << "OBJECT";
+        else if (type==ELF_SYMBOL_TYPE_FUNC) std::cout << "FUNC";
+        else if (type==ELF_SYMBOL_TYPE_SECTION) std::cout << "SECTION IDX";
+        else if (type==ELF_SYMBOL_TYPE_FILE) std::cout << "FILE";
+        else if (type==ELF_SYMBOL_TYPE_COMMON) std::cout << "COMMON";
+        else if (type==ELF_SYMBOL_TYPE_TLS) std::cout << " TLS";
+        std::cout << ',' << delimmiter << "        binding: " << intToHex(binding) << " -> ";
+        if (binding==ELF_SYMBOL_BINDING_LOCAL) std::cout << "LOCAL";
+        else if (binding==ELF_SYMBOL_BINDING_GLOBAL) std::cout << "GLOBAL";
+        else if (binding==ELF_SYMBOL_BINDING_WEAK) std::cout << "WEAK";
+        std::cout << ',' << delimmiter << "    ";
+        std::cout << "secIdx: " << sy_secIdx << ',' << delimmiter << "    ";
+        std::cout << "value: " << intToHex(sy_value) << ',' << delimmiter << "    ";
+        std::cout << "size: " << intToHex(sy_size) << ',' << delimmiter << "    ";
+        std::cout << delimmiter << "}\n";
+    }
+};
+struct elf64Dyn {// 16 bytes
+    uint64_t dy_tag;
+    uint64_t dy_valPtr;
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t& index) {
+        try {
+            dy_tag = readQwordAt(vec, index);
+            dy_valPtr = readQwordAt(vec, index+8);
+            return true;
+        } catch (int code) { return false; }
+    }
+    void print(std::vector<uint8_t>& file, const uint32_t& exportStrTabOffset, std::vector<elfSectionHdr64>& sections, const uint32_t& secNameStrTableOffset);
+};
+struct elf64Rel {// 16 bytes
+    uint64_t r_offset;
+    uint64_t r_info;
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t& index) {
+        try {
+            r_offset = readQwordAt(vec, index);
+            r_info = readQwordAt(vec, index+8);
+            return true;
+        } catch (int code) { return false; }
+    }
+};
+struct elf64Rela {// 24 bytes
+    uint64_t r_offset;
+    uint32_t r_symtabIndex;
+    uint32_t r_type;
+    int64_t r_addend;
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t& index) {
+        try {
+            r_offset = readQwordAt(vec, index);
+            r_symtabIndex = readDwordAt(vec, index+12);
+            r_type = readDwordAt(vec, index+8);
+            r_addend = readQwordAt(vec, index+16);
+            return true;
+        } catch (int code) { return false; }
+    }
+    void print(std::vector<uint8_t>& file, std::vector<elfSectionHdr64>& sections, const uint32_t& secNameStrTableOffset, std::string delimmiter="\n");
+};
+struct elfSectionHdr64 {// 64 bytes
+    uint32_t s_nameIdx;// index to a section of type ELF_SECTION_TYPE_STRTAB
+    uint32_t s_type;
+    uint64_t s_flags;
+    uint64_t s_virtualAddress;
+    uint64_t s_fileOffset;
+    uint64_t s_size;
+    uint32_t s_link;// index to link to another section, used for several different things
+    uint32_t s_info;// just some information, again, used for several different things
+    uint64_t s_align;
+    uint64_t s_entSize;// entry size, used for sections contains lists of constant sized things.
+    elfSectionHdr64(const uint32_t& type, const uint32_t& flags) {
+        s_nameIdx=0;
+        s_type=type;
+        s_flags=flags;
+        s_virtualAddress=0;
+        s_fileOffset=0;
+        s_size=0;
+        s_link=0;
+        s_info=0;
+        s_align=0;
+        s_entSize=0;
+    }
+    void push(std::ofstream& stream) {
+        bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
+        pushDword(stream, s_nameIdx, LSB);
+        pushDword(stream, s_type, LSB);
+        pushQword(stream, s_flags, LSB);
+        pushQword(stream, s_virtualAddress, LSB);
+        pushQword(stream, s_fileOffset, LSB);
+        pushQword(stream, s_size, LSB);
+        pushDword(stream, s_link, LSB);
+        pushDword(stream, s_info, LSB);
+        pushQword(stream, s_align, LSB);
+        pushQword(stream, s_entSize, LSB);
+    }
+    bool read(std::ifstream& stream, uint32_t& count) {
+        try {
+            s_nameIdx = readDword(stream, count);
+            s_type = readDword(stream, count);
+            s_flags = readQword(stream, count);
+            s_virtualAddress = readQword(stream, count);
+            s_fileOffset = readQword(stream, count);
+            s_size = readQword(stream, count);
+            s_link = readDword(stream, count);
+            s_info = readDword(stream, count);
+            s_align = readQword(stream, count);
+            s_entSize = readQword(stream, count);
+            return true;
+        } catch (int code) { return false; }
+    }
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t& index) {
+        try {
+            s_nameIdx = readDwordAt(vec, index);
+            s_type = readDwordAt(vec, index+4);
+            s_flags = readQwordAt(vec, index+8);
+            s_virtualAddress = readQwordAt(vec, index+16);
+            s_fileOffset = readQwordAt(vec, index+24);
+            s_size = readQwordAt(vec, index+32);
+            s_link = readDwordAt(vec, index+40);
+            s_info = readDwordAt(vec, index+44);
+            s_align = readQwordAt(vec, index+48);
+            s_entSize = readQwordAt(vec, index+56);
+            return true;
+        } catch (int code) { return false; }
+    }
+    void print(std::vector<uint8_t>& file, const uint32_t& strTabOffset, std::string delimmiter="\n") {
+        std::cout << "s_nameIdx: " << s_nameIdx;
+        if (strTabOffset!=0)
+            std::cout << " -> \"" << readStringAt(file,strTabOffset+s_nameIdx) << '\"';
+        std::cout << delimmiter;
+        std::cout << "s_type: " << intToHex(s_type) << " -> ";
+        if (s_type==ELF_SECTION_TYPE_NULL) std::cout << "NULL";
+        else if (s_type==ELF_SECTION_TYPE_PROGBITS) std::cout << "PROGBITS";
+        else if (s_type==ELF_SECTION_TYPE_SYMTAB) std::cout << "SYMTAB";
+        else if (s_type==ELF_SECTION_TYPE_STRTAB) std::cout << "STRTAB (string table)";
+        else if (s_type==ELF_SECTION_TYPE_RELA) std::cout << "RELA (relocations with addends)";
+        else if (s_type==ELF_SECTION_TYPE_HASH) std::cout << "HASH";
+        else if (s_type==ELF_SECTION_TYPE_DYNAMIC) std::cout << "DYNAMIC";
+        else if (s_type==ELF_SECTION_TYPE_NOTE) std::cout << "NOTE";
+        else if (s_type==ELF_SECTION_TYPE_NOBITS) std::cout << "NOBITS (no data in file)";
+        else if (s_type==ELF_SECTION_TYPE_REL) std::cout << "REL (relocations)";
+        else if (s_type==ELF_SECTION_TYPE_DYNSYM) std::cout << "DYNSYM (dynamic symbol table)";
+        else if (s_type==ELF_SECTION_TYPE_INIT_ARRAY) std::cout << "INIT_ARRAY (array of constructors)";
+        else if (s_type==ELF_SECTION_TYPE_FINI_ARRAY) std::cout << "FINI_ARRAY (array of desructors)";
+        else if (s_type==ELF_SECTION_TYPE_PREINIT_ARRAY) std::cout << "PREINIT_ARRAY";
+        else if (s_type==ELF_SECTION_TYPE_GROUP) std::cout << "GROUP";
+        else if (s_type==ELF_SECTION_TYPE_SYMTAB_SHNDX) std::cout << "SYMTAB_SHNDX";
+        else if (s_type==ELF_SECTION_TYPE_NUM) std::cout << "NUM";
+        else std::cout << "Unknown";
+        std::cout << delimmiter;
+        std::cout << "s_flags: " << intToHex(s_flags) << " -> ";
+        const bool hasFlagWrite = ((s_flags&ELF_SECTION_FLAG_WRITE)>0);
+        const bool hasFlagAlloc = ((s_flags&ELF_SECTION_FLAG_ALLOC)>0);
+        const bool hasFlagExec = ((s_flags&ELF_SECTION_FLAG_EXEC)>0);
+        const bool hasFlagMerge = ((s_flags&ELF_SECTION_FLAG_MERGE)>0);
+        const bool hasFlagStrings = ((s_flags&ELF_SECTION_FLAG_STRINGS)>0);
+        const bool hasFlagGROUP = ((s_flags&ELF_SECTION_FLAG_GROUP)>0);
+        const bool hasFlagTLS = ((s_flags&ELF_SECTION_FLAG_TLS)>0);
+        if (s_flags==0) {
+            std::cout << "NONE/NULL";
+        } else if (!hasFlagWrite&&!hasFlagAlloc&&!hasFlagExec&&!hasFlagMerge&&!hasFlagStrings&&!hasFlagGROUP&&!hasFlagTLS)
+            std::cout << "unknown";
+        else {
+            if (hasFlagWrite) std::cout << "Writable";
+            if (hasFlagWrite&&(hasFlagAlloc||hasFlagExec||hasFlagMerge||hasFlagStrings||hasFlagGROUP||hasFlagTLS)) std::cout << ", ";
+            if (hasFlagAlloc) std::cout << "ALLOC";
+            if (hasFlagAlloc&&(hasFlagExec||hasFlagMerge||hasFlagStrings||hasFlagGROUP||hasFlagTLS)) std::cout << ", ";
+            if (hasFlagExec) std::cout << "Executable";
+            if (hasFlagExec&&(hasFlagMerge||hasFlagStrings||hasFlagGROUP||hasFlagTLS)) std::cout << ", ";
+            if (hasFlagMerge) std::cout << "Might merge";
+            if (hasFlagMerge&&(hasFlagStrings||hasFlagGROUP||hasFlagTLS)) std::cout << ", ";
+            if (hasFlagStrings) std::cout << "Contains strings";
+            if (hasFlagStrings&&(hasFlagGROUP||hasFlagTLS)) std::cout << ", ";
+            if (hasFlagGROUP) std::cout << "Is in group";
+            if (hasFlagGROUP&&hasFlagTLS) std::cout << ", ";
+            if (hasFlagTLS) std::cout << "TLS";
+        }
+        std::cout << delimmiter;
+        std::cout << "s_virtualAddress: " << intToHex(s_virtualAddress) << delimmiter;
+        std::cout << "s_fileOffset: " << intToHex(s_fileOffset) << delimmiter;
+        std::cout << "s_size: " << intToHex(s_size) << delimmiter;
+        std::cout << "s_link: " << intToHex(s_link) << delimmiter;
+        std::cout << "s_info: " << intToHex(s_info) << delimmiter;
+        std::cout << "s_align: " << intToHex(s_align) << delimmiter;
+        std::cout << "s_entSize: " << intToHex(s_entSize);
+        std::cout << '\n';
+    }
+};
 
 extern uint16_t elf_type;
 extern uint8_t elf_osAbi;
@@ -246,7 +476,6 @@ struct elfHdr32 {
         pushWord(stream, e_stringTableNdx, LSB);
     }
 };
-
 struct elfHdr64 {// 63 bytes?
     uint8_t e_magic[4];          // 4 bytes
     uint8_t e_architecture;      // byte
@@ -369,7 +598,7 @@ struct elfHdr64 {// 63 bytes?
             return true;
         } catch (int code) { return false; }
     }
-    bool readAt(std::vector<uint8_t>& vec, const uint32_t index) {
+    bool readAt(std::vector<uint8_t>& vec, const uint32_t& index) {
         try {
             // get PE header
             if ((readCharAt(vec,index)!=0x7f)||(readCharAt(vec,index+1)!='E')||(readCharAt(vec,index+2)!='L')||(readCharAt(vec,index+3)!='F')) { std::cout << "File not ELF file" << std::endl; return false; }
@@ -451,6 +680,12 @@ struct elfHdr64 {// 63 bytes?
     }
 };
 #pragma endregion structs
+
+struct soExportData {
+    std::string name;
+    std::string soName;
+};
+std::vector<soExportData> parseSo(const std::string& name);
 
 #pragma region handlers
 class Elf64SegmentHandler;

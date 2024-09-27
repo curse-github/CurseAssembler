@@ -1,5 +1,253 @@
 #include "ELF.h"
 
+#pragma region section printing func
+elfSectionPlusOffset RVAtoSectionPlusOffset(const uint32_t& RVA, const uint32_t& size, std::vector<elfSectionHdr64>& sections) {
+    for (size_t i = 0; i < sections.size(); i++) {
+        if ((RVA>=sections[i].s_virtualAddress)&&((RVA+size)<=(sections[i].s_virtualAddress+sections[i].s_size))) {
+            return elfSectionPlusOffset {
+                &sections[i],
+                (int)i,
+                (uint32_t)(RVA-sections[i].s_virtualAddress)
+            };
+        }
+    }
+    return {nullptr,-1,0};
+}
+elfSectionPlusOffset fileOffsettoSectionPlusOffset(const uint32_t& offset, const uint32_t& size, std::vector<elfSectionHdr64>& sections) {
+    for (size_t i = 0; i < sections.size(); i++) {
+        if ((offset>=sections[i].s_fileOffset)&&((offset+size)<=(sections[i].s_fileOffset+sections[i].s_size))) {
+            return elfSectionPlusOffset {
+                &sections[i],
+                (int)i,
+                (uint32_t)(offset-sections[i].s_fileOffset)
+            };
+        }
+    }
+    return {nullptr,-1,0};
+}
+
+void elf64Dyn::print(std::vector<uint8_t>& file, const uint32_t& exportStrTabOffset, std::vector<elfSectionHdr64>& sections, const uint32_t& secNameStrTableOffset) {
+    if (dy_tag==ELF_DYN_TAG_NULL)
+        std::cout << "{ tag: NONE/NULL, val/ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_NEEDED)
+        std::cout << "{ type: NEEDED, namePtr: " << dy_valPtr << " -> \"" << readStringAt(file,exportStrTabOffset+dy_valPtr) << "\" }\n";
+    else if (dy_tag==ELF_DYN_TAG_PLTRELSZ)
+        std::cout << "{ type: PLTRELSZ, table size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_PLTGOT) {
+        std::cout << "{ type: PLTGOT, ptr: " << intToHex(dy_valPtr);
+        if (dy_valPtr!=0) {
+            elfSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(dy_valPtr,sizeof(elf64Symbol),sections);
+            if ((sectionPlusOffset.section!=nullptr)&&(sectionPlusOffset.section->s_nameIdx!=0)) std::cout << " -> <" << readStringAt(file,secNameStrTableOffset+sectionPlusOffset.section->s_nameIdx) << ">+" << intToHex(sectionPlusOffset.offset);
+        }
+        std::cout << " }\n";
+    } else if (dy_tag==ELF_DYN_TAG_HASH)
+        std::cout << "{ type: HASH, ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_STRTAB) {
+        std::cout << "{ type: STRTAB, ptr: " << intToHex(dy_valPtr);
+        if (dy_valPtr!=0) {
+            elfSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(dy_valPtr,sizeof(elf64Symbol),sections);
+            if ((sectionPlusOffset.section!=nullptr)&&(sectionPlusOffset.section->s_nameIdx!=0)) std::cout << " -> <" << readStringAt(file,secNameStrTableOffset+sectionPlusOffset.section->s_nameIdx) << ">+" << intToHex(sectionPlusOffset.offset);
+        }
+        std::cout << " }\n";
+    } else if (dy_tag==ELF_DYN_TAG_SYMTAB) {
+        std::cout << "{ type: SYMTAB, ptr: " << intToHex(dy_valPtr);
+        if (dy_valPtr!=0) {
+            elfSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(dy_valPtr,sizeof(elf64Symbol),sections);
+            if ((sectionPlusOffset.section!=nullptr)&&(sectionPlusOffset.section->s_nameIdx!=0)) std::cout << " -> <" << readStringAt(file,secNameStrTableOffset+sectionPlusOffset.section->s_nameIdx) << ">+" << intToHex(sectionPlusOffset.offset);
+        }
+        std::cout << " }\n";
+    } else if (dy_tag==ELF_DYN_TAG_RELA)
+        std::cout << "{ type: RELA, ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_RELASZ)
+        std::cout << "{ type: RELASZ, table size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_RELAENT)
+        std::cout << "{ type: RELAENT, entry size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_STRSZ)
+        std::cout << "{ type: STRSZ, table size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_SYMENT)
+        std::cout << "{ type: SYMENT, entry size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_SYMBOLIC)
+        std::cout << "{ type: SYMBOLIC }\n";
+    else if (dy_tag==ELF_DYN_TAG_REL)
+        std::cout << "{ type: REL, ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_RELSZ)
+        std::cout << "{ type: RELSZ, table size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_RELENT)
+        std::cout << "{ type: RELENT, entry size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_PLTREL) {
+        std::cout << "{ type: PLTREL, val: " << dy_valPtr;
+        if (dy_valPtr==ELF_DYN_TAG_RELA) std::cout << " -> RELA }\n";
+        else if (dy_valPtr==ELF_DYN_TAG_REL) std::cout << " -> REL }\n";
+        else std::cout << " }\n";
+    } else if (dy_tag==ELF_DYN_TAG_DEBUG)
+        std::cout << "{ type: DEBUG, ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_TEXTREL)
+        std::cout << "{ type: TEXTREL }\n";
+    else if (dy_tag==ELF_DYN_TAG_JMPREL) {
+        std::cout << "{ type: JMPREL, ptr: " << intToHex(dy_valPtr);
+        if (dy_valPtr!=0) {
+            elfSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(dy_valPtr,sizeof(elf64Symbol),sections);
+            if ((sectionPlusOffset.section!=nullptr)&&(sectionPlusOffset.section->s_nameIdx!=0)) std::cout << " -> <" << readStringAt(file,secNameStrTableOffset+sectionPlusOffset.section->s_nameIdx) << ">+" << intToHex(sectionPlusOffset.offset);
+        }
+        std::cout << " }\n";
+    } else if (dy_tag==ELF_DYN_TAG_FLAGS)
+        std::cout << "{ type: FLAGS, val: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_ENCODING)
+        std::cout << "{ type: ENCODING, val/ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_DT_VALRNGLO)
+        std::cout << "{ type: VALRNGLO, val/ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_CHECKSUM)
+        std::cout << "{ type: CHECKSUM, val: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_PLTPADSZ)
+        std::cout << "{ type: PLTPADSZ, size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_MOVEENT)
+        std::cout << "{ type: MOVEENT, entry size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_MOVESZ)
+        std::cout << "{ type: MOVESZ, table size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_SYMINSZ)
+        std::cout << "{ type: SYMINSZ, table size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_SYMINENT)
+        std::cout << "{ type: SYMINENT, entry size: " << dy_valPtr << " bytes }\n";
+    else if (dy_tag==ELF_DYN_TAG_VALRNGHI)
+        std::cout << "{ type: VALRNGHI, val/ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_ADDRRNGLO)
+        std::cout << "{ type: ADDRRNGLO, val/ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_CONFIG)
+        std::cout << "{ type: CONFIG, ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_DEPAUDIT)
+        std::cout << "{ type: DEPAUDIT, ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_AUDIT)
+        std::cout << "{ type: AUDIT, ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_PLTPAD)
+        std::cout << "{ type: PLTPAD, ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_MOVETAB) {
+        std::cout << "{ type: MOVETAB, ptr: " << intToHex(dy_valPtr);
+        if (dy_valPtr!=0) {
+            elfSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(dy_valPtr,sizeof(elf64Symbol),sections);
+            if ((sectionPlusOffset.section!=nullptr)&&(sectionPlusOffset.section->s_nameIdx!=0)) std::cout << " -> <" << readStringAt(file,secNameStrTableOffset+sectionPlusOffset.section->s_nameIdx) << ">+" << intToHex(sectionPlusOffset.offset);
+        }
+        std::cout << " }\n";
+    } else if (dy_tag==ELF_DYN_TAG_SYMINFO)
+        std::cout << "{ type: SYMINFO, ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_ADDRRNGHI)
+        std::cout << "{ type: ADDRRNGHI, val/ptr: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_RELACOUNT)
+        std::cout << "{ type: RELACOUNT, val: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_RELCOUNT)
+        std::cout << "{ type: RELCOUNT, val: " << intToHex(dy_valPtr) << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_VERDEF) {
+        std::cout << "{ type: VERDEF, ptr: " << intToHex(dy_valPtr);
+        if (dy_valPtr!=0) {
+            elfSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(dy_valPtr,sizeof(elf64Symbol),sections);
+            if ((sectionPlusOffset.section!=nullptr)&&(sectionPlusOffset.section->s_nameIdx!=0)) std::cout << " -> <" << readStringAt(file,secNameStrTableOffset+sectionPlusOffset.section->s_nameIdx) << ">+" << intToHex(sectionPlusOffset.offset);
+        }
+        std::cout << " }\n";
+    } else if (dy_tag==ELF_DYN_TAG_VERDEFNUM)
+        std::cout << "{ type: VERDEFNUM, num: " << dy_valPtr << " }\n";
+    else if (dy_tag==ELF_DYN_TAG_VERNEED) {
+        std::cout << "{ type: VERNEED, ptr: " << intToHex(dy_valPtr);
+        if (dy_valPtr!=0) {
+            elfSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(dy_valPtr,sizeof(elf64Symbol),sections);
+            if ((sectionPlusOffset.section!=nullptr)&&(sectionPlusOffset.section->s_nameIdx!=0)) std::cout << " -> <" << readStringAt(file,secNameStrTableOffset+sectionPlusOffset.section->s_nameIdx) << ">+" << intToHex(sectionPlusOffset.offset);
+        }
+        std::cout << " }\n";
+    } else if (dy_tag==ELF_DYN_TAG_VERNEEDNUM)
+        std::cout << "{ type: VERNEEDNUM, num: " << dy_valPtr << " }\n";
+    else
+        //std::cout << "{ tag: " << intToHex(dy_tag) << ", val/ptr: " << intToHex(dy_valPtr) << " }\n";
+        std::cout << "{ }\n";
+}
+void elf64Rela::print(std::vector<uint8_t>& file, std::vector<elfSectionHdr64>& sections, const uint32_t& secNameStrTableOffset, std::string delimmiter) {
+    std::cout << "{" << delimmiter;
+    std::cout << "    offset: " << intToHex(r_offset) << " -> ";
+    if (r_offset!=0) {
+        elfSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(r_offset,1,sections);
+        if ((sectionPlusOffset.section!=nullptr)&&(sectionPlusOffset.section->s_nameIdx!=0)) std::cout << '<' << readStringAt(file,secNameStrTableOffset+sectionPlusOffset.section->s_nameIdx) << ">+" << intToHex(sectionPlusOffset.offset);
+        else std::cout << "section not found";
+    } else std::cout << "section not found";
+    std::cout << "," << delimmiter;
+    std::cout << "    SYMTAB index: " << intToHex(r_symtabIndex) << "," << delimmiter;
+    std::cout << "    type: " << intToHex(r_type) << " -> ";
+    if (r_type==ELF64_REL_TYPE_AMD64_NONE) std::cout << "AMD64_NONE";
+    else if (r_type==ELF64_REL_TYPE_AMD64_64) std::cout << "AMD64_64";
+    else if (r_type==ELF64_REL_TYPE_AMD64_PC32) std::cout << "AMD64_PC32";
+    else if (r_type==ELF64_REL_TYPE_AMD64_GOT32) std::cout << "AMD64_GOT32";
+    else if (r_type==ELF64_REL_TYPE_AMD64_PLT32) std::cout << "AMD64_PLT32";
+    else if (r_type==ELF64_REL_TYPE_AMD64_GLOB_DAT) std::cout << "AMD64_GLOB_DAT";
+    else if (r_type==ELF64_REL_TYPE_AMD64_JUMP_SLOT) std::cout << "AMD64_JUMP_SLOT";
+    else if (r_type==ELF64_REL_TYPE_AMD64_RELATIVE) std::cout << "AMD64_RELATIVE";
+    else if (r_type==ELF64_REL_TYPE_AMD64_32) std::cout << "AMD64_32";
+    else if (r_type==ELF64_REL_TYPE_AMD64_32s) std::cout << "AMD64_32s";
+    else if (r_type==ELF64_REL_TYPE_AMD64_PC64) std::cout << "AMD64_PC64";
+    else if (r_type==ELF64_REL_TYPE_AMD64_GOTOFF64) std::cout << "AMD64_GOTOFF64";
+    else if (r_type==ELF64_REL_TYPE_AMD64_GOTPC32) std::cout << "AMD64_GOTPC32";
+    else if (r_type==ELF64_REL_TYPE_AMD64_SIZE32) std::cout << "AMD64_SIZE32";
+    else if (r_type==ELF64_REL_TYPE_AMD64_SIZE64) std::cout << "AMD64_SIZE64";
+    else std::cout << "unknown";
+    std::cout << "," << delimmiter;
+    std::cout << "    addend: " << intToHex(r_addend) << delimmiter << "}\n";
+}
+#pragma endregion section printing func
+
+#pragma region So parsing
+std::vector<soExportData> parseSo(const std::string& name) {
+    // get file
+    std::string fullPath = getFullFilePath(name);
+    if (fullPath.size()==0) std::cout << "File not found.\n";
+    std::cout << "reading: \"" << fullPath << "\"\n";
+    std::ifstream inFile(fullPath, std::ios::binary);
+    if (inFile.bad()) { std::cout << "File ifStream bad.\n"; inFile.close(); return {}; }
+    uint32_t count = 0;
+
+    std::vector<uint8_t> allData;
+    elfHdr64 elfHeader;
+    uint16_t e_numSectionHdrs = 0;
+    std::vector<elfSectionHdr64> sectionHeaders;
+    uint32_t secNameStrTableOffset = 0;
+    std::vector<soExportData> exports;
+    try {
+        // read elf header
+        pushChars(allData,readBytes(inFile,count,sizeof(elfHdr64)));
+        bool peHdrPullReturn = elfHeader.readAt(allData,0);
+        if (!peHdrPullReturn) { inFile.close(); return {}; }
+        trashBytes(inFile,count,elfHeader.e_segmentHdrOffset-count);
+        // read section headers
+        e_numSectionHdrs=elfHeader.e_numSectionHdrs;
+        if (e_numSectionHdrs==0) { std::cout << "File has no sections.\n"; inFile.close(); return {}; }
+        const uint32_t sectionHdrStart = elfHeader.e_sectionHdrOffset;
+        const uint32_t sectionHdrEnd = sectionHdrStart+sizeof(elfSectionHdr64)*e_numSectionHdrs;
+        if (sectionHdrEnd>count) pushChars(allData,readBytes(inFile,count,sectionHdrEnd-count));
+        for (uint16_t i = 0; i < e_numSectionHdrs; i++) {
+            elfSectionHdr64 sectionHdrI(0,0);
+            if (!sectionHdrI.readAt(allData,sectionHdrStart+sizeof(elfSectionHdr64)*i)) { std::cout << "error reading section header #" << i << "\n"; inFile.close(); return {}; }
+            sectionHeaders.push_back(sectionHdrI);
+        }
+        secNameStrTableOffset=sectionHeaders[elfHeader.e_stringTableNdx].s_fileOffset;
+        // loop through section headers to find dynsym section
+        for (size_t i = 0; i < e_numSectionHdrs; i++) {
+            //
+            if (sectionHeaders[i].s_type==ELF_SECTION_TYPE_DYNSYM) {elfSectionHdr64 exportStrTabSec = sectionHeaders[sectionHeaders[i].s_link];
+                uint32_t sectionStart = sectionHeaders[i].s_fileOffset;
+                uint32_t sectionEnd = sectionStart+sectionHeaders[i].s_size;
+                if (sectionEnd>count) pushChars(allData,readBytes(inFile,count,sectionEnd-count));// read in the bytes if it does not have enough
+                uint32_t numEntries = sectionHeaders[i].s_size/sizeof(elf64Symbol);
+                if (sectionHeaders[i].s_type==ELF_SECTION_TYPE_DYNSYM) std::cout << "num dynsym entries: " << numEntries << '\n';
+                else if (sectionHeaders[i].s_type==ELF_SECTION_TYPE_SYMTAB) std::cout << "num sym entries: " << numEntries << '\n';
+                for (uint32_t j = 0; j < numEntries; j++) {
+                    elf64Symbol symI;
+                    if (!symI.readAt(allData,sectionStart+sizeof(elf64Symbol)*j)) std::cout << "error reading symbol in .so file";
+                    elfSectionHdr64 exportStrTabSec = sectionHeaders[sectionHeaders[i].s_link];
+                    if ((symI.sy_typeNbinding&0x0F)==ELF_SYMBOL_TYPE_FUNC)
+                        exports.push_back({readStringAt(allData,exportStrTabSec.s_fileOffset+symI.sy_name_idx),name});
+                }
+            }
+        }
+        return exports;
+    } catch(const int& err) { std::cout << "EOF reached before expected"; inFile.close(); return {}; }
+    catch ( ... ) { std::cout << "error..."; inFile.close(); return {}; }
+};
+#pragma endregion So parsing
+
 uint8_t elf_encoding;
 uint16_t elf_type;
 uint8_t elf_osAbi;

@@ -15,18 +15,69 @@
     }
 #endif
 
-void printBytes(const std::vector<uint8_t>& vec, const uint32_t& startOffset) {
-    setPrintColor(Color::Cyan);
-    std::cout << "  Offset: 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f\n";
+void printBytes(const std::vector<uint8_t>& vec, const uint32_t& startOffset, const bool& isInMemory=false, const uint32_t& startAddress=0, const uint32_t& bytesPerRow = 0x20u) {
+    // header
+    setPrintColor(Color::Cyan);std::cout << "  Offset";
+    if (isInMemory) { setPrintColor(Color::White); std::cout << ",  "; }
+    if (isInMemory) { setPrintColor(Color::Cyan); std::cout << "Address"; }
+    setPrintColor(Color::White); std::cout << ": ";
+    setPrintColor(Color::Cyan); for (size_t i = 0; i < bytesPerRow; i++) std::cout << intToHex((uint8_t)i,"") << ' ';
+    setPrintColor(Color::White); std::cout << "| ";
+    setPrintColor(Color::Cyan); std::cout << "Ascii\n";
     setPrintColor(Color::White);
-    if ((startOffset%16u)!=0) for (uint32_t i = 0; i < 16u-(startOffset%16u); i++) std::cout << "   ";
-    size_t size = vec.size();
-    for (size_t i = 0; i < size; i++) {
-        if (((startOffset+i)%16u)==0) { setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(startOffset+i),""); setPrintColor(Color::White); std::cout << ": ";}
-        std::cout << intToHex(vec[i],"");
-        if (((startOffset+i+1)%16u)==0) std::cout << '\n'; else std::cout << ' ';
+    // first row, if it needs to be offset
+    int32_t actualStartOffset = startOffset;
+    int32_t actualStartAddress = startAddress+startOffset;
+    int32_t size = vec.size();
+    if ((startOffset%bytesPerRow)!=0) {
+        setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(startOffset-(startOffset%bytesPerRow)),"");
+        if (isInMemory) setPrintColor(Color::White); std::cout << ", ";
+        if (isInMemory) setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(startAddress-(startOffset%bytesPerRow)),"");
+        setPrintColor(Color::White); std::cout << ": ";
+        for (uint32_t i = 0; i < bytesPerRow-(startOffset%bytesPerRow); i++) std::cout << "-- ";
+        for (uint32_t i = 0; i < (startOffset%bytesPerRow); i++) std::cout << intToHex(vec[i],"") << ' ';
+        std::cout << "| ";
+        for (uint32_t i = 0; i < bytesPerRow-(startOffset%bytesPerRow); i++) std::cout << ' ';
+        for (uint32_t i = 0; i < (startOffset%bytesPerRow); i++) {
+            const char chr = vec[i];
+            std::cout << (((chr>=' ')&&(chr<='~'))?chr:'.');
+        }
+        actualStartOffset+=(startOffset%bytesPerRow);
+        actualStartAddress+=(startOffset%bytesPerRow);
+        if (size>=(startOffset%bytesPerRow)) size-=(startOffset%bytesPerRow); else size=0;
+        std::cout << '\n';
     }
-    if (((startOffset+size)%16u)!=0) std::cout << '\n';
+    for (size_t i = 0; i < size/bytesPerRow; i++) {
+        setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(actualStartOffset+i*bytesPerRow),"");
+        if (isInMemory) { setPrintColor(Color::White); std::cout << ", "; }
+        if (isInMemory) { setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(actualStartAddress+i*bytesPerRow),""); }
+        setPrintColor(Color::White); std::cout << ": ";
+        for (uint32_t j = 0; j < bytesPerRow; j++) std::cout << intToHex(vec[i*bytesPerRow+j],"") << ' ';
+        std::cout << "| ";
+        for (uint32_t j = 0; j < bytesPerRow; j++) {
+            const char chr = vec[i*bytesPerRow+j];
+            std::cout << (((chr>=' ')&&(chr<='~'))?chr:'.');
+        }
+        std::cout << '\n';
+    }
+    const uint32_t end = size;
+    if ((end%bytesPerRow)!=0) {
+        const uint32_t lastRowStart = end-(end%bytesPerRow);
+        const uint32_t lastRowStartOffset = startOffset+lastRowStart;
+        const uint32_t lastRowStartAddress = startAddress+lastRowStart;
+        setPrintColor(Color::Cyan); std::cout << intToHex(lastRowStartOffset,"");
+        if (isInMemory) { setPrintColor(Color::White); std::cout << ", "; }
+        if (isInMemory) { setPrintColor(Color::Cyan); std::cout << intToHex(lastRowStartAddress,""); }
+        setPrintColor(Color::White); std::cout << ": ";
+        for (uint32_t i = lastRowStart; i < end; i++) std::cout << intToHex(vec[i],"") << ' ';
+        for (uint32_t i = 0; i < bytesPerRow-(end%bytesPerRow); i++) std::cout << "-- ";
+        std::cout << "| ";
+        for (uint32_t i = lastRowStart; i < end; i++) {
+            const char chr = vec[i];
+            std::cout << (((chr>=' ')&&(chr<='~'))?chr:'.');
+        }
+        std::cout << '\n';
+    }
 }
 int main(int argc, char *argv[]) {
     // get file
@@ -47,7 +98,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<uint8_t>> sectionData;
 
     bool isDll = false;
-    SectionPlusOffset exportTableLocation;
+    peSectionPlusOffset exportTableLocation;
     peExportDirTable exportDirTable(0,0);
     std::string dllName;
     std::vector<std::string> exportNames;
@@ -111,15 +162,15 @@ int main(int argc, char *argv[]) {
     dataDirs.print(sectionHeaders);
     // print sections
     for (size_t i = 0; i < p_numberOfSections; i++) {
-        std::cout << "\nSection " << sectionHeaders[i].getName() << ":\n    ";
+        std::cout << "\nSection #" << (i+1) << ":\n    ";
         sectionHeaders[i].print("\n    ");
-        printBytes(sectionData[i],sectionHeaders[i].s_rawDataPointer);
+        printBytes(sectionData[i],sectionHeaders[i].s_rawDataPointer,sectionHeaders[i].s_virtualAddress,32);
     }
     if (isDll) {
         // print export header
         std::cout << "\n\nexport header:\n";
         exportDirTable.print();
-        std::cout << "\ndll name: \"" << dllName << "\"\n\n";
+        std::cout << "\ndll name: \"" << dllName << "\"\n";
         //std::cout << "export names:\n";
         //for (size_t i = 0; i < exportNames.size(); i++) std::cout << "    #" << i << ": \"" << exportNames[i] << "\"\n";
         std::cout << "exports:\n";

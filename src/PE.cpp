@@ -1,9 +1,9 @@
 #include "PE.h"
 
-SectionPlusOffset RVAtoSectionPlusOffset(const uint32_t& RVA, const uint32_t& size, std::vector<peSectionHdr>& sections) {
+peSectionPlusOffset RVAtoSectionPlusOffset(const uint32_t& RVA, const uint32_t& size, std::vector<peSectionHdr>& sections) {
     for (size_t i = 0; i < sections.size(); i++) {
         if ((RVA>=sections[i].s_virtualAddress)&&((RVA+size)<=(sections[i].s_virtualAddress+sections[i].s_virtualSize))) {
-            return SectionPlusOffset {
+            return peSectionPlusOffset {
                 &sections[i],
                 (int)i,
                 RVA-sections[i].s_virtualAddress
@@ -22,7 +22,7 @@ void peOptHdrStdFields::print(std::vector<peSectionHdr>& sections, std::string d
     std::cout << "p_sizeOfUninitializedData: " << intToHex(p_sizeOfUninitializedData) << delimmiter;
     std::cout << "p_addressOfEntryPoint: " << intToHex(p_addressOfEntryPoint);
     if (p_addressOfEntryPoint!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_addressOfEntryPoint,0,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_addressOfEntryPoint,0,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
@@ -31,49 +31,49 @@ void peOptHdrStdFields::print(std::vector<peSectionHdr>& sections, std::string d
 void peOptHdrDataDirs::print(std::vector<peSectionHdr>& sections, std::string delimmiter) {
     std::cout << "p_exportTableRVA: " << intToHex(p_exportTableRVA);
     if (p_exportTableRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_exportTableRVA,p_exportTableSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_exportTableRVA,p_exportTableSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_exportTableSize: " << intToHex(p_exportTableSize) << delimmiter;
     std::cout << "p_importTableRVA: " << intToHex(p_importTableRVA);
     if (p_importTableRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_importTableRVA,p_importTableSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_importTableRVA,p_importTableSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_importTableSize: " << intToHex(p_importTableSize) << delimmiter;
     std::cout << "p_resourceTableRVA: " << intToHex(p_resourceTableRVA);
     if (p_resourceTableRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_resourceTableRVA,p_resourceTableSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_resourceTableRVA,p_resourceTableSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_resourceTableSize: " << intToHex(p_resourceTableSize) << delimmiter;
     std::cout << "p_exceptionTableRVA: " << intToHex(p_exceptionTableRVA);
     if (p_exceptionTableRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_exceptionTableRVA,p_exceptionTableSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_exceptionTableRVA,p_exceptionTableSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_exceptionTableSize: " << intToHex(p_exceptionTableSize) << delimmiter;
     std::cout << "p_certificateTableRVA: " << intToHex(p_certificateTableRVA);
     if (p_certificateTableRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_certificateTableRVA,p_certificateTableSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_certificateTableRVA,p_certificateTableSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_certificateTableSize: " << intToHex(p_certificateTableSize) << delimmiter;
     std::cout << "p_baseRelocationTableRVA: " << intToHex(p_baseRelocationTableRVA);
     if (p_baseRelocationTableRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_baseRelocationTableRVA,p_baseRelocationTableSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_baseRelocationTableRVA,p_baseRelocationTableSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_baseRelocationTableSize: " << intToHex(p_baseRelocationTableSize) << delimmiter;
     std::cout << "p_debugRVA: " << intToHex(p_debugRVA);
     if (p_debugRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_debugRVA,p_debugSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_debugRVA,p_debugSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
@@ -81,49 +81,49 @@ void peOptHdrDataDirs::print(std::vector<peSectionHdr>& sections, std::string de
     std::cout << "p_architecture: " << intToHex(p_architecture) << delimmiter;
     std::cout << "p_globalPtrRVA: " << intToHex(p_globalPtrRVA);
     if (p_globalPtrRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_globalPtrRVA,p_globalPtrSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_globalPtrRVA,p_globalPtrSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_globalPtrSize: " << intToHex(p_globalPtrSize) << delimmiter;
     std::cout << "p_TlsTableRVA: " << intToHex(p_TlsTableRVA);
     if (p_TlsTableRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_TlsTableRVA,p_TlsTableSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_TlsTableRVA,p_TlsTableSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_TlsTableSize: " << intToHex(p_TlsTableSize) << delimmiter;
     std::cout << "p_loadConfigTableRVA: " << intToHex(p_loadConfigTableRVA);
     if (p_loadConfigTableRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_loadConfigTableRVA,p_loadConfigTableSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_loadConfigTableRVA,p_loadConfigTableSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_loadConfigTableSize: " << intToHex(p_loadConfigTableSize) << delimmiter;
     std::cout << "p_boundImportRVA: " << intToHex(p_boundImportRVA);
     if (p_boundImportRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_boundImportRVA,p_boundImportSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_boundImportRVA,p_boundImportSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_boundImportSize: " << intToHex(p_boundImportSize) << delimmiter;
     std::cout << "p_ImprtAddressTableRVA: " << intToHex(p_ImprtAddressTableRVA);
     if (p_ImprtAddressTableRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_ImprtAddressTableRVA,p_ImprtAddressTableSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_ImprtAddressTableRVA,p_ImprtAddressTableSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_ImprtAddressTableSize: " << intToHex(p_ImprtAddressTableSize) << delimmiter;
     std::cout << "p_delayImportDescriptorRVA: " << intToHex(p_delayImportDescriptorRVA);
     if (p_delayImportDescriptorRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_delayImportDescriptorRVA,p_delayImportDescriptorSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_delayImportDescriptorRVA,p_delayImportDescriptorSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
     std::cout << "p_delayImportDescriptorSize: " << intToHex(p_delayImportDescriptorSize) << delimmiter;
     std::cout << "p_ClrRuntimeHeaderRVA: " << intToHex(p_ClrRuntimeHeaderRVA);
     if (p_ClrRuntimeHeaderRVA!=0) {
-        SectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_ClrRuntimeHeaderRVA,p_ClrRuntimeHeaderSize,sections);
+        peSectionPlusOffset sectionPlusOffset = RVAtoSectionPlusOffset(p_ClrRuntimeHeaderRVA,p_ClrRuntimeHeaderSize,sections);
         if (sectionPlusOffset.section!=nullptr) std::cout << " -> <" << sectionPlusOffset.section->getName() << ">+" << intToHex(sectionPlusOffset.offset);
     }
     std::cout << delimmiter;
@@ -182,7 +182,7 @@ std::vector<dllExportData> parseDll(const std::string& name) {
     uint16_t p_numberOfSections = 0;
     std::vector<peSectionHdr> sectionHeaders;
     std::vector<std::vector<uint8_t>> sectionData;
-    SectionPlusOffset exportTableLocation;
+    peSectionPlusOffset exportTableLocation;
     peExportDirTable exportDirTable(0,0);
     std::string dllName;
     std::vector<dllExportData> exports;
