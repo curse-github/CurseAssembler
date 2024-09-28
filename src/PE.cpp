@@ -320,7 +320,7 @@ void Pe64Handler::push(std::ofstream &stream) {
         }
     }
     // create and fill import section
-    if (numImports!=0) {
+    if (numImports>0) {
         numHeaders++;
         Pe64SectionHandler *idataHandler = new Pe64SectionHandler(*this, ".idata  ",IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_WRITE);
         sectionHeaders.push_back(idataHandler);

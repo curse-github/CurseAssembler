@@ -155,7 +155,7 @@ struct peOptHdrStdFields {// 24 bytes
     uint32_t p_addressOfEntryPoint;
     uint32_t p_baseOfCode;
     peOptHdrStdFields() {
-        p_magic = (bitMode==64)?IMAGE_FILE_MAGIC64:IMAGE_FILE_MAGIC32;
+        p_magic = IMAGE_FILE_MAGIC64;
         p_majorLinkerVersion = 0x02;
         p_minorLinkerVersion = 0x19;
         p_sizeOfCode = 0;               // currently unknown v
@@ -858,8 +858,8 @@ struct pe64ImportData {
 };
 class Pe64Handler {
 private:
-    std::vector<Pe64SectionHandler *> sectionHeaders;
     peHdr peHeader;
+    std::vector<Pe64SectionHandler *> sectionHeaders;
     peOptHdrStdFields peStdFieldsHeader;
     peOptHdrSpecFields64 peSpecFieldsHeader;
     peOptHdrDataDirs peDataDirHeader;

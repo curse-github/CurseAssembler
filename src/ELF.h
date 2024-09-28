@@ -168,6 +168,15 @@ struct elf64Symbol {// 24 bytes
             return true;
         } catch (int code) { return false; }
     }
+    void push(std::vector<uint8_t>& vec) {
+        bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
+        pushDword(vec, sy_name_idx, LSB);
+        pushByte(vec, sy_typeNbinding);
+        pushByte(vec, sy_other);
+        pushWord(vec, sy_secIdx, LSB);
+        pushQword(vec, sy_value, LSB);
+        pushQword(vec, sy_size, LSB);
+    }
     void print(std::vector<uint8_t>& file, const uint32_t& strTabOffset, std::string delimmiter="\n") {
         std::cout << "{" << delimmiter << "    ";
         std::cout << "name_idx: " << sy_name_idx << " -> \"" << readStringAt(file,strTabOffset+sy_name_idx) << "\"";
@@ -197,12 +206,21 @@ struct elf64Symbol {// 24 bytes
 struct elf64Dyn {// 16 bytes
     uint64_t dy_tag;
     uint64_t dy_valPtr;
+    elf64Dyn(const uint64_t& tag, const uint64_t& valPtr) {
+        dy_tag=tag;
+        dy_valPtr=valPtr;
+    }
     bool readAt(std::vector<uint8_t>& vec, const uint32_t& index) {
         try {
             dy_tag = readQwordAt(vec, index);
             dy_valPtr = readQwordAt(vec, index+8);
             return true;
         } catch (int code) { return false; }
+    }
+    void push(std::vector<uint8_t>& vec) {
+        bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
+        pushQword(vec, dy_tag, LSB);
+        pushQword(vec, dy_valPtr, LSB);
     }
     void print(std::vector<uint8_t>& file, const uint32_t& exportStrTabOffset, std::vector<elfSectionHdr64>& sections, const uint32_t& secNameStrTableOffset);
 };
@@ -231,6 +249,13 @@ struct elf64Rela {// 24 bytes
             return true;
         } catch (int code) { return false; }
     }
+    void push(std::vector<uint8_t>& vec) {
+        bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
+        pushQword(vec, r_offset, LSB);
+        pushDword(vec, r_type, LSB);
+        pushDword(vec, r_symtabIndex, LSB);
+        pushQword(vec, r_addend, LSB);
+    }
     void print(std::vector<uint8_t>& file, std::vector<elfSectionHdr64>& sections, const uint32_t& secNameStrTableOffset, std::string delimmiter="\n");
 };
 struct elfSectionHdr64 {// 64 bytes
@@ -244,8 +269,8 @@ struct elfSectionHdr64 {// 64 bytes
     uint32_t s_info;// just some information, again, used for several different things
     uint64_t s_align;
     uint64_t s_entSize;// entry size, used for sections contains lists of constant sized things.
-    elfSectionHdr64(const uint32_t& type, const uint32_t& flags) {
-        s_nameIdx=0;
+    elfSectionHdr64(const uint32_t& nameIdx, const uint32_t& type, const uint32_t& flags) {
+        s_nameIdx=nameIdx;
         s_type=type;
         s_flags=flags;
         s_virtualAddress=0;
@@ -253,7 +278,7 @@ struct elfSectionHdr64 {// 64 bytes
         s_size=0;
         s_link=0;
         s_info=0;
-        s_align=0;
+        s_align=1;
         s_entSize=0;
     }
     void push(std::ofstream& stream) {
@@ -533,7 +558,7 @@ struct elfHdr64 {// 63 bytes?
         e_elfHdrSize = sizeof(elfHdr64);
         e_segmentHdrSize = sizeof(elfSegmentHdr64);
         e_numSegmentHdrs = 0x0000;
-        e_sectionHdrSize = 0;  // sizeof(sectionHdr64);
+        e_sectionHdrSize = sizeof(elfSectionHdr64);
         e_numSectionHdrs = 0x0000;
         e_stringTableNdx = 0x0000;
     }
@@ -682,6 +707,7 @@ struct elfHdr64 {// 63 bytes?
 #pragma endregion structs
 
 struct soExportData {
+    uint32_t symTabIndex;
     std::string name;
     std::string soName;
 };
@@ -703,23 +729,32 @@ struct Elf64LabelResolution {
     int32_t relativeToOffset;
     Elf64LabelResolution(const std::string& _name, Elf64SegmentHandler* _base, const uint32_t& _setAt, const int32_t& _relativeToOffset) : name(_name),base(_base),setAt(_setAt),relativeToOffset(_relativeToOffset) {};
 };
+struct elf64ImportData {
+    uint32_t symTabIndex;
+    std::string* name;
+    std::string* soName;
+};
 class Elf64Handler {
 private:
-    std::vector<Elf64SegmentHandler *> segmentHeaders;
     elfHdr64 elfHeader;
+    std::vector<Elf64SegmentHandler*> segmentHeaders;
+    std::vector<elfSectionHdr64*> sectionHeaders;
+    std::string sectionStrTab;
+    uint32_t curStrTabOffset;
 
     std::vector<Elf64Label> labels;
     std::vector<Elf64LabelResolution> labelResolutions;
 
+    std::vector<std::string> avaliableSos;
+    std::vector<elf64ImportData> imports;
 public:
     Elf64Handler();
-    constexpr bool isLSB() const {
-        return elfHeader.e_encoding == ELF_ENCODING_LSB;
-    };
     void push(std::ofstream& stream);
-    Elf64SegmentHandler *addSeg(const uint32_t& type, const uint32_t& flags);
+    Elf64SegmentHandler* addSeg(const uint32_t& type, const uint32_t& flags);
+    elfSectionHdr64* addSec(const std::string& name, const uint32_t& type, const uint32_t& flags);
     void defineLabel(const std::string& name, Elf64SegmentHandler* base, const uint32_t& offset);
     void resolveLabel(const std::string& name, Elf64SegmentHandler* base, const uint32_t& setAt, const int32_t& relativeToOffset);
+    void addImport(const std::string& soName);
 };
 
 class Elf64SegmentHandler {
@@ -731,9 +766,6 @@ public:
     std::vector<uint8_t> data;
 
     Elf64SegmentHandler(Elf64Handler& _elfHandler, const uint32_t& type, const uint32_t& flags);
-    constexpr bool isLSB() const {
-        return elfHandler.isLSB();
-    };
     void pushHeader(std::ofstream& stream);
     void pushData(std::ofstream& stream);
 
