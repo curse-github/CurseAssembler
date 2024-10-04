@@ -82,7 +82,7 @@ void printBytes(const std::vector<uint8_t>& vec, const uint32_t& startOffset, co
 int main(int argc, char *argv[]) {
     // get file
     std::string fullPath = getFullFilePath(argv[1]);
-    if (fullPath.size()==0) std::cout << "File not found.\n";
+    if (fullPath.size()==0) { std::cout << "File not found.\n"; return 1; }
     std::cout << "reading: \"" << fullPath << "\"\n";
     std::ifstream inFile(fullPath, std::ios::binary);
     if (inFile.bad()) { std::cout << "File ifStream bad.\n"; return 1; }

@@ -7,8 +7,8 @@ int main(int argc, char *argv[]) {
         std::ofstream outFile(std::string("./", 2) + argv[2] + ".out", std::ios::binary);
         // ELF
         elf_encoding = ELF_ENCODING_LSB;
-        elf_osAbi = ELF_OS_LINUX;
-        elf_type = ELF_TYPE_EXE;
+        elf_osAbi = 0;//ELF_OS_LINUX;
+        elf_type = ELF_TYPE_SO;//ELF_TYPE_EXE;
         elf_machine = ELF_MACHINE_AMD64;
 
         Elf64Handler elfHandler;
@@ -24,10 +24,9 @@ int main(int argc, char *argv[]) {
         MOV(textSeg,"rAX",std::to_string(LINUX_SYSCALL_EXIT).c_str());
         INT(textSeg,"0x80");
         */
-        MOV(textSeg,"rBP","rSP");
-        CALL(textSeg,"ex");
+        JMP(textSeg,"_Z2exv");
         
-        elfHandler.addImport("FakeDll.so");
+        elfHandler.addImport("libfake.so");
 
         dataSeg->defineLabel("code");
         pushDword(dataSeg,15,true);
@@ -50,7 +49,7 @@ int main(int argc, char *argv[]) {
         pushDword(dataSec,15,true);
 
         peHandler.addImport("api-ms-win-crt-runtime-l1-1-0.dll");
-        peHandler.addImport("FakeDll.dll");
+        peHandler.addImport("libfake.dll");
 
         peHandler.push(outFile);
         outFile.close();

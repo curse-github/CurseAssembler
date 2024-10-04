@@ -92,10 +92,10 @@
 #define ELF_DYN_TAG_NULL            0x0000000000000000u// none
 #define ELF_DYN_TAG_NEEDED          0x0000000000000001u// val
 #define ELF_DYN_TAG_PLTRELSZ        0x0000000000000002u// val
-#define ELF_DYN_TAG_PLTGOT          0x0000000000000003u// ptr
+#define ELF_DYN_TAG_PLTGOT          0x0000000000000003u// ptr to global offset table
 #define ELF_DYN_TAG_HASH            0x0000000000000004u// ptr
-#define ELF_DYN_TAG_STRTAB          0x0000000000000005u// ptr
-#define ELF_DYN_TAG_SYMTAB          0x0000000000000006u// ptr
+#define ELF_DYN_TAG_STRTAB          0x0000000000000005u// ptr to string table
+#define ELF_DYN_TAG_SYMTAB          0x0000000000000006u// ptr to symbol table
 #define ELF_DYN_TAG_RELA            0x0000000000000007u// ptr
 #define ELF_DYN_TAG_RELASZ          0x0000000000000008u// val
 #define ELF_DYN_TAG_RELAENT         0x0000000000000009u// val
@@ -104,9 +104,9 @@
 //#define ELF_DYN_TAG_INIT            0x000000000000000cu
 //#define ELF_DYN_TAG_FINI            0x000000000000000du
 //#define ELF_DYN_TAG_SONAME          0x000000000000000eu
-//#define ELF_DYN_TAG_RPATH           0x000000000000000fu
+#define ELF_DYN_TAG_RPATH           0x000000000000000fu// ptr to string
 #define ELF_DYN_TAG_SYMBOLIC        0x0000000000000010u// none
-#define ELF_DYN_TAG_REL             0x0000000000000011u// ptr
+#define ELF_DYN_TAG_REL             0x0000000000000011u// ptr to relocation table
 #define ELF_DYN_TAG_RELSZ           0x0000000000000012u// val
 #define ELF_DYN_TAG_RELENT          0x0000000000000013u// val
 #define ELF_DYN_TAG_PLTREL          0x0000000000000014u// val
@@ -118,7 +118,7 @@
 //#define ELF_DYN_TAG_FINI_ARRAY      0x000000000000001au
 //#define ELF_DYN_TAG_INIT_ARRAYSZ    0x000000000000001bu
 //#define ELF_DYN_TAG_FINI_ARRAYSZ    0x000000000000001cu
-//#define ELF_DYN_TAG_RUNPATH         0x000000000000001du
+#define ELF_DYN_TAG_RUNPATH         0x000000000000001du// ptr to string
 #define ELF_DYN_TAG_FLAGS           0x000000000000001eu// val
 #define ELF_DYN_TAG_ENCODING        0x000000000000001fu// ?
 //#define ELF_DYN_TAG_PREINIT_ARRAY   0x0000000000000020u
@@ -144,11 +144,23 @@
 #define ELF_DYN_TAG_ADDRRNGHI       0x000000006ffffeffu// ?, address range high
 #define ELF_DYN_TAG_RELACOUNT       0x000000006ffffff9u// val
 #define ELF_DYN_TAG_RELCOUNT        0x000000006ffffffau// val
-//#define ELF_DYN_TAG_FLAGS_1         0x000000006ffffffbu
+#define ELF_DYN_TAG_FLAGS_1         0x000000006ffffffbu// val
 #define ELF_DYN_TAG_VERDEF          0x000000006ffffffcu// ptr
 #define ELF_DYN_TAG_VERDEFNUM       0x000000006ffffffdu// val
 #define ELF_DYN_TAG_VERNEED         0x000000006ffffffeu// ptr
 #define ELF_DYN_TAG_VERNEEDNUM      0x000000006fffffffu// val
+
+#define ELF_DYN_F_ORIGIN     0x0000000000000001
+#define ELF_DYN_F_SYMBOLIC   0x0000000000000002
+#define ELF_DYN_F_TEXTREL    0x0000000000000004
+#define ELF_DYN_F_BIND_NOW   0x0000000000000008
+#define ELF_DYN_F_STATIC_TLS 0x0000000000000010
+
+#define ELF_DYN_F1_NOW      0x0000000000000001
+#define ELF_DYN_F1_NODELETE 0x0000000000000008
+#define ELF_DYN_F1_NODEFLIB 0x0000000000000800
+#define ELF_DYN_F1_EDITED   0x0000000000200000
+//#define ELF_DYN_F1_SYMINTPOS 0x800000
 
 //https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-54839.html#scrolltoc
 #define ELF64_REL_SYM(info)       ((info)>>32)

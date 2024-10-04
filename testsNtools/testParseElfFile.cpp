@@ -15,7 +15,8 @@
     }
 #endif
 
-void printBytes(const std::vector<uint8_t>& vec, const uint32_t& startOffset, const bool& isInMemory=false, const uint32_t& startAddress=0, const uint32_t& bytesPerRow = 0x20u) {
+
+void printBytes(const std::vector<uint8_t>& vec, const uint32_t& startFileOffset, const bool& isInMemory=false, const uint32_t& startAddress=0, const uint32_t& bytesPerRow = 0x20u) {
     // header
     setPrintColor(Color::Cyan);std::cout << "  Offset";
     if (isInMemory) { setPrintColor(Color::White); std::cout << ",  "; }
@@ -26,29 +27,31 @@ void printBytes(const std::vector<uint8_t>& vec, const uint32_t& startOffset, co
     setPrintColor(Color::Cyan); std::cout << "Ascii\n";
     setPrintColor(Color::White);
     // first row, if it needs to be offset
-    int32_t actualStartOffset = startOffset;
+    int32_t actualOffset = 0;
+    int32_t actualStartFileOffset = startFileOffset;
     int32_t actualStartAddress = startAddress;
     int32_t size = vec.size();
-    if ((startOffset%bytesPerRow)!=0) {
-        setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(startOffset-(startOffset%bytesPerRow)),"");
+    if ((startFileOffset%bytesPerRow)!=0) {
+        setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(startFileOffset-(startFileOffset%bytesPerRow)),"");
         if (isInMemory) setPrintColor(Color::White); std::cout << ", ";
-        if (isInMemory) setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(startAddress-(startOffset%bytesPerRow)),"");
+        if (isInMemory) setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(startAddress-(startFileOffset%bytesPerRow)),"");
         setPrintColor(Color::White); std::cout << ": ";
-        for (uint32_t i = 0; i < bytesPerRow-(startOffset%bytesPerRow); i++) std::cout << "-- ";
-        for (uint32_t i = 0; i < (startOffset%bytesPerRow); i++) std::cout << intToHex(vec[i],"") << ' ';
+        for (uint32_t i = 0; i < bytesPerRow-(startFileOffset%bytesPerRow); i++) std::cout << "-- ";
+        for (uint32_t i = 0; i < (startFileOffset%bytesPerRow); i++) std::cout << intToHex(vec[i],"") << ' ';
         std::cout << "| ";
-        for (uint32_t i = 0; i < bytesPerRow-(startOffset%bytesPerRow); i++) std::cout << ' ';
-        for (uint32_t i = 0; i < (startOffset%bytesPerRow); i++) {
+        for (uint32_t i = 0; i < bytesPerRow-(startFileOffset%bytesPerRow); i++) std::cout << ' ';
+        for (uint32_t i = 0; i < (startFileOffset%bytesPerRow); i++) {
             const char chr = vec[i];
             std::cout << (((chr>=' ')&&(chr<='~'))?chr:'.');
         }
-        actualStartOffset+=(startOffset%bytesPerRow);
-        actualStartAddress+=(startOffset%bytesPerRow);
-        if (size>=(startOffset%bytesPerRow)) size-=(startOffset%bytesPerRow); else size=0;
+        actualOffset+=(startFileOffset%bytesPerRow);
+        actualStartFileOffset+=(startFileOffset%bytesPerRow);
+        actualStartAddress+=(startFileOffset%bytesPerRow);
+        if (size>=(startFileOffset%bytesPerRow)) size-=(startFileOffset%bytesPerRow); else size=0;
         std::cout << '\n';
     }
     for (size_t i = 0; i < size/bytesPerRow; i++) {
-        setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(actualStartOffset+i*bytesPerRow),"");
+        setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(actualStartFileOffset+i*bytesPerRow),"");
         if (isInMemory) { setPrintColor(Color::White); std::cout << ", "; }
         if (isInMemory) { setPrintColor(Color::Cyan); std::cout << intToHex((uint32_t)(actualStartAddress+i*bytesPerRow),""); }
         setPrintColor(Color::White); std::cout << ": ";
@@ -63,17 +66,17 @@ void printBytes(const std::vector<uint8_t>& vec, const uint32_t& startOffset, co
     const uint32_t end = size;
     if ((end%bytesPerRow)!=0) {
         const uint32_t lastRowStart = end-(end%bytesPerRow);
-        const uint32_t lastRowStartOffset = actualStartOffset+lastRowStart;
+        const uint32_t lastRowstartFileOffset = actualStartFileOffset+lastRowStart;
         const uint32_t lastRowStartAddress = actualStartAddress+lastRowStart;
-        setPrintColor(Color::Cyan); std::cout << intToHex(lastRowStartOffset,"");
+        setPrintColor(Color::Cyan); std::cout << intToHex(lastRowstartFileOffset,"");
         if (isInMemory) { setPrintColor(Color::White); std::cout << ", "; }
         if (isInMemory) { setPrintColor(Color::Cyan); std::cout << intToHex(lastRowStartAddress,""); }
         setPrintColor(Color::White); std::cout << ": ";
-        for (uint32_t i = lastRowStart; i < end; i++) std::cout << intToHex(vec[i],"") << ' ';
+        for (uint32_t i = lastRowStart; i < end; i++) std::cout << intToHex(vec[actualOffset+i],"") << ' ';
         for (uint32_t i = 0; i < bytesPerRow-(end%bytesPerRow); i++) std::cout << "-- ";
         std::cout << "| ";
         for (uint32_t i = lastRowStart; i < end; i++) {
-            const char chr = vec[i];
+            const char chr = vec[actualOffset+i];
             std::cout << (((chr>=' ')&&(chr<='~'))?chr:'.');
         }
         std::cout << '\n';
@@ -82,7 +85,7 @@ void printBytes(const std::vector<uint8_t>& vec, const uint32_t& startOffset, co
 int main(int argc, char *argv[]) {
     // get file
     std::string fullPath = getFullFilePath(argv[1]);
-    if (fullPath.size()==0) std::cout << "File not found.\n";
+    if (fullPath.size()==0) { std::cout << "File not found.\n"; return 1; }
     std::cout << "reading: \"" << fullPath << "\"\n";
     std::ifstream inFile(fullPath, std::ios::binary);
     if (inFile.bad()) { std::cout << "File ifStream bad.\n"; inFile.close(); return 1; }
@@ -98,11 +101,12 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<uint8_t>> sectionData;
     uint32_t secNameStrTableOffset = 0;
     try {
+        std::cout << "reading elf header\n";
         // read elf header
         pushChars(allData,readBytes(inFile,count,sizeof(elfHdr64)));
         if (!elfHeader.readAt(allData,0)) { inFile.close(); return 1; }
         pushChars(allData,readBytes(inFile,count,elfHeader.e_segmentHdrOffset-count));
-        elfHeader.print();
+        std::cout << "reading segment headers\n";
         // read segment headers
         e_numSegmentHdrs=elfHeader.e_numSegmentHdrs;
         if (e_numSegmentHdrs==0) { std::cout << "File has no segments.\n"; inFile.close(); return 1; }
@@ -114,6 +118,7 @@ int main(int argc, char *argv[]) {
             if (!segmentHdrI.readAt(allData,segmentHdrStart+sizeof(elfSegmentHdr64)*i)) { std::cout << "error reading segment header #" << (int)segmentHeaders.size() << "\n"; inFile.close(); return 1; }
             segmentHeaders.push_back(segmentHdrI);
         }
+        std::cout << "reading segment data\n";
         // read segment data
         for (uint16_t i = 0; i < e_numSegmentHdrs; i++) {
             if (segmentHeaders[i].s_sizeFile==0) continue;
@@ -123,6 +128,7 @@ int main(int argc, char *argv[]) {
             segmentData.push_back(readBytesAt(allData, segmentStart, segmentHeaders[i].s_sizeFile));
         }
         if (elfHeader.e_numSectionHdrs>0) {
+            std::cout << "reading section headers\n";
             // read section headers
             e_numSectionHdrs=elfHeader.e_numSectionHdrs;
             const uint32_t sectionHdrStart = elfHeader.e_sectionHdrOffset;
@@ -134,6 +140,7 @@ int main(int argc, char *argv[]) {
                 sectionHeaders.push_back(sectionHdrI);
             }
             secNameStrTableOffset=sectionHeaders[elfHeader.e_stringTableNdx].s_fileOffset;
+        std::cout << "reading elf section data\n";
             // read section data
             for (uint16_t i = 0; i < e_numSectionHdrs; i++) {
                 if (sectionHeaders[i].s_size==0) continue;
@@ -145,8 +152,8 @@ int main(int argc, char *argv[]) {
         } else {
             std::cout << "File has no sections.\n"; inFile.close();
         }
-    } catch(const int& err) { std::cout << "EOF reached before expected"; inFile.close(); return 1; }
-    catch ( ... ) { std::cout << "error..."; inFile.close(); return 1; }
+    } catch(const int& err) { std::cout << "EOF reached before expected\n"; inFile.close(); return 1; }
+    catch ( ... ) { std::cout << "error...\n"; inFile.close(); return 1; }
 
     std::cout << '\n';
     // print elf header
@@ -166,7 +173,7 @@ int main(int argc, char *argv[]) {
         uint32_t sectionDataIndex = 0;
         for (uint16_t i = 0; i < e_numSectionHdrs; i++) {
             std::cout << "\nSection #" << (i+1) << " Header:\n    ";
-            sectionHeaders[i].print(allData, secNameStrTableOffset, "\n    ");
+            sectionHeaders[i].print(allData, sectionHeaders, secNameStrTableOffset, "\n    ");
             if (sectionHeaders[i].s_size==0) {
                 setPrintColor(Color::Red); std::cout << "Section #" << (i+1) << " has no data in file\n"; setPrintColor(Color::White); continue;
             } else if ((sectionHeaders[i].s_type==ELF_SECTION_TYPE_DYNSYM)||(sectionHeaders[i].s_type==ELF_SECTION_TYPE_SYMTAB)) {
@@ -234,6 +241,45 @@ int main(int argc, char *argv[]) {
                     printBytes(sectionData[sectionDataIndex],sectionHeaders[i].s_fileOffset,true,sectionHeaders[i].s_virtualAddress,entsize);
             }
             sectionDataIndex++;
+        }
+        
+        // print section segments
+        uint32_t longestNameLength = 0;
+        for (uint16_t i = 0; i < e_numSectionHdrs; i++) {
+            std::string name = readStringAt(allData,secNameStrTableOffset+sectionHeaders[i].s_nameIdx);
+            if (name.size()>longestNameLength) longestNameLength=name.size();
+        }
+        std::cout << "\n\nSectionSegments:\n";
+
+        for (uint16_t i = 0; i < e_numSectionHdrs; i++) {
+            elfSectionHdr64 secHdr = sectionHeaders[i];
+            if (secHdr.s_size==0) continue;
+            std::string name = readStringAt(allData,secNameStrTableOffset+secHdr.s_nameIdx);
+            std::cout << '"' << name << "\"" << std::string(longestNameLength-name.size(),' ') << " -> ";
+            bool foundSeg = false;
+            for (uint16_t j = 0; j < e_numSegmentHdrs; j++) {
+                elfSegmentHdr64 segHdr = segmentHeaders[j];
+                if (segHdr.s_sizeMemory==0) continue;
+                if ((secHdr.s_virtualAddress>=segHdr.s_virtualAddress)&&((secHdr.s_virtualAddress+secHdr.s_size)<=(segHdr.s_virtualAddress+segHdr.s_sizeMemory))) {
+                    if (foundSeg) std::cout << ", ";
+                    foundSeg=true;
+                    std::cout << "<Seg#" << j << ", ";
+                    if (segHdr.s_type==ELF_SEGMENT_TYPE_LOAD) std::cout << "LOAD";
+                    else if (segHdr.s_type==ELF_SEGMENT_TYPE_DYN) std::cout << "DYNAMIC";
+                    else if (segHdr.s_type==ELF_SEGMENT_TYPE_INTP) std::cout << "INTERP";
+                    else if (segHdr.s_type==ELF_SEGMENT_TYPE_NOTE) std::cout << "NOTE";
+                    else if (segHdr.s_type==ELF_SEGMENT_TYPE_PHDR) std::cout << "Program Header Table";
+                    else if (segHdr.s_type==ELF_SEGMENT_TYPE_TLS) std::cout << "Thread local storage";
+                    else std::cout << "unknown";
+                    std::cout << ", ";
+                    if ((segHdr.s_flags&ELF_SEGMENT_FLAG_READ)) std::cout << 'R'; else std::cout << '-';
+                    if ((segHdr.s_flags&ELF_SEGMENT_FLAG_WRITE)) std::cout << 'W'; else std::cout << '-';
+                    if ((segHdr.s_flags&ELF_SEGMENT_FLAG_EXECUTE)) std::cout << 'E'; else std::cout << '-';
+                    std::cout << ">";
+                }
+            }
+            if (!foundSeg) std::cout << "No segments.";
+            std::cout << '\n';
         }
     }
     inFile.close();

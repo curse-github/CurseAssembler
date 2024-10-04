@@ -1,2 +1,2 @@
 make ./testParseElfFile.out
-./testParseElfFile.out ../FakeDll.so
+./testParseElfFile.out ../libfake.so

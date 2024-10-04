@@ -169,7 +169,7 @@ std::string getFullFilePath(const std::string& path) {
 std::vector<dllExportData> parseDll(const std::string& name) {
     // get file
     std::string fullPath = getFullFilePath(name);
-    if (fullPath.size()==0) std::cout << "File not found.\n";
+    if (fullPath.size()==0) { std::cout << "File not found.\n"; return {}; }
     //std::cout << "reading: \"" << fullPath << "\"\n";
     std::ifstream inFile(fullPath, std::ios::binary);
     if (inFile.bad()) { std::cout << "File ifStream bad.\n"; return {}; }

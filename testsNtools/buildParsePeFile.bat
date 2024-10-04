@@ -1,4 +1,4 @@
 make ./testParsePeFile.exe
-testParsePeFile.exe ../FakeDll.dll
+testParsePeFile.exe ../libfake.dll
 pause
 make clean

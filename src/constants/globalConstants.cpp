@@ -566,12 +566,12 @@ argumentType parseArgument(const string& str) {
             return returnVal;
         } if (regInfo.offset==-2) { returnVal.isError=true; returnVal.errorCode=21; return returnVal; }// else will just continue to if statement below
     }
-    if ((tmp1>='a' && tmp1<='z')||(tmp1>='A' && tmp1<='Z')||(tmp1=='_')||(tmp1=='-')) {// starts with 'a'-'z' or 'A'-'Z'
+    if ((tmp1>='a' && tmp1<='z')||(tmp1=='_')||(tmp1=='-')) {// starts with 'a'-'z' or 'A'-'Z'
         // is a label
         // check that there is not spaces or special characters other than '_' and '-'
         for (size_t i = 0; i < str.size(); i++) {
             char chr = str[i];
-            if (((chr<'A')||(chr>'z'))&&(chr!='_')&&(chr!='-')) { returnVal.isError=true; returnVal.errorCode=22; return returnVal; }
+            if (!( ((chr>='a')&&(chr<='z'))||((chr>='A')&&(chr<='Z'))||((chr>='0')&&(chr<='9'))||(chr=='_')||(chr=='-') )) { std::cout << "INVALID CHAR: '" << chr << "'\n"; returnVal.isError=true; returnVal.errorCode=22; return returnVal; }
         }
         returnVal.bit=bitMode;
         returnVal.isIndirect=true;
@@ -780,7 +780,7 @@ template <typename T>
 void CallJmp(T& reciever, const char* arg, const char* instructionName, const uint8_t& op3Code=INTEL_ModRM_OP3_CALL_RM, const uint8_t& op3CodeFar=INTEL_ModRM_OP3_CALL_RM, const uint8_t& INSTR_Jv=INTEL_INSTR_CALL_Jv) {
     if (bitMode==0) return;
     argumentType argInfo = parseArgument(arg);
-    if(argInfo.isError) { cout << "arg: \"" << arg << "\": error" << endl; return; }
+    if(argInfo.isError) { cout << "arg: \"" << arg << "\": error #" << (int)argInfo.errorCode << endl; return; }
 
     if (argInfo.isJustRegister) { cout << "arg cannot be just a register." << endl; return; }
     if ((argInfo.bit!=0 && argInfo.bit<32)) { cout << "invalid bit" << endl; return; }// dont have handling for these yet
