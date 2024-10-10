@@ -160,7 +160,7 @@
 #define ELF_DYN_F1_NODELETE 0x0000000000000008
 #define ELF_DYN_F1_NODEFLIB 0x0000000000000800
 #define ELF_DYN_F1_EDITED   0x0000000000200000
-//#define ELF_DYN_F1_SYMINTPOS 0x800000
+#define ELF_DYN_F1_SYMINTPOS 0x800000
 
 //https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-54839.html#scrolltoc
 #define ELF64_REL_SYM(info)       ((info)>>32)

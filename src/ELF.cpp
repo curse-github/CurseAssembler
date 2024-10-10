@@ -363,7 +363,7 @@ Elf64Handler::Elf64Handler() : elfHeader() {
     curStrTabOffset=0;
 
     elfSectionHdr64* nullSec = addSec("",ELF_SECTION_TYPE_NULL,0);
-    elfSectionHdr64* shStrTabSec = addSec(".strtab",ELF_SECTION_TYPE_STRTAB,0);
+    elfSectionHdr64* shStrTabSec = addSec(".strtab",ELF_SECTION_TYPE_STRTAB,ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_STRINGS);
     elfHeader.e_stringTableNdx=1;
 }
 void Elf64Handler::push(std::ofstream &stream) {
@@ -409,7 +409,7 @@ void Elf64Handler::push(std::ofstream &stream) {
 
     // create section containing headers and str tables
     elfHeader.e_numSegmentHdrs = 1+segmentHeaders.size();
-    elfHeader.e_segmentHdrOffset=sizeof(elfHdr64) + sectionStrTab.size();
+    elfHeader.e_segmentHdrOffset=sizeof(elfHdr64) + sectionStrTab.size()+6;
     elfHeader.e_numSectionHdrs = 0;
     // segments that will only actually be added if there are imports
     elfSegmentHdr64 dynamicSegment(ELF_SEGMENT_TYPE_DYN, ELF_SEGMENT_FLAG_READ|ELF_SEGMENT_FLAG_WRITE);
@@ -424,7 +424,7 @@ void Elf64Handler::push(std::ofstream &stream) {
     if (numImports>0) {
         elfHeader.e_segmentHdrOffset-=sectionStrTab.size();
         elfSectionHdr64* interpSec = addSec(".interp",ELF_SECTION_TYPE_PROGBITS,ELF_SECTION_FLAG_ALLOC);
-        addSec(".dynsym",ELF_SECTION_TYPE_DYNSYM,ELF_SECTION_FLAG_ALLOC);
+        addSec(".dynsym",ELF_SECTION_TYPE_DYNSYM,ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_STRINGS);
         elfSectionHdr64* dynStrTabSec = addSec(".dynstr",ELF_SECTION_TYPE_STRTAB,ELF_SECTION_FLAG_ALLOC);
         addSec(".rela.plt",ELF_SECTION_TYPE_RELA,ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_INFO_LINK);
         addSec(".dynamic",ELF_SECTION_TYPE_DYNAMIC,ELF_SECTION_FLAG_WRITE|ELF_SECTION_FLAG_ALLOC);
@@ -457,22 +457,24 @@ void Elf64Handler::push(std::ofstream &stream) {
         dynStrTab+='\0';
         elfHeader.e_numSegmentHdrs+=4;
         elfHeader.e_segmentHdrOffset+=dynStrTab.size();
-        elfHeader.e_numSectionHdrs = sectionHeaders.size();
+        elfHeader.e_numSectionHdrs = sectionHeaders.size()+1;
 
-        dynStrTabSec->s_fileOffset = sizeof(elfHdr64)+sectionStrTab.size();
-        dynStrTabSec->s_virtualAddress = 0x0000000000000000+sizeof(elfHdr64)+sectionStrTab.size();
+        dynStrTabSec->s_fileOffset = elfHeader.e_segmentHdrOffset-dynStrTab.size();
+        dynStrTabSec->s_virtualAddress = 0x0000000000000000+dynStrTabSec->s_fileOffset;
         dynStrTabSec->s_size=dynStrTab.size();
     }
+    elfSectionHdr64* textSec = addSec(".text",ELF_SECTION_TYPE_PROGBITS,ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_EXEC);
 
-    // set parameters of the head segment
     elfSectionHdr64* shStrTabSec = sectionHeaders[1];
     shStrTabSec->s_fileOffset = sizeof(elfHdr64);
     shStrTabSec->s_virtualAddress = 0x0000000000000000+sizeof(elfHdr64);
     shStrTabSec->s_size=sectionStrTab.size();
+
     elfSegmentHdr64 headSeg(ELF_SEGMENT_TYPE_LOAD,ELF_SEGMENT_FLAG_READ);
     headSeg.s_virtualAddress = headSeg.s_physAddress = 0x0000000000000000;
     headSeg.s_fileOffset = 0;
     headSeg.s_sizeFile = headSeg.s_sizeMemory = elfHeader.e_segmentHdrOffset + elfHeader.e_numSegmentHdrs * sizeof(elfSegmentHdr64);
+
     // set offsets, and virtual addresses of the rest of the segments
     uint32_t baseOffset = roundToAlign(headSeg.s_sizeFile,SECTION_ALIGN);//FILE_ALIGN);
     uint32_t runningOffset = baseOffset;
@@ -488,13 +490,15 @@ void Elf64Handler::push(std::ofstream &stream) {
         runningOffset += fileSize;
         runningRVA += virtSize;
     }
+    textSec->s_virtualAddress=textSec->s_fileOffset=segmentHeaders[0]->segmentHeader.s_virtualAddress;
+    textSec->s_size=segmentHeaders[0]->data.size();
 
     // create and fill .dynamic, .dynstr, .dynsym, .plt.got, and .rela.plt sections within a DYNAMIC type and LOAD type segments
     std::vector<uint8_t> dynamicData;
     if (numImports>0) {
         symbolsLoadSegment.s_virtualAddress=symbolsLoadSegment.s_physAddress = 0x0000000000000000+runningRVA;
         symbolsLoadSegment.s_fileOffset = runningOffset;
-        dynamicLoadSegment.s_align=dynamicSegment.s_align = symbolsLoadSegment.s_align = SECTION_ALIGN;
+        dynamicLoadSegment.s_align=dynamicSegment.s_align = symbolsLoadSegment.s_align = 1;//SECTION_ALIGN;
 
         elfSectionHdr64* dynSymSec    = sectionHeaders[3];
         elfSectionHdr64* dynStrTabSec = sectionHeaders[4];
@@ -594,8 +598,9 @@ void Elf64Handler::push(std::ofstream &stream) {
         elf64Dyn(ELF_DYN_TAG_PLTREL,ELF_DYN_TAG_RELA).push(dynamicData);
         elf64Dyn(ELF_DYN_TAG_JMPREL,relaPltSec->s_virtualAddress).push(dynamicData);
         elf64Dyn(ELF_DYN_TAG_FLAGS,ELF_DYN_F_BIND_NOW).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_FLAGS_1,ELF_DYN_F1_NOW).push(dynamicData);
+        elf64Dyn(ELF_DYN_TAG_FLAGS_1,ELF_DYN_F1_NOW|ELF_DYN_F1_SYMINTPOS).push(dynamicData);
         elf64Dyn(ELF_DYN_TAG_NULL,0).push(dynamicData);
+        //elf64Dyn(ELF_DYN_TAG_NULL,0).push(dynamicData);
         dynamicSec->s_size=14*sizeof(elf64Dyn);
         dynamicLoadSegment.s_sizeFile=dynamicLoadSegment.s_sizeMemory = dynamicSec->s_virtualAddress+dynamicSec->s_size-gotPltSec->s_virtualAddress;
         dynamicSegment.s_sizeFile=dynamicSegment.s_sizeMemory = dynamicSec->s_size;

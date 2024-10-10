@@ -792,6 +792,10 @@ void CallJmp(T& reciever, const char* arg, const char* instructionName, const ui
         pushByte(reciever, INSTR_Jv);
         pushDword(reciever, argInfo.numValFourBytes, true);
         if (debugInstructionOutput) cout << instructionName << " " << argInfo.properString << endl;
+    } else if (argInfo.isVar) {
+        pushByte(reciever, INSTR_Jv);
+        pushDword(reciever, argInfo.numValFourBytes, true);
+        resolveVar(reciever,argInfo.varName);
     } else {
         // ex: instr (reg or [eip/rip+num] or [reg+num] or [base+index*scale+num])
         if (argInfo.isIndirect&&(bitMode==64)&&(argInfo.bit==32)) pushByte(reciever, INTEL_INSTR_AddrSz_OVRD);

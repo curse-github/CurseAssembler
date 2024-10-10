@@ -15,21 +15,23 @@ int main(int argc, char *argv[]) {
         Elf64SegmentHandler *textSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ|ELF_SEGMENT_FLAG_EXECUTE);
         Elf64SegmentHandler *dataSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ);
         
-        textSeg->defineLabel("_main");
-        POP(textSeg,"rBP");
-        MOV(textSeg,"rBP","rSP");
-        /*
-        LEA(textSeg,"rAX","code");
-        MOV(textSeg,"rBX","[rAX]");
-        MOV(textSeg,"rAX",std::to_string(LINUX_SYSCALL_EXIT).c_str());
-        INT(textSeg,"0x80");
-        */
+        textSeg->defineLabel("JmpToEx");
+        pushDword(textSeg->data,0xfa1e0ff3,true);
         JMP(textSeg,"_Z2exv");
-        
-        elfHandler.addImport("libfake.so");
+        NOP(textSeg);NOP(textSeg);NOP(textSeg);
+        textSeg->defineLabel("_main");
+        pushDword(textSeg->data,0xfa1e0ff3,true);
+        PUSH(textSeg,"rBP");
+        MOV(textSeg,"rBP","rSP");
+        CALL(textSeg,"JmpToEx");
+        MOV(textSeg,"eax","0");
+        POP(textSeg,"rbp");
+        RET(textSeg);
 
         dataSeg->defineLabel("code");
         pushDword(dataSeg,15,true);
+
+        elfHandler.addImport("libfake.so");
 
         elfHandler.push(outFile);
         outFile.close();
