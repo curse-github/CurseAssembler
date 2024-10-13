@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
                 sectionHeaders.push_back(sectionHdrI);
             }
             secNameStrTableOffset=sectionHeaders[elfHeader.e_stringTableNdx].s_fileOffset;
-        std::cout << "reading elf section data\n";
+            std::cout << "reading elf section data\n";
             // read section data
             for (uint16_t i = 0; i < e_numSectionHdrs; i++) {
                 if (sectionHeaders[i].s_size==0) continue;
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
                 sectionData.push_back(readBytesAt(allData, sectionStart, sectionHeaders[i].s_size));
             }
         } else {
-            std::cout << "File has no sections.\n"; inFile.close();
+            std::cout << "File has no sections.\n";
         }
     } catch(const int& err) { std::cout << "EOF reached before expected\n"; inFile.close(); return 1; }
     catch ( ... ) { std::cout << "error...\n"; inFile.close(); return 1; }
@@ -263,7 +263,7 @@ int main(int argc, char *argv[]) {
                 if ((secHdr.s_virtualAddress>=segHdr.s_virtualAddress)&&((secHdr.s_virtualAddress+secHdr.s_size)<=(segHdr.s_virtualAddress+segHdr.s_sizeMemory))) {
                     if (foundSeg) std::cout << ", ";
                     foundSeg=true;
-                    std::cout << "<Seg#" << j << ", ";
+                    std::cout << "<Seg#" << (j+1) << ", ";
                     if (segHdr.s_type==ELF_SEGMENT_TYPE_LOAD) std::cout << "LOAD";
                     else if (segHdr.s_type==ELF_SEGMENT_TYPE_DYN) std::cout << "DYNAMIC";
                     else if (segHdr.s_type==ELF_SEGMENT_TYPE_INTP) std::cout << "INTERP";

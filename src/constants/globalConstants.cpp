@@ -116,7 +116,7 @@ void pushChars(T& reciever, const vector<uint8_t>& vector) {
 template void pushChars(ostream& stream, const vector<uint8_t>& vector);
 template void pushChars(ofstream& file, const vector<uint8_t>& vector);
 template void pushChars(vector<uint8_t>& vector1, const vector<uint8_t>& vector2);
-template void pushChars(Elf64SegmentHandler*& segment, const vector<uint8_t>& vector);
+template void pushChars(Elf64SectionHandler*& segment, const vector<uint8_t>& vector);
 template void pushChars(Pe64SectionHandler*& section, const vector<uint8_t>& vector);
 
 void setCharsAt(vector<uint8_t>& vector, const size_t& index, const uint8_t* chars, const size_t& len, const bool& LSB) {
@@ -145,22 +145,22 @@ void pushQword(T& reciever, const uint64_t& qword, const bool& LSB) {
 template void pushByte (ostream& stream, const uint8_t& byte);
 template void pushByte (ofstream& file, const uint8_t& byte);
 template void pushByte (vector<uint8_t>& vector, const uint8_t& byte);
-template void pushByte (Elf64SegmentHandler*& vector, const uint8_t& byte);
+template void pushByte (Elf64SectionHandler*& vector, const uint8_t& byte);
 template void pushByte (Pe64SectionHandler*& section, const uint8_t& byte);
 template void pushWord (ostream& stream, const uint16_t& word, const bool& LSB);
 template void pushWord (ofstream& file, const uint16_t& word, const bool& LSB);
 template void pushWord (vector<uint8_t>& vector, const uint16_t& word, const bool& LSB);
-template void pushWord (Elf64SegmentHandler*& vector, const uint16_t& word, const bool& LSB);
+template void pushWord (Elf64SectionHandler*& vector, const uint16_t& word, const bool& LSB);
 template void pushWord (Pe64SectionHandler*& section, const uint16_t& word, const bool& LSB);
 template void pushDword(ostream& stream, const uint32_t& dword, const bool& LSB);
 template void pushDword(ofstream& file, const uint32_t& dword, const bool& LSB);
 template void pushDword(vector<uint8_t>& vector, const uint32_t& dword, const bool& LSB);
-template void pushDword(Elf64SegmentHandler*& vector, const uint32_t& dword, const bool& LSB);
+template void pushDword(Elf64SectionHandler*& vector, const uint32_t& dword, const bool& LSB);
 template void pushDword(Pe64SectionHandler*& section, const uint32_t& dword, const bool& LSB);
 template void pushQword(ostream& stream, const uint64_t& qword, const bool& LSB);
 template void pushQword(ofstream& file, const uint64_t& qword, const bool& LSB);
 template void pushQword(vector<uint8_t>& vector, const uint64_t& qword, const bool& LSB);
-template void pushQword(Elf64SegmentHandler*& vector, const uint64_t& qword, const bool& LSB);
+template void pushQword(Elf64SectionHandler*& vector, const uint64_t& qword, const bool& LSB);
 template void pushQword(Pe64SectionHandler*& section, const uint64_t& qword, const bool& LSB);
 void setByteAt(vector<uint8_t>& vector, const size_t& index, const uint8_t& byte) {
     setCharsAt(vector, index,& byte, 1, false);
@@ -594,7 +594,7 @@ void resolveVar<ofstream>(ofstream& reciever, const string& varName){}
 template <>
 void resolveVar<vector<uint8_t>>(vector<uint8_t>& reciever, const string& varName){}
 template <>
-void resolveVar<Elf64SegmentHandler*>(Elf64SegmentHandler*& reciever, const string& varName){
+void resolveVar<Elf64SectionHandler*>(Elf64SectionHandler*& reciever, const string& varName){
     reciever->resolveLabel(varName,4);
 }
 template <>
@@ -708,14 +708,14 @@ template void AND(vector<uint8_t>& reciever, const char* dst, const char* src);
 template void SUB(vector<uint8_t>& reciever, const char* dst, const char* src);
 template void XOR(vector<uint8_t>& reciever, const char* dst, const char* src);
 template void CMP(vector<uint8_t>& reciever, const char* dst, const char* src);
-template void ADD(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
-template void OR (Elf64SegmentHandler*& reciever, const char* dst, const char* src);
-template void ADC(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
-template void SBB(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
-template void AND(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
-template void SUB(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
-template void XOR(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
-template void CMP(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void ADD(Elf64SectionHandler*& reciever, const char* dst, const char* src);
+template void OR (Elf64SectionHandler*& reciever, const char* dst, const char* src);
+template void ADC(Elf64SectionHandler*& reciever, const char* dst, const char* src);
+template void SBB(Elf64SectionHandler*& reciever, const char* dst, const char* src);
+template void AND(Elf64SectionHandler*& reciever, const char* dst, const char* src);
+template void SUB(Elf64SectionHandler*& reciever, const char* dst, const char* src);
+template void XOR(Elf64SectionHandler*& reciever, const char* dst, const char* src);
+template void CMP(Elf64SectionHandler*& reciever, const char* dst, const char* src);
 template void ADD(Pe64SectionHandler*& reciever, const char* dst, const char* src);
 template void OR (Pe64SectionHandler*& reciever, const char* dst, const char* src);
 template void ADC(Pe64SectionHandler*& reciever, const char* dst, const char* src);
@@ -769,8 +769,8 @@ template void INC(ofstream& reciever, const char* arg);
 template void DEC(ofstream& reciever, const char* arg);
 template void INC(vector<uint8_t>& reciever, const char* arg);
 template void DEC(vector<uint8_t>& reciever, const char* arg);
-template void INC(Elf64SegmentHandler*& reciever, const char* arg);
-template void DEC(Elf64SegmentHandler*& reciever, const char* arg);
+template void INC(Elf64SectionHandler*& reciever, const char* arg);
+template void DEC(Elf64SectionHandler*& reciever, const char* arg);
 template void INC(Pe64SectionHandler*& reciever, const char* arg);
 template void DEC(Pe64SectionHandler*& reciever, const char* arg);
 #pragma endregion IncDec
@@ -836,10 +836,10 @@ template void CALL(vector<uint8_t>& reciever, const char* arg);
 template void JMP(vector<uint8_t>& reciever, const char* arg);
 //template void CALLF(vector<uint8_t>& reciever, const char* arg);
 //template void JMPF(vector<uint8_t>& reciever, const char* arg);
-template void CALL(Elf64SegmentHandler*& reciever, const char* arg);
-template void JMP(Elf64SegmentHandler*& reciever, const char* arg);
-//template void CALLF(Elf64SegmentHandler& reciever, const char* arg);
-//template void JMPF(Elf64SegmentHandler& reciever, const char* arg);
+template void CALL(Elf64SectionHandler*& reciever, const char* arg);
+template void JMP(Elf64SectionHandler*& reciever, const char* arg);
+//template void CALLF(Elf64SectionHandler& reciever, const char* arg);
+//template void JMPF(Elf64SectionHandler& reciever, const char* arg);
 template void CALL(Pe64SectionHandler*& reciever, const char* arg);
 template void JMP(Pe64SectionHandler*& reciever, const char* arg);
 //template void CALLF(Pe64SectionHandler& reciever, const char* arg);
@@ -920,8 +920,8 @@ template void PUSH(ofstream& reciever, const char* arg);
 template void POP(ofstream& reciever, const char* arg);
 template void PUSH(vector<uint8_t>& reciever, const char* arg);
 template void POP(vector<uint8_t>& reciever, const char* arg);
-template void PUSH(Elf64SegmentHandler*& reciever, const char* arg);
-template void POP(Elf64SegmentHandler*& reciever, const char* arg);
+template void PUSH(Elf64SectionHandler*& reciever, const char* arg);
+template void POP(Elf64SectionHandler*& reciever, const char* arg);
 template void PUSH(Pe64SectionHandler*& reciever, const char* arg);
 template void POP(Pe64SectionHandler*& reciever, const char* arg);
 #pragma endregion PushPop
@@ -1127,7 +1127,7 @@ void LEA(T& reciever, const char* dst, const char* src) {
 }
 template void LEA(ofstream& reciever, const char* dst, const char* src);
 template void LEA(vector<uint8_t>& reciever, const char* dst, const char* src);
-template void LEA(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void LEA(Elf64SectionHandler*& reciever, const char* dst, const char* src);
 template void LEA(Pe64SectionHandler*& reciever, const char* dst, const char* src);
 
 #pragma region NOP
@@ -1164,8 +1164,8 @@ template void NOP(ofstream& reciever);
 template void NOP(ofstream& reciever, const char* arg);
 template void NOP(vector<uint8_t>& reciever);
 template void NOP(vector<uint8_t>& reciever, const char* arg);
-template void NOP(Elf64SegmentHandler*& reciever);
-template void NOP(Elf64SegmentHandler*& reciever, const char* arg);
+template void NOP(Elf64SectionHandler*& reciever);
+template void NOP(Elf64SectionHandler*& reciever, const char* arg);
 template void NOP(Pe64SectionHandler*& reciever);
 template void NOP(Pe64SectionHandler*& reciever, const char* arg);
 #pragma endregion NOP
@@ -1234,7 +1234,7 @@ void XCHG(T& reciever, const char* arg1, const char* arg2) {
 }
 template void XCHG(ofstream& reciever, const char* arg1, const char* arg2);
 template void XCHG(vector<uint8_t>& reciever, const char* arg1, const char* arg2);
-template void XCHG(Elf64SegmentHandler*& reciever, const char* arg1, const char* arg2);
+template void XCHG(Elf64SectionHandler*& reciever, const char* arg1, const char* arg2);
 template void XCHG(Pe64SectionHandler*& reciever, const char* arg1, const char* arg2);
 #pragma endregion XCHG
 
@@ -1292,7 +1292,7 @@ void MOV(T& reciever, const char* dst, const char* src) {
 }
 template void MOV(ofstream& reciever, const char* dst, const char* src);
 template void MOV(vector<uint8_t>& reciever, const char* dst, const char* src);
-template void MOV(Elf64SegmentHandler*& reciever, const char* dst, const char* src);
+template void MOV(Elf64SectionHandler*& reciever, const char* dst, const char* src);
 template void MOV(Pe64SectionHandler*& reciever, const char* dst, const char* src);
 #pragma endregion MOV
 
@@ -1341,10 +1341,10 @@ template void RET(vector<uint8_t>& reciever);
 template void RET(vector<uint8_t>& reciever, const char* num);
 template void RETF(vector<uint8_t>& reciever);
 template void RETF(vector<uint8_t>& reciever, const char* num);
-template void RET(Elf64SegmentHandler*& reciever);
-template void RET(Elf64SegmentHandler*& reciever, const char* num);
-template void RETF(Elf64SegmentHandler*& reciever);
-template void RETF(Elf64SegmentHandler*& reciever, const char* num);
+template void RET(Elf64SectionHandler*& reciever);
+template void RET(Elf64SectionHandler*& reciever, const char* num);
+template void RETF(Elf64SectionHandler*& reciever);
+template void RETF(Elf64SectionHandler*& reciever, const char* num);
 template void RET(Pe64SectionHandler*& reciever);
 template void RET(Pe64SectionHandler*& reciever, const char* num);
 template void RETF(Pe64SectionHandler*& reciever);
@@ -1378,11 +1378,11 @@ void INT(T& reciever,  const char* num) {
 }
 template void INT3(ofstream& reciever);
 template void INT3(vector<uint8_t>& reciever);
-template void INT3(Elf64SegmentHandler*& reciever);
+template void INT3(Elf64SectionHandler*& reciever);
 template void INT3(Pe64SectionHandler*& reciever);
 template void INT(ofstream& reciever, const char* num);
 template void INT(vector<uint8_t>& reciever, const char* num);
-template void INT(Elf64SegmentHandler*& reciever, const char* num);
+template void INT(Elf64SectionHandler*& reciever, const char* num);
 template void INT(Pe64SectionHandler*& reciever, const char* num);
 
 template <typename T>
@@ -1393,7 +1393,7 @@ void HLT(T& reciever) {
 }
 template void HLT(ofstream& reciever);
 template void HLT(vector<uint8_t>& reciever);
-template void HLT(Elf64SegmentHandler*& reciever);
+template void HLT(Elf64SectionHandler*& reciever);
 template void HLT(Pe64SectionHandler*& reciever);
 #pragma endregion IntHlt
 
@@ -1436,7 +1436,7 @@ void TEST(T& reciever, const char* arg1, const char* arg2) {
 }
 template void TEST(ofstream& reciever, const char* arg1, const char* arg2);
 template void TEST(vector<uint8_t>& reciever, const char* arg1, const char* arg2);
-template void TEST(Elf64SegmentHandler*& reciever, const char* arg1, const char* arg2);
+template void TEST(Elf64SectionHandler*& reciever, const char* arg1, const char* arg2);
 template void TEST(Pe64SectionHandler*& reciever, const char* arg1, const char* arg2);
 #pragma endregion Test
 
@@ -1476,8 +1476,8 @@ template void NOT(ofstream& reciever, const char* arg);
 template void NEG(ofstream& reciever, const char* arg);
 template void NOT(vector<uint8_t>& reciever, const char* arg);
 template void NEG(vector<uint8_t>& reciever, const char* arg);
-template void NOT(Elf64SegmentHandler*& reciever, const char* arg);
-template void NEG(Elf64SegmentHandler*& reciever, const char* arg);
+template void NOT(Elf64SectionHandler*& reciever, const char* arg);
+template void NEG(Elf64SectionHandler*& reciever, const char* arg);
 template void NOT(Pe64SectionHandler*& reciever, const char* arg);
 template void NEG(Pe64SectionHandler*& reciever, const char* arg);
 #pragma endregion NotNeg
@@ -1530,10 +1530,10 @@ template void UMUL(vector<uint8_t>& reciever, const char* arg);
 template void MUL(vector<uint8_t>& reciever, const char* arg);
 template void UDIV(vector<uint8_t>& reciever, const char* arg);
 template void DIV(vector<uint8_t>& reciever, const char* arg);
-template void UMUL(Elf64SegmentHandler*& reciever, const char* arg);
-template void MUL(Elf64SegmentHandler*& reciever, const char* arg);
-template void UDIV(Elf64SegmentHandler*& reciever, const char* arg);
-template void DIV(Elf64SegmentHandler*& reciever, const char* arg);
+template void UMUL(Elf64SectionHandler*& reciever, const char* arg);
+template void MUL(Elf64SectionHandler*& reciever, const char* arg);
+template void UDIV(Elf64SectionHandler*& reciever, const char* arg);
+template void DIV(Elf64SectionHandler*& reciever, const char* arg);
 template void UMUL(Pe64SectionHandler*& reciever, const char* arg);
 template void MUL(Pe64SectionHandler*& reciever, const char* arg);
 template void UDIV(Pe64SectionHandler*& reciever, const char* arg);
@@ -1592,12 +1592,12 @@ template void CLI(vector<uint8_t>& reciever);
 template void STI(vector<uint8_t>& reciever);
 template void CLD(vector<uint8_t>& reciever);
 template void STD(vector<uint8_t>& reciever);
-template void CLC(Elf64SegmentHandler*& reciever);
-template void STC(Elf64SegmentHandler*& reciever);
-template void CLI(Elf64SegmentHandler*& reciever);
-template void STI(Elf64SegmentHandler*& reciever);
-template void CLD(Elf64SegmentHandler*& reciever);
-template void STD(Elf64SegmentHandler*& reciever);
+template void CLC(Elf64SectionHandler*& reciever);
+template void STC(Elf64SectionHandler*& reciever);
+template void CLI(Elf64SectionHandler*& reciever);
+template void STI(Elf64SectionHandler*& reciever);
+template void CLD(Elf64SectionHandler*& reciever);
+template void STD(Elf64SectionHandler*& reciever);
 template void CLC(Pe64SectionHandler*& reciever);
 template void STC(Pe64SectionHandler*& reciever);
 template void CLI(Pe64SectionHandler*& reciever);

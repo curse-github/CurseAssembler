@@ -362,9 +362,11 @@ Elf64Handler::Elf64Handler() : elfHeader() {
     sectionStrTab="";
     curStrTabOffset=0;
 
-    elfSectionHdr64* nullSec = addSec("",ELF_SECTION_TYPE_NULL,0);
-    elfSectionHdr64* shStrTabSec = addSec(".strtab",ELF_SECTION_TYPE_STRTAB,ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_STRINGS);
-    elfHeader.e_stringTableNdx=1;
+    headSeg=addSeg(ELF_SEGMENT_TYPE_LOAD,ELF_SEGMENT_FLAG_READ);
+    headSeg->addSec("",ELF_SECTION_TYPE_NULL,0);
+    headSeg->addSec(".headers",ELF_SECTION_TYPE_PROGBITS,ELF_SECTION_FLAG_ALLOC);
+    headSeg->addSec(".shstrtab",ELF_SECTION_TYPE_STRTAB,ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_STRINGS);
+    elfHeader.e_stringTableNdx=2;
 }
 void Elf64Handler::push(std::ofstream &stream) {
     // get all exports from the avaliable so files that the user gave
@@ -381,24 +383,21 @@ void Elf64Handler::push(std::ofstream &stream) {
     // if the label is found in this file,
     // if it is not found within this code, search for it in the dll, and mark it to be imported
     // also save label indices if the label is found
-    std::vector<int32_t> labelResIdxToLabelIdx;
     int32_t numImports=0;
     for (unsigned int i = 0; i < labelResolutions.size(); i++) {
         Elf64LabelResolution resolution = labelResolutions[i];
         bool found=false;
         for (unsigned int j = 0; j < labels.size(); j++) {
             Elf64Label label = labels[j];
-            if (resolution.name.compare(label.name)==0) { found=true; labelResIdxToLabelIdx.push_back(j); break; }
+            if (resolution.name.compare(label.name)==0) { found=true; break; }
         }
         if (!found) {// label was not found in code, search for it in dlls
-            labelResIdxToLabelIdx.push_back(-1);
             for (size_t j = 0; j < numExports; j++) {
                 if (allExports[j].name.compare(resolution.name)==0) {
                     found=true;
                     if (exportImportIndex[j]==-1) {
                         imports.push_back({allExports[j].symTabIndex,&allExports[j].name,&allExports[j].soName});
                         exportImportIndex[j]=numImports;
-                        labelResIdxToLabelIdx[i]=labels.size()+numImports;
                         numImports++;
                     }
                 }
@@ -407,139 +406,93 @@ void Elf64Handler::push(std::ofstream &stream) {
         if (!found) { std::cout << "unresolved symbol " << resolution.name << " could not be found" << std::endl; return; }
     }
 
-    // create section containing headers and str tables
-    elfHeader.e_numSegmentHdrs = 1+segmentHeaders.size();
-    elfHeader.e_segmentHdrOffset=sizeof(elfHdr64) + sectionStrTab.size()+6;
-    elfHeader.e_numSectionHdrs = 0;
-    // segments that will only actually be added if there are imports
-    elfSegmentHdr64 dynamicSegment(ELF_SEGMENT_TYPE_DYN, ELF_SEGMENT_FLAG_READ|ELF_SEGMENT_FLAG_WRITE);
-    elfSegmentHdr64 dynamicLoadSegment(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ|ELF_SEGMENT_FLAG_WRITE);
-    elfSegmentHdr64 symbolsLoadSegment(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ);
-    elfSegmentHdr64 interpSegment(ELF_SEGMENT_TYPE_INTP, ELF_SEGMENT_FLAG_READ);
-    // data for the dynamic string table
-    std::string dynStrTab = "";
-    std::vector<uint32_t> dynStrTabIndexes;
-    uint32_t rPathAddr = 0;
-    // if imports are need add the sections needed for that and push the names of the imports to the dynamic string table
+    elfSegmentHdr64 dynamicSeg(ELF_SEGMENT_TYPE_DYN , ELF_SEGMENT_FLAG_READ|ELF_SEGMENT_FLAG_WRITE);
+    Elf64SegmentHandler* dynamicLoadSeg;
+    Elf64SegmentHandler* symbolsLoadSeg;
+    elfSegmentHdr64 interpSeg(ELF_SEGMENT_TYPE_INTP, ELF_SEGMENT_FLAG_READ);
+    
+    Elf64SectionHandler* interpSec;
+    Elf64SectionHandler* dynsymSec;
+    Elf64SectionHandler* dynstrSec;
+    Elf64SectionHandler* relapltSec;
+    Elf64SectionHandler* gotpltSec;
+    Elf64SectionHandler* dynamicSec;
+    
     if (numImports>0) {
-        elfHeader.e_segmentHdrOffset-=sectionStrTab.size();
-        elfSectionHdr64* interpSec = addSec(".interp",ELF_SECTION_TYPE_PROGBITS,ELF_SECTION_FLAG_ALLOC);
-        addSec(".dynsym",ELF_SECTION_TYPE_DYNSYM,ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_STRINGS);
-        elfSectionHdr64* dynStrTabSec = addSec(".dynstr",ELF_SECTION_TYPE_STRTAB,ELF_SECTION_FLAG_ALLOC);
-        addSec(".rela.plt",ELF_SECTION_TYPE_RELA,ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_INFO_LINK);
-        addSec(".dynamic",ELF_SECTION_TYPE_DYNAMIC,ELF_SECTION_FLAG_WRITE|ELF_SECTION_FLAG_ALLOC);
-        addSec(".got",ELF_SECTION_TYPE_PROGBITS,ELF_SECTION_FLAG_WRITE|ELF_SECTION_FLAG_ALLOC);
+        dynamicLoadSeg = addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ|ELF_SEGMENT_FLAG_WRITE);
+        symbolsLoadSeg = addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ);
 
-        interpSegment.s_fileOffset=interpSegment.s_virtualAddress=interpSegment.s_physAddress
-        = interpSec->s_fileOffset=interpSec->s_virtualAddress
-        = sizeof(elfHdr64)+addStrToTbl("/lib64/ld-linux-x86-64.so.2");
-        interpSegment.s_sizeFile=interpSegment.s_sizeMemory=interpSec->s_size=28;
+        interpSec = headSeg->addSec(".interp"  ,ELF_SECTION_TYPE_PROGBITS, ELF_SECTION_FLAG_ALLOC);
 
-        elfHeader.e_segmentHdrOffset+=sectionStrTab.size();
+        dynstrSec = headSeg->addSec(".dynstr"  ,ELF_SECTION_TYPE_STRTAB, ELF_SECTION_FLAG_ALLOC);
+        
+        relapltSec = symbolsLoadSeg->addSec(".rela.plt",ELF_SECTION_TYPE_RELA, ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_INFO_LINK);
+        relapltSec->sectionHeader.s_link=6;// index of .dynsym
+        relapltSec->sectionHeader.s_info=8;// index of .got.plt
+        relapltSec->sectionHeader.s_align=8;
+        relapltSec->sectionHeader.s_entSize=sizeof(elf64Rela);
+        
+        dynsymSec = symbolsLoadSeg->addSec(".dynsym"  ,ELF_SECTION_TYPE_DYNSYM, ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_STRINGS);
+        dynsymSec->sectionHeader.s_link=4;// index of .dynstr
+        dynsymSec->sectionHeader.s_align=8;
+        dynsymSec->sectionHeader.s_entSize=sizeof(elf64Symbol);
+        
+        gotpltSec = dynamicLoadSeg->addSec(".got.plt" ,ELF_SECTION_TYPE_PROGBITS, ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_WRITE);
+        gotpltSec->sectionHeader.s_align=8;
+        gotpltSec->sectionHeader.s_entSize=8;
 
-        // .dynstrtab section
-        // push dynamic string table
+        dynamicSec = dynamicLoadSeg->addSec(".dynamic" ,ELF_SECTION_TYPE_DYNAMIC, ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_WRITE);
+        dynamicSec->sectionHeader.s_link=4;// index of .dynstr
+        dynamicSec->sectionHeader.s_align=8;
+        dynamicSec->sectionHeader.s_entSize=sizeof(elf64Dyn);
+
+        // .interp section
+        interpSec->defineLabel("interp");
+        std::string interpreter = "/lib64/ld-linux-x86-64.so.2";
+        for (size_t i = 0; i < interpreter.size(); i++)
+            pushByte(interpSec,interpreter[i]);
+        pushByte(interpSec,'\0');
+
+        // .dynstr section
+        std::vector<uint32_t> dynStrTabIndexes;
         dynStrTabIndexes.push_back(0);
-        dynStrTab+='\0';
+        pushByte(dynstrSec,'\0');
         // push import names
         for (size_t i = 0; i < numImports; i++) {
-            dynStrTabIndexes.push_back(dynStrTab.size());
-            dynStrTab+=*imports[i].name+'\0';
+            std::string str = *imports[i].name;
+            dynStrTabIndexes.push_back(dynstrSec->data.size());
+            for (size_t i = 0; i < str.size(); i++)
+                pushByte(dynstrSec,str[i]);
+            pushByte(dynstrSec,'\0');
         }
         // push so names
         for (size_t i = 0; i < numImports; i++) {
-            dynStrTabIndexes.push_back(dynStrTab.size());
-            dynStrTab+=*imports[i].soName+'\0';
+            std::string str = *imports[i].soName;
+            dynStrTabIndexes.push_back(dynstrSec->data.size());
+            for (size_t i = 0; i < str.size(); i++)
+                pushByte(dynstrSec,str[i]);
+            pushByte(dynstrSec,'\0');
         }
         // push RPATH
-        rPathAddr=dynStrTab.size();
-        dynStrTab+=".:/usr/lib";
-        dynStrTab+='\0';
-        elfHeader.e_numSegmentHdrs+=4;
-        elfHeader.e_segmentHdrOffset+=dynStrTab.size();
-        elfHeader.e_numSectionHdrs = sectionHeaders.size()+1;
-
-        dynStrTabSec->s_fileOffset = elfHeader.e_segmentHdrOffset-dynStrTab.size();
-        dynStrTabSec->s_virtualAddress = 0x0000000000000000+dynStrTabSec->s_fileOffset;
-        dynStrTabSec->s_size=dynStrTab.size();
-    }
-    elfSectionHdr64* textSec = addSec(".text",ELF_SECTION_TYPE_PROGBITS,ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_EXEC);
-
-    elfSectionHdr64* shStrTabSec = sectionHeaders[1];
-    shStrTabSec->s_fileOffset = sizeof(elfHdr64);
-    shStrTabSec->s_virtualAddress = 0x0000000000000000+sizeof(elfHdr64);
-    shStrTabSec->s_size=sectionStrTab.size();
-
-    elfSegmentHdr64 headSeg(ELF_SEGMENT_TYPE_LOAD,ELF_SEGMENT_FLAG_READ);
-    headSeg.s_virtualAddress = headSeg.s_physAddress = 0x0000000000000000;
-    headSeg.s_fileOffset = 0;
-    headSeg.s_sizeFile = headSeg.s_sizeMemory = elfHeader.e_segmentHdrOffset + elfHeader.e_numSegmentHdrs * sizeof(elfSegmentHdr64);
-
-    // set offsets, and virtual addresses of the rest of the segments
-    uint32_t baseOffset = roundToAlign(headSeg.s_sizeFile,SECTION_ALIGN);//FILE_ALIGN);
-    uint32_t runningOffset = baseOffset;
-    uint32_t runningRVA = roundToAlign(baseOffset,SECTION_ALIGN);
-    for (uint32_t i = 0; i < segmentHeaders.size(); i++) {
-        segmentHeaders[i]->setOffset(runningOffset);
-        segmentHeaders[i]->setRVA(runningRVA);
-        segmentHeaders[i]->setSectionAlign(SECTION_ALIGN);
-        segmentHeaders[i]->setFileAlign(SECTION_ALIGN);//FILE_ALIGN);
-        uint32_t segmentSize = segmentHeaders[i]->getSize();
-        uint32_t virtSize = roundToAlign(segmentSize,SECTION_ALIGN);
-        uint32_t fileSize = roundToAlign(segmentSize,SECTION_ALIGN);//FILE_ALIGN);
-        runningOffset += fileSize;
-        runningRVA += virtSize;
-    }
-    textSec->s_virtualAddress=textSec->s_fileOffset=segmentHeaders[0]->segmentHeader.s_virtualAddress;
-    textSec->s_size=segmentHeaders[0]->data.size();
-
-    // create and fill .dynamic, .dynstr, .dynsym, .plt.got, and .rela.plt sections within a DYNAMIC type and LOAD type segments
-    std::vector<uint8_t> dynamicData;
-    if (numImports>0) {
-        symbolsLoadSegment.s_virtualAddress=symbolsLoadSegment.s_physAddress = 0x0000000000000000+runningRVA;
-        symbolsLoadSegment.s_fileOffset = runningOffset;
-        dynamicLoadSegment.s_align=dynamicSegment.s_align = symbolsLoadSegment.s_align = 1;//SECTION_ALIGN;
-
-        elfSectionHdr64* dynSymSec    = sectionHeaders[3];
-        elfSectionHdr64* dynStrTabSec = sectionHeaders[4];
-        elfSectionHdr64* relaPltSec   = sectionHeaders[5];
-        elfSectionHdr64* dynamicSec   = sectionHeaders[6];
-        elfSectionHdr64* gotPltSec    = sectionHeaders[7];
-        dynSymSec->s_link=4;
-        dynamicSec->s_link=4;
-        uint32_t align = 0x80;
+        dynStrTabIndexes.push_back(dynstrSec->data.size());
+        uint32_t runPathOffset=dynstrSec->data.size();
+        std::string str = ".:/usr/lib";
+        for (size_t i = 0; i < str.size(); i++)
+            pushByte(dynstrSec,str[i]);
+        pushByte(dynstrSec,'\0');
 
         // .rela.plt section
-        relaPltSec->s_virtualAddress=0x0000000000000000+runningRVA;
-        relaPltSec->s_fileOffset=runningOffset;
-        relaPltSec->s_size=numImports*sizeof(elf64Rela);
-        relaPltSec->s_link=3;
-        relaPltSec->s_info=7;
-        relaPltSec->s_align=8;
-        relaPltSec->s_entSize=sizeof(elf64Rela);
-        // push rela entries
         for (size_t i = 0; i < numImports; i++) {
             elf64Rela rela;
-            rela.r_offset=0x3100+3*8+i*8;
+            rela.r_offset=0x3000+3*8+i*8;
             rela.r_symtabIndex=1+i;
             rela.r_type=ELF64_REL_TYPE_AMD64_JUMP_SLOT;
             rela.r_addend=0;
-            rela.push(dynamicData);
+            rela.push(relapltSec->data);
         }
-        // add padding to vector, runningOffset, and runningRVA
-        runningRVA+=relaPltSec->s_size; runningOffset+=relaPltSec->s_size;
-        padBytes(dynamicData,roundToAlign(runningOffset,align)-runningOffset);
-        runningRVA=roundToAlign(runningRVA,align); runningOffset=roundToAlign(runningOffset,align);
-        
-        // .dynsym section
-        dynSymSec->s_virtualAddress=0x0000000000000000+runningRVA;
-        dynSymSec->s_fileOffset=runningOffset;
-        dynSymSec->s_size=sizeof(elf64Symbol)+numImports*sizeof(elf64Symbol);
-        dynSymSec->s_info=1;
-        dynSymSec->s_align=8;
-        dynSymSec->s_entSize=sizeof(elf64Symbol);
-        // push dynamic symbols
-        elf64Symbol().push(dynamicData);// push a null symbol
+
+        // .dynstr section
+        elf64Symbol().push(dynsymSec->data);// push a null symbol
         for (size_t i = 0; i < numImports; i++) {
             elf64Symbol dynSym;
             dynSym.sy_name_idx=1+i;
@@ -547,101 +500,108 @@ void Elf64Handler::push(std::ofstream &stream) {
             dynSym.sy_secIdx=0;
             dynSym.sy_value=0;
             dynSym.sy_size=0;
-            dynSym.push(dynamicData);
+            dynSym.push(dynsymSec->data);
         }
-        // add padding to vector, runningOffset, and runningRVA
-        runningRVA+=dynSymSec->s_size; runningOffset+=dynSymSec->s_size;
-        padBytes(dynamicData,roundToAlign(runningOffset,align)-runningOffset);
-        runningRVA=roundToAlign(runningRVA,align); runningOffset=roundToAlign(runningOffset,align);
-
-        symbolsLoadSegment.s_sizeFile = symbolsLoadSegment.s_sizeMemory = dynamicData.size();
 
         // .got.plt section
-        gotPltSec->s_virtualAddress=0x0000000000000000+runningRVA;
-        dynamicLoadSegment.s_virtualAddress=dynamicLoadSegment.s_physAddress = gotPltSec->s_virtualAddress;
-        gotPltSec->s_fileOffset=runningOffset;
-        dynamicLoadSegment.s_fileOffset = gotPltSec->s_fileOffset;
-        gotPltSec->s_align=8;
-        gotPltSec->s_entSize=8;
-        gotPltSec->s_size=3*8+numImports*8;
-        // push got entries, which are just 64 bit numbers
-        pushQword(dynamicData,0x0,true);
-        pushQword(dynamicData,0,true);
-        pushQword(dynamicData,0,true);
+        pushQword(gotpltSec->data,0,true);
+        pushQword(gotpltSec->data,0,true);
+        pushQword(gotpltSec->data,0,true);
         for (size_t i = 0; i < numImports; i++) {
-            defineLabel(*imports[i].name,&symbolsLoadSegment,dynamicData.size());
-            pushQword(dynamicData,0x0,true);
+            gotpltSec->defineLabel(*imports[i].name);
+            pushQword(gotpltSec->data,0x0,true);
         }
-        // add padding to vector, runningOffset, and runningRVA
-        runningRVA+=gotPltSec->s_size; runningOffset+=gotPltSec->s_size;
-        padBytes(dynamicData,roundToAlign(runningOffset,align)-runningOffset);
-        runningRVA=roundToAlign(runningRVA,align); runningOffset=roundToAlign(runningOffset,align);
 
         // .dynamic section
-        dynamicSec->s_virtualAddress=0x0000000000000000+runningRVA;
-        dynamicSegment.s_virtualAddress=dynamicSegment.s_physAddress = dynamicSec->s_virtualAddress;
-        dynamicSec->s_fileOffset=runningOffset;
-        dynamicSegment.s_fileOffset = dynamicSec->s_fileOffset;
-        dynamicSec->s_align=8;
-        dynamicSec->s_entSize=sizeof(elf64Dyn);
-        // push dynamic data
-        elf64Dyn(ELF_DYN_TAG_NEEDED,dynStrTabIndexes[1+numImports]).push(dynamicData);// first dll name in dynamic string table
-        elf64Dyn(ELF_DYN_TAG_RUNPATH,rPathAddr).push(dynamicData);
+        elf64Dyn(ELF_DYN_TAG_NEEDED,dynStrTabIndexes[1+numImports]).push(dynamicSec->data);// first dll name in dynamic string table
+        elf64Dyn(ELF_DYN_TAG_RUNPATH,runPathOffset).push(dynamicSec->data);
         //elf64Dyn(0x000000006ffffef5,0).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_STRTAB,dynStrTabSec->s_virtualAddress).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_SYMTAB,dynSymSec->s_virtualAddress).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_STRSZ,dynStrTabSec->s_size).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_SYMENT,sizeof(elf64Symbol)).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_DEBUG,0).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_PLTGOT,gotPltSec->s_virtualAddress).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_PLTRELSZ,sizeof(elf64Rela)).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_PLTREL,ELF_DYN_TAG_RELA).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_JMPREL,relaPltSec->s_virtualAddress).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_FLAGS,ELF_DYN_F_BIND_NOW).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_FLAGS_1,ELF_DYN_F1_NOW|ELF_DYN_F1_SYMINTPOS).push(dynamicData);
-        elf64Dyn(ELF_DYN_TAG_NULL,0).push(dynamicData);
-        //elf64Dyn(ELF_DYN_TAG_NULL,0).push(dynamicData);
-        dynamicSec->s_size=14*sizeof(elf64Dyn);
-        dynamicLoadSegment.s_sizeFile=dynamicLoadSegment.s_sizeMemory = dynamicSec->s_virtualAddress+dynamicSec->s_size-gotPltSec->s_virtualAddress;
-        dynamicSegment.s_sizeFile=dynamicSegment.s_sizeMemory = dynamicSec->s_size;
-        // add padding to vector, runningOffset, and runningRVA
-        runningRVA+=dynamicSec->s_size; runningOffset+=dynamicSec->s_size;
-        padBytes(dynamicData,roundToAlign(runningOffset,align)-runningOffset);
-        runningRVA=roundToAlign(runningRVA,align); runningOffset=roundToAlign(runningOffset,align);
+        elf64Dyn(ELF_DYN_TAG_STRTAB,0).push(dynamicSec->data); dynamicSec->resolveLabel(".dynstr",8,true);
+        elf64Dyn(ELF_DYN_TAG_SYMTAB,0).push(dynamicSec->data); dynamicSec->resolveLabel(".dynsym",8,true);
+        elf64Dyn(ELF_DYN_TAG_STRSZ,dynstrSec->data.size()).push(dynamicSec->data);
+        elf64Dyn(ELF_DYN_TAG_SYMENT,sizeof(elf64Symbol)).push(dynamicSec->data);
+        //elf64Dyn(ELF_DYN_TAG_DEBUG,0).push(dynamicSec->data);
+        elf64Dyn(ELF_DYN_TAG_PLTGOT,0).push(dynamicSec->data); dynamicSec->resolveLabel(".got.plt",8,true);
+        elf64Dyn(ELF_DYN_TAG_PLTRELSZ,sizeof(elf64Rela)).push(dynamicSec->data);
+        elf64Dyn(ELF_DYN_TAG_PLTREL,ELF_DYN_TAG_RELA).push(dynamicSec->data);
+        elf64Dyn(ELF_DYN_TAG_JMPREL,0).push(dynamicSec->data); dynamicSec->resolveLabel(".rela.plt",8,true);
+        elf64Dyn(ELF_DYN_TAG_FLAGS,ELF_DYN_F_BIND_NOW).push(dynamicSec->data);
+        elf64Dyn(ELF_DYN_TAG_FLAGS_1,ELF_DYN_F1_NOW|ELF_DYN_F1_SYMINTPOS).push(dynamicSec->data);
+        elf64Dyn(ELF_DYN_TAG_NULL,0).push(dynamicSec->data);
     }
-    elfHeader.e_sectionHdrOffset=roundToAlign(runningOffset,SECTION_ALIGN);
+
+    for (size_t i = 0; i < sectionStrTab.size(); i++)
+        pushByte(headSeg->sections[2],sectionStrTab[i]);
+    
+    //push headers
+    elfHeader.push(headSeg->sections[1]->data);
+    for (uint32_t i = 0; i < segments.size(); i++)
+        segments[i]->pushHeader(headSeg->sections[1]->data);
+    if (numImports>0) { interpSeg.push(headSeg->sections[1]->data); dynamicSeg.push(headSeg->sections[1]->data); }
+
+    // set offsets, and virtual addresses of the rest of the segments
+    uint32_t runningOffset = 0;
+    uint32_t runningRVA = 0;
+    for (uint32_t i = 0; i < segments.size(); i++) {
+        segments[i]->setOffset(runningOffset);
+        segments[i]->setRVA(runningRVA);
+        segments[i]->setSectionAlign(SECTION_ALIGN);
+        segments[i]->setFileAlign(SECTION_ALIGN);//FILE_ALIGN);
+        segments[i]->segmentHeader.s_sizeFile = segments[i]->segmentHeader.s_sizeMemory = segments[i]->getSize();
+        uint32_t segmentSize = segments[i]->getSize();
+        uint32_t virtSize = roundToAlign(segmentSize,SECTION_ALIGN);
+        uint32_t fileSize = roundToAlign(segmentSize,SECTION_ALIGN);//FILE_ALIGN);
+        runningOffset += fileSize;
+        runningRVA += virtSize;
+    }
 
     // resolve labels
     for (unsigned int i = 0; i < labelResolutions.size(); i++) {
         Elf64LabelResolution resolution = labelResolutions[i];
-        Elf64Label label = labels[labelResIdxToLabelIdx[i]];
-        setDwordAt(resolution.base->data,resolution.setAt,(label.base->s_virtualAddress-0x0000000000000000+label.offset)-(resolution.base->getRVA()+resolution.setAt)-resolution.relativeToOffset,true);
+        for (unsigned int j = 0; j < labels.size(); j++) {
+            Elf64Label label = labels[j];
+            if (resolution.name.compare(label.name)==0) {
+                setDwordAt(
+                    resolution.base->data,resolution.setAt,
+                    (label.base->s_virtualAddress-0x0000000000000000+label.offset)-(resolution.isAbsolute?((resolution.base->getRVA()+resolution.setAt)-resolution.relativeToOffset):0),
+                    true
+                );
+                break;
+            }
+        }
     }
-    for (unsigned int i = 0; i < labels.size(); i++) if (labels[i].name.compare("_main")==0) { elfHeader.e_entryAddress=(labels[i].base->s_virtualAddress+labels[i].offset); break;}
-
-    // push elf header and string tables
-    elfHeader.push(stream);
-    for (size_t i = 0; i < sectionStrTab.size(); i++)
-        pushByte(stream,sectionStrTab[i]);
-    if (numImports>0)
-        for (size_t i = 0; i < dynStrTab.size(); i++)
-            pushByte(stream,dynStrTab[i]);
-    //push segment headers
-    if (numImports>0) { interpSegment.push(stream); }
-    headSeg.push(stream);
-    for (uint32_t i = 0; i < segmentHeaders.size(); i++)
-        segmentHeaders[i]->pushHeader(stream);
-    if (numImports>0) { symbolsLoadSegment.push(stream); dynamicLoadSegment.push(stream); dynamicSegment.push(stream); }
-    // push segment data
-    padBytes(stream,baseOffset-headSeg.s_sizeFile);
-    for (uint32_t i = 0; i < segmentHeaders.size(); i++) {
-        segmentHeaders[i]->pushData(stream);
-        padBytes(stream,SECTION_ALIGN-(segmentHeaders[i]->getSize()%(SECTION_ALIGN)));
+    for (unsigned int i = 0; i < labels.size(); i++) {
+        Elf64Label label = labels[i];
+        if (labels[i].name.compare("_main")==0) {
+            elfHeader.e_entryAddress=(labels[i].base->s_virtualAddress-0x0000000000000000+labels[i].offset); break;
+        }
     }
-    // push data in the dynamic section, if there is imports
-    if (numImports>0) { pushChars(stream,dynamicData); padBytes(stream,SECTION_ALIGN-(dynamicData.size()%(SECTION_ALIGN))); }
+    
+    interpSeg.s_fileOffset = headSeg->sections[3]->sectionHeader.s_fileOffset;
+    interpSeg.s_virtualAddress=interpSeg.s_physAddress = headSeg->sections[3]->sectionHeader.s_virtualAddress;
+    interpSeg.s_sizeFile = interpSeg.s_sizeMemory = headSeg->sections[3]->sectionHeader.s_size;
+    
+    dynamicSeg.s_fileOffset = dynamicLoadSeg->sections[1]->sectionHeader.s_fileOffset;
+    dynamicSeg.s_virtualAddress=dynamicSeg.s_physAddress = dynamicLoadSeg->sections[1]->sectionHeader.s_virtualAddress;
+    dynamicSeg.s_sizeFile = dynamicSeg.s_sizeMemory = dynamicLoadSeg->sections[1]->sectionHeader.s_size;
+    
+    headSeg->sections[1]->data.clear();
+    elfHeader.e_numSegmentHdrs=segments.size();
+    if (numImports>0) elfHeader.e_numSegmentHdrs+=2;
+    elfHeader.e_numSectionHdrs=0;
+    for (size_t i = 0; i < segments.size(); i++)
+        elfHeader.e_numSectionHdrs+=segments[i]->sections.size();
+    elfHeader.e_sectionHdrOffset=runningOffset;
+    elfHeader.push(headSeg->sections[1]->data);
+    for (uint32_t i = 0; i < segments.size(); i++)
+        segments[i]->pushHeader(headSeg->sections[1]->data);
+    if (numImports>0) { interpSeg.push(headSeg->sections[1]->data); dynamicSeg.push(headSeg->sections[1]->data); }
+    for (uint32_t i = 0; i < segments.size(); i++) {
+        segments[i]->pushData(stream);
+        padBytes(stream,SECTION_ALIGN-(segments[i]->segmentHeader.s_sizeFile%(SECTION_ALIGN)));
+    }
     // push section headers at the very end
-    for (size_t i = 0; i < elfHeader.e_numSectionHdrs; i++) sectionHeaders[i]->push(stream);
+    for (size_t i = 0; i < segments.size(); i++) segments[i]->pushSectionHeaders(stream);
 }
 uint32_t Elf64Handler::addStrToTbl(const std::string& str) {
     uint32_t tmp = curStrTabOffset;
@@ -651,18 +611,14 @@ uint32_t Elf64Handler::addStrToTbl(const std::string& str) {
 }
 Elf64SegmentHandler* Elf64Handler::addSeg(const uint32_t &type, const uint32_t &flags) {
     Elf64SegmentHandler *hdr = new Elf64SegmentHandler(*this, type, flags);
-    segmentHeaders.push_back(hdr);
+    segments.push_back(hdr);
     return hdr;
 }
-elfSectionHdr64* Elf64Handler::addSec(const std::string& name, const uint32_t& type, const uint32_t& flags) {
-    sectionHeaders.push_back(new elfSectionHdr64(addStrToTbl(name),type,flags));
-    return sectionHeaders[sectionHeaders.size()-1];
-}
-void Elf64Handler::defineLabel(const std::string& name, elfSegmentHdr64* base, const uint32_t& offset) {
+void Elf64Handler::defineLabel(const std::string& name, elfSectionHdr64* base, const uint32_t& offset) {
     labels.push_back(Elf64Label(name,base,offset));
 }
-void Elf64Handler::resolveLabel(const std::string& name, Elf64SegmentHandler* base, const uint32_t& setAt, const int32_t& relativeToOffset) {
-    labelResolutions.push_back(Elf64LabelResolution(name,base,setAt,relativeToOffset));
+void Elf64Handler::resolveLabel(const std::string& name, Elf64SectionHandler* base, const uint32_t& setAt, const int32_t& relativeToOffset, const bool& isAbsolute) {
+    labelResolutions.push_back(Elf64LabelResolution(name,base,setAt,relativeToOffset,isAbsolute));
 }
 void Elf64Handler::addImport(const std::string& soName) {
     avaliableSos.push_back(soName);
@@ -670,21 +626,33 @@ void Elf64Handler::addImport(const std::string& soName) {
 #pragma endregion  // elfHandler
 
 #pragma region Elf64SegmentHandler
-template <>
-void pushChars(Elf64SegmentHandler*& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
-    pushChars(reciever->data, chars, len, LSB);
-}
 Elf64SegmentHandler::Elf64SegmentHandler(Elf64Handler &_elfHandler, const uint32_t &type, const uint32_t &flags) : elfHandler(_elfHandler), segmentHeader(type, flags) {
 }
-void Elf64SegmentHandler::pushHeader(std::ofstream &stream, const int32_t& size) {
-    segmentHeader.s_sizeFile = segmentHeader.s_sizeMemory = ((size==-1)?data.size():size);
+void Elf64SegmentHandler::pushHeader(std::ofstream &stream) {
     segmentHeader.push(stream);
 }
-void Elf64SegmentHandler::pushData(std::ofstream &stream) {
-    pushChars(stream, data);
+void Elf64SegmentHandler::pushHeader(std::vector<uint8_t>& vec) {
+    segmentHeader.push(vec);
 }
+void Elf64SegmentHandler::pushData(std::ofstream &stream) {
+    for (size_t i = 0; i < sections.size(); i++)
+        pushChars(stream, sections[i]->data);
+}
+void Elf64SegmentHandler::pushSectionHeaders(std::ofstream &stream) {
+    for (size_t i = 0; i < sections.size(); i++) {
+        sections[i]->sectionHeader.push(stream);
+    }
+}
+Elf64SectionHandler* Elf64SegmentHandler::addSec(const std::string& name, const uint32_t& type, const uint32_t& flags) {
+    sections.push_back(new Elf64SectionHandler(*this,name,type,flags));
+    return sections[sections.size()-1];
+}
+
 uint32_t Elf64SegmentHandler::getSize() {
-    return data.size();
+    uint32_t tmp = 0;
+    for (size_t i = 0; i < sections.size(); i++)
+        tmp+=sections[i]->data.size();
+    return tmp;
 }
 // alignment stuff
 void Elf64SegmentHandler::setSectionAlign(const uint32_t& align) {
@@ -696,6 +664,12 @@ void Elf64SegmentHandler::setFileAlign(const uint32_t& align) {
 // offset stuff
 void Elf64SegmentHandler::setOffset(const uint32_t &offset) {
     segmentHeader.s_fileOffset = offset;
+    uint32_t runningOffset = offset;
+    for (size_t i = 0; i < sections.size(); i++) {
+        sections[i]->sectionHeader.s_fileOffset=runningOffset;
+        sections[i]->sectionHeader.s_size=sections[i]->data.size();
+        runningOffset+=sections[i]->data.size();
+    }
 }
 uint32_t Elf64SegmentHandler::getOffset() {
     return segmentHeader.s_fileOffset;
@@ -703,16 +677,35 @@ uint32_t Elf64SegmentHandler::getOffset() {
 // RVA stuff
 void Elf64SegmentHandler::setRVA(const uint32_t &Rva) {
     segmentHeader.s_virtualAddress = segmentHeader.s_physAddress = 0x0000000000000000+Rva;// offset in memory, can be different if you have uninitialized data
+    uint32_t runningRVA = Rva;
+    for (size_t i = 0; i < sections.size(); i++) {
+        sections[i]->sectionHeader.s_virtualAddress=0x0000000000000000+runningRVA;
+        sections[i]->sectionHeader.s_size=sections[i]->data.size();
+        runningRVA+=sections[i]->data.size();
+    }
 }
 uint32_t Elf64SegmentHandler::getRVA() {
     return segmentHeader.s_virtualAddress-0x0000000000000000;
 };
-// label stuff
-void Elf64SegmentHandler::defineLabel(const std::string& name) {
-    elfHandler.defineLabel(name,&segmentHeader,data.size());
-}
-void Elf64SegmentHandler::resolveLabel(const std::string& name, const int32_t& relativeToOffset) {
-    elfHandler.resolveLabel(name,this,data.size()-relativeToOffset,relativeToOffset);
-}
-
 #pragma endregion  // Elf64SegmentHandler
+
+#pragma region Elf64SectionHandler
+Elf64SectionHandler::Elf64SectionHandler(Elf64SegmentHandler &_segmentHandler, const std::string& name, const uint32_t& type, const uint32_t& flags)
+    : segmentHandler(_segmentHandler), sectionHeader(elfSectionHdr64(segmentHandler.elfHandler.addStrToTbl(name),type,flags)) {
+}
+// RVA stuff
+uint32_t Elf64SectionHandler::getRVA() {
+    return sectionHeader.s_virtualAddress-0x0000000000000000;
+};
+// label stuff
+void Elf64SectionHandler::defineLabel(const std::string& name) {
+    segmentHandler.elfHandler.defineLabel(name,&sectionHeader,data.size());
+}
+void Elf64SectionHandler::resolveLabel(const std::string& name, const int32_t& relativeToOffset, const bool& isAbsolute) {
+    segmentHandler.elfHandler.resolveLabel(name,this,data.size()-relativeToOffset,relativeToOffset,isAbsolute);
+}
+template <>
+void pushChars(Elf64SectionHandler*& reciever, const uint8_t* chars, const size_t& len, const bool& LSB) {
+    pushChars(reciever->data, chars, len, LSB);
+}
+#pragma endregion// Elf64SectionHandler

@@ -12,24 +12,28 @@ int main(int argc, char *argv[]) {
         elf_machine = ELF_MACHINE_AMD64;
 
         Elf64Handler elfHandler;
-        Elf64SegmentHandler *textSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ|ELF_SEGMENT_FLAG_EXECUTE);
-        Elf64SegmentHandler *dataSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ);
-        
-        textSeg->defineLabel("JmpToEx");
-        pushDword(textSeg->data,0xfa1e0ff3,true);
-        JMP(textSeg,"_Z2exv");
-        NOP(textSeg);NOP(textSeg);NOP(textSeg);
-        textSeg->defineLabel("_main");
-        pushDword(textSeg->data,0xfa1e0ff3,true);
-        PUSH(textSeg,"rBP");
-        MOV(textSeg,"rBP","rSP");
-        CALL(textSeg,"JmpToEx");
-        MOV(textSeg,"eax","0");
-        POP(textSeg,"rbp");
-        RET(textSeg);
+        Elf64SegmentHandler* textSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ|ELF_SEGMENT_FLAG_EXECUTE);
+        Elf64SegmentHandler* dataSeg = elfHandler.addSeg(ELF_SEGMENT_TYPE_LOAD, ELF_SEGMENT_FLAG_READ);
+        Elf64SectionHandler* pltSec = textSeg->addSec(".plt", ELF_SECTION_TYPE_PROGBITS, ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_EXEC);
+        Elf64SectionHandler* textSec = textSeg->addSec(".text", ELF_SECTION_TYPE_PROGBITS, ELF_SECTION_FLAG_ALLOC|ELF_SECTION_FLAG_EXEC);
+        Elf64SectionHandler* dataSec = dataSeg->addSec(".data", ELF_SECTION_TYPE_PROGBITS, ELF_SECTION_FLAG_ALLOC);
 
-        dataSeg->defineLabel("code");
-        pushDword(dataSeg,15,true);
+        // sec .plt
+        pltSec->defineLabel("JmpToEx");
+        pushDword(pltSec->data,0xfa1e0ff3,true);
+        JMP(pltSec,"_Z2exv");
+        // sec .text
+        textSec->defineLabel("_main");
+        pushDword(textSec->data,0xfa1e0ff3,true);
+        PUSH(textSec,"rBP");
+        MOV(textSec,"rBP","rSP");
+        CALL(textSec,"JmpToEx");
+        MOV(textSec,"eax","0");
+        POP(textSec,"rbp");
+        RET(textSec);
+
+        dataSec->defineLabel("exit_code");
+        pushDword(dataSec,15,true);
 
         elfHandler.addImport("libfake.so");
 

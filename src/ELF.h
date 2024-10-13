@@ -90,6 +90,17 @@ struct elfSegmentHdr64 {
         pushQword(stream, s_sizeMemory, LSB);
         pushQword(stream, s_align, LSB);
     }
+    void push(std::vector<uint8_t>& vec) {
+        bool LSB = elf_encoding == ELF_ENCODING_LSB;  // is little endian
+        pushDword(vec, s_type, LSB);
+        pushDword(vec, s_flags, LSB);
+        pushQword(vec, s_fileOffset, LSB);
+        pushQword(vec, s_virtualAddress, LSB);
+        pushQword(vec, s_physAddress, LSB);
+        pushQword(vec, s_sizeFile, LSB);
+        pushQword(vec, s_sizeMemory, LSB);
+        pushQword(vec, s_align, LSB);
+    }
     bool read(std::ifstream& stream, uint32_t& count) {
         try {
             s_type = readDword(stream, count);
@@ -676,19 +687,22 @@ struct soExportData {
 std::vector<soExportData> parseSo(const std::string& name);
 
 #pragma region handlers
+class Elf64SegmentHandler;
+class Elf64SectionHandler;
+
 struct Elf64Label {
     std::string name;
-    elfSegmentHdr64* base;
+    elfSectionHdr64* base;
     uint32_t offset;
-    Elf64Label(const std::string& _name, elfSegmentHdr64* _base, const uint32_t& _offset) : name(_name),base(_base),offset(_offset) {};
+    Elf64Label(const std::string& _name, elfSectionHdr64* _base, const uint32_t& _offset) : name(_name), base(_base), offset(_offset) {};
 };
-class Elf64SegmentHandler;
 struct Elf64LabelResolution {
     std::string name;
-    Elf64SegmentHandler* base;
+    Elf64SectionHandler* base;
     uint32_t setAt;
     int32_t relativeToOffset;
-    Elf64LabelResolution(const std::string& _name, Elf64SegmentHandler* _base, const uint32_t& _setAt, const int32_t& _relativeToOffset) : name(_name),base(_base),setAt(_setAt),relativeToOffset(_relativeToOffset) {};
+    bool isAbsolute;
+    Elf64LabelResolution(const std::string& _name, Elf64SectionHandler* _base, const uint32_t& _setAt, const int32_t& _relativeToOffset, const bool& _isAbsolute=false) : name(_name), base(_base), setAt(_setAt), relativeToOffset(_relativeToOffset), isAbsolute(_isAbsolute) {};
 };
 struct elf64ImportData {
     uint32_t symTabIndex;
@@ -698,8 +712,8 @@ struct elf64ImportData {
 class Elf64Handler {
 private:
     elfHdr64 elfHeader;
-    std::vector<Elf64SegmentHandler*> segmentHeaders;
-    std::vector<elfSectionHdr64*> sectionHeaders;
+    std::vector<Elf64SegmentHandler*> segments;
+    Elf64SegmentHandler* headSeg;
     std::string sectionStrTab;
     uint32_t curStrTabOffset;
 
@@ -713,23 +727,26 @@ public:
     void push(std::ofstream& stream);
     uint32_t addStrToTbl(const std::string& str);
     Elf64SegmentHandler* addSeg(const uint32_t& type, const uint32_t& flags);
-    elfSectionHdr64* addSec(const std::string& name, const uint32_t& type, const uint32_t& flags);
-    void defineLabel(const std::string& name, elfSegmentHdr64* base, const uint32_t& offset);
-    void resolveLabel(const std::string& name, Elf64SegmentHandler* base, const uint32_t& setAt, const int32_t& relativeToOffset);
+    void defineLabel(const std::string& name, elfSectionHdr64* base, const uint32_t& offset);
+    void resolveLabel(const std::string& name, Elf64SectionHandler* base, const uint32_t& setAt, const int32_t& relativeToOffset, const bool& isAbsolute=false);
     void addImport(const std::string& soName);
 };
 
 class Elf64SegmentHandler {
+public:
     Elf64Handler& elfHandler;
     elfSegmentHdr64 segmentHeader;
-public:
+
+    std::vector<Elf64SectionHandler*> sections;
     uint32_t sectionAlignment=1;
     uint32_t fileAlignment=1;
-    std::vector<uint8_t> data;
 
     Elf64SegmentHandler(Elf64Handler& _elfHandler, const uint32_t& type, const uint32_t& flags);
-    void pushHeader(std::ofstream& stream, const int32_t& size=-1);
+    void pushHeader(std::ofstream& stream);
+    void pushHeader(std::vector<uint8_t>& vec);
     void pushData(std::ofstream& stream);
+    void pushSectionHeaders(std::ofstream& stream);
+    Elf64SectionHandler* addSec(const std::string& name, const uint32_t& type, const uint32_t& flags);
 
     uint32_t getSize();
     void setSectionAlign(const uint32_t& align);
@@ -739,17 +756,28 @@ public:
     void setRVA(const uint32_t& Rva);
     uint32_t getRVA();
 
+};
+class Elf64SectionHandler {
+    public:
+    Elf64SegmentHandler& segmentHandler;
+    elfSectionHdr64 sectionHeader;
+
+    std::vector<uint8_t> data;
+    Elf64SectionHandler(Elf64SegmentHandler &_elfHandler, const std::string& name, const uint32_t& type, const uint32_t& flags);
+
+    uint32_t getRVA();
+    
     // calls the Pe64Handler with "base" set to this, "offset" set to the current position
     void defineLabel(const std::string& name);
     // calls the Pe64Handler with "base" set to this, "setAt" set to the current position - relativeToOffset
-    void resolveLabel(const std::string& name, const int32_t& relativeToOffset);
+    void resolveLabel(const std::string& name, const int32_t& relativeToOffset, const bool& isAbsolute=false);
 
     friend Elf64Handler;
     template <typename T>
     friend void pushChars(T& segment, const uint8_t* chars, const size_t& len, const bool& LSB);
 };
 template <>
-void pushChars(Elf64SegmentHandler*& reciever, const uint8_t* chars, const size_t& len, const bool& LSB);
+void pushChars(Elf64SectionHandler*& reciever, const uint8_t* chars, const size_t& len, const bool& LSB);
 #pragma endregion  // handlers
 
 #endif  // _ELF_H
